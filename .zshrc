@@ -108,41 +108,10 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-
-# pnpm
-export PNPM_HOME="/home/rafaeltab/.local/share/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
-esac
-# pnpm end
-# bun completions
-[ -s "/home/rafaeltab/.bun/_bun" ] && source "/home/rafaeltab/.bun/_bun"
-
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-export PATH=$PATH:/usr/local/go/bin
-export PATH=$PATH:/usr/local/bin/liquibase
-export PATH=$PATH:/home/rafaeltab/bin
-export PATH=$PATH:/home/rafaeltab/kafka_2.13-3.3.1/bin
-export PATH=$PATH:$(go env GOPATH)/bin
 alias k='kubectl'
-export PATH="/home/rafaeltab/.local/bin:$PATH"
-
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f '/home/rafaeltab/google-cloud-sdk/path.zsh.inc' ]; then . '/home/rafaeltab/google-cloud-sdk/path.zsh.inc'; fi
-
-# The next line enables shell command completion for gcloud.
-if [ -f '/home/rafaeltab/google-cloud-sdk/completion.zsh.inc' ]; then . '/home/rafaeltab/google-cloud-sdk/completion.zsh.inc'; fi
-export PATH=$PATH:/home/rafaeltab/.nvm/versions/node/v18.17.1/bin
-
-
-autoload -U +X bashcompinit && bashcompinit
-complete -o nospace -C /home/rafaeltab/go/bin/terramate terramate
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# Run machine specific zshrc
+[[ ! -f ~/.specific.zshrc ]] || source ~/.specific.zshrc
