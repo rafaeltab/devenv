@@ -441,7 +441,13 @@ function setup(plugins)
     -- clangd = {},
     -- gopls = {},
     -- pyright = {},
-    rust_analyzer = {},
+    rust_analyzer = {
+      ["rust-analyzer"] = {
+        checkOnSave = {
+          command = "clippy",
+        },
+      },
+    },
     bufls = {},
     lua_ls = {
       Lua = {
