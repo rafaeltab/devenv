@@ -67,6 +67,48 @@ function setup(plugins)
       dependencies = { "nvim-tree/nvim-web-devicons" },
     },
     {
+      "MunifTanjim/nui.nvim"
+    },
+    {
+      "folke/noice.nvim",
+      event = "VeryLazy",
+      opts = {
+        lsp = {
+          -- override markdown rendering so that **cmp** and other plugins use **Treesitter**
+          override = {
+            ["vim.lsp.util.convert_input_to_markdown_lines"] = true,
+            ["vim.lsp.util.stylize_markdown"] = true,
+            ["cmp.entry.get_documentation"] = true, -- requires hrsh7th/nvim-cmp
+          },
+        },
+        -- you can enable a preset for easier configuration
+        presets = {
+          bottom_search = true,         -- use a classic bottom cmdline for search
+          command_palette = true,       -- position the cmdline and popupmenu together
+          long_message_to_split = true, -- long messages will be sent to a split
+          inc_rename = false,           -- enables an input dialog for inc-rename.nvim
+          lsp_doc_border = false,       -- add a border to hover docs and signature help
+        },
+      },
+      dependencies = {
+        -- if you lazy-load any plugin below, make sure to add proper `module="..."` entries
+        "MunifTanjim/nui.nvim",
+        -- OPTIONAL:
+        --   `nvim-notify` is only needed, if you want to use the notification view.
+        --   If not available, we use `mini` as the fallback
+        "rcarriga/nvim-notify",
+      }
+    },
+    {
+      "rcarriga/nvim-notify",
+      opts = {
+        background_color = "#000000"
+      }
+    },
+    {
+      "aznhe21/actions-preview.nvim"
+    },
+    {
       "epwalsh/obsidian.nvim",
       version = "*", -- recommended, use latest release instead of latest commit
       lazy = true,
@@ -104,7 +146,8 @@ function setup(plugins)
         "nvim-treesitter/nvim-treesitter",
         "antoinemadec/FixCursorHold.nvim",
         'sidlatau/neotest-dart',
-        'rouge8/neotest-rust'
+        'rouge8/neotest-rust',
+        'nvim-neotest/nvim-nio'
       },
       config = function()
         require("neotest").setup({
@@ -206,7 +249,7 @@ function setup(plugins)
     { 'numToStr/Comment.nvim',         opts = {} },
 
     -- Fuzzy Finder (files, lsp, etc)
-    { 'nvim-telescope/telescope.nvim', version = '*', dependencies = { 'nvim-lua/plenary.nvim' } },
+    { 'nvim-telescope/telescope.nvim', version = '*', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { defaults = { path_display = { "truncate" } } } },
 
     -- Fuzzy Finder Algorithm which requires local dependencies to be built.
     -- Only load if `make` is available. Make sure you have the system
@@ -249,6 +292,17 @@ function setup(plugins)
     vim.api.nvim_set_hl(0, "RainbowViolet", { fg = "#C678DD" })
     vim.api.nvim_set_hl(0, "RainbowCyan", { fg = "#56B6C2" })
   end)
+
+  vim.api.nvim_set_hl(0, "Normal", { bg = "NONE" })
+
+  vim.api.nvim_set_hl(0, "NotifyBackground", { bg = "NONE" })
+  vim.api.nvim_set_hl(0, "NoiceCmdlinePopup", { bg = "NONE" })
+  vim.api.nvim_set_hl(0, "NoiceCmdline", { bg = "NONE" })
+
+  ---@diagnostic disable-next-line: missing-fields
+  require("notify").setup({
+    background_colour = "#000000"
+  })
   vim.g.rainbow_delimiters = { highlight = highlight }
   require("ibl").setup {
     indent = {
@@ -413,7 +467,7 @@ function setup(plugins)
 
     nmap('K', vim.lsp.buf.hover, 'Hover')
     nmap('<leader>rn', vim.lsp.buf.rename, '[R]e[n]ame')
-    nmap('<leader>ca', vim.lsp.buf.code_action, '[C]ode [A]ction')
+    nmap('<leader>ca', require("actions-preview").code_actions, '[C]ode [A]ction')
 
     nmap('gd', vim.lsp.buf.definition, '[G]oto [D]efinition')
     nmap('gr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
@@ -421,10 +475,9 @@ function setup(plugins)
     nmap('<leader>D', vim.lsp.buf.type_definition, 'Type [D]efinition')
     nmap('<leader>ds', require('telescope.builtin').lsp_document_symbols, '[D]ocument [S]ymbols')
     nmap('<leader>ws', require('telescope.builtin').lsp_dynamic_workspace_symbols, '[W]orkspace [S]ymbols')
-    local neotest =
-        nmap('<leader>tr', function()
-          require("neotest").run.run()
-        end, '[T]est [R]un')
+    nmap('<leader>tr', function()
+      require("neotest").run.run()
+    end, '[T]est [R]un')
     nmap('<leader>tf', function()
       require("neotest").run.run(vim.fn.expand("%"))
     end, '[T]est [F]ile')
@@ -519,7 +572,6 @@ function setup(plugins)
 
   completion.post_plugins(completion)
 
-  vim.api.nvim_set_hl(0, "Normal", { bg = "NONE" })
 
   vim.api.nvim_set_keymap("", ";", "l", { noremap = true })
   vim.api.nvim_set_keymap("", "l", "k", { noremap = true })
