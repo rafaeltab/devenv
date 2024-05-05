@@ -28,6 +28,12 @@ function setup(plugins)
   vim.g.maplocalleader = ' '
   vim.g.netrw_liststyle = 3
 
+  vim.filetype.add({
+    extension = {
+      mdx = "mdx"
+    }
+  })
+
   -- Install package manager
   --    https://github.com/folke/lazy.nvim
   --    `:help lazy.nvim.txt` for more info
@@ -272,7 +278,10 @@ function setup(plugins)
       dependencies = {
         'nvim-treesitter/nvim-treesitter-textobjects',
       },
-      config = function()
+      config = function(_, opts)
+        require("nvim-treesitter.configs").setup(opts)
+        -- tell treesitter to use the markdown parser for mdx files
+        vim.treesitter.language.register('markdown', 'mdx')
         pcall(require('nvim-treesitter.install').update { with_sync = true })
       end,
     },
