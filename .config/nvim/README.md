@@ -1,6 +1,6 @@
 # List of legends:
-- AlphaKeks
-- nocksock
-- nikfp
-- xorg-dogma
-- Dan
+- @AlphaKeks
+- @nocksock
+- @nikfp
+- @xorg-dogma
+- @Dan

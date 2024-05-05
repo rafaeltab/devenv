@@ -20,7 +20,7 @@ local map = function(mode, lhs, rhs, opts)
 end
 
 function setup(plugins)
-  -- The base configuration for nvim and vscode-nvim
+  -- The base configuration for `nvim` and `vscode-nvim`
   -- Set <space> as the leader key
   -- See `:help mapleader`
   --  NOTE: Must happen before plugins are required (otherwise wrong leader will be used)
@@ -147,6 +147,7 @@ function setup(plugins)
         "antoinemadec/FixCursorHold.nvim",
         'sidlatau/neotest-dart',
         'rouge8/neotest-rust',
+        'nvim-neotest/neotest-go',
         'nvim-neotest/nvim-nio'
       },
       config = function()
@@ -157,7 +158,8 @@ function setup(plugins)
               use_lsp = true,
               custom_test_method_names = { "blocTest" }
             },
-            require("neotest-rust")
+            require("neotest-rust"),
+            require("neotest-go")
           },
           consumers = { require("neotest").diagnostic, require("neotest").status }
         })
@@ -292,12 +294,6 @@ function setup(plugins)
     vim.api.nvim_set_hl(0, "RainbowViolet", { fg = "#C678DD" })
     vim.api.nvim_set_hl(0, "RainbowCyan", { fg = "#56B6C2" })
   end)
-
-  vim.api.nvim_set_hl(0, "Normal", { bg = "NONE" })
-
-  vim.api.nvim_set_hl(0, "NotifyBackground", { bg = "NONE" })
-  vim.api.nvim_set_hl(0, "NoiceCmdlinePopup", { bg = "NONE" })
-  vim.api.nvim_set_hl(0, "NoiceCmdline", { bg = "NONE" })
 
   ---@diagnostic disable-next-line: missing-fields
   require("notify").setup({
@@ -507,7 +503,7 @@ function setup(plugins)
   --  the `settings` field of the server config. You must look up that documentation yourself.
   local servers = {
     -- clangd = {},
-    -- gopls = {},
+    gopls = {},
     -- pyright = {},
     rust_analyzer = {
       ["rust-analyzer"] = {
@@ -523,6 +519,10 @@ function setup(plugins)
         telemetry = { enable = false },
       },
     },
+    vale_ls = {
+      filetypes = { "markdown", "text", "dart" },
+      -- filetypes = { "*" },
+    }
   }
   servers = vim.tbl_deep_extend("keep", servers, languages.mason)
 
@@ -555,10 +555,12 @@ function setup(plugins)
     ensure_installed = vim.tbl_keys(servers),
   }
   function setup_server(server_name)
+    local filetypes = settings[server_name].filetypes
     require("lspconfig")[server_name].setup {
       capabilities = capabilities,
       on_attach = on_attach,
       settings = settings[server_name],
+      filetypes = filetypes
     }
   end
 
