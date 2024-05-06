@@ -136,12 +136,8 @@ function setup(plugins)
         workspaces = {
           {
             name = "Coding knowledge",
-            path = "/home/rafaeltab/home/notes/coding_knowledge",
-          },
-          {
-            name = "rafaeltab command line tool",
-            path = "/home/rafaeltab/home/notes/rafaeltab command line tool",
-          },
+            path = "~/home/notes/coding_knowledge",
+          }
         },
       },
     },
@@ -228,7 +224,13 @@ function setup(plugins)
       },
     },
     {
-      'theprimeagen/harpoon'
+      'theprimeagen/harpoon',
+      opts = {
+        menu = {
+          width = math.floor(vim.api.nvim_win_get_width(0) / 2),
+          height = math.floor(vim.api.nvim_win_get_height(0) / 2),
+        }
+      }
     },
     {
       "folke/noice.nvim",
@@ -365,7 +367,7 @@ function setup(plugins)
     treesitter_highlight = false
   end
 
-  local treesitter_languages = vim.list_extend({ 'c', 'cpp', 'go', 'lua', 'python', 'rust', 'vimdoc', 'vim' },
+  local treesitter_languages = vim.list_extend({ 'c', 'cpp', 'go', 'lua', 'python', 'rust', 'vimdoc', 'vim', 'ini' },
     languages.treesitter)
 
 
