@@ -1,6 +1,3 @@
-require "utils.plugins"
-require "utils.on_load"
-
 local highlight = {
 	"RainbowRed",
 	"RainbowYellow",

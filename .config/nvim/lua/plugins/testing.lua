@@ -1,6 +1,3 @@
-require "utils.on_attach"
-require "utils.plugins"
-
 Plugins:add({
 	{
 		"nvim-neotest/neotest",

@@ -1,3 +1,8 @@
+require "utils.on_attach"
+require "utils.on_load"
+require "utils.plugins"
+require "utils.utils"
+
 require 'keybinds'
 require 'plugins.appearance'
 require 'plugins.completion'
@@ -13,19 +18,7 @@ require 'plugins.utilities'
 
 require 'lsp';
 
-require "utils.on_attach"
-require "utils.on_load"
-require "utils.plugins"
-
 local languages = require 'languages.languages'
-
-Map = function(mode, lhs, rhs, opts)
-  local options = { noremap = true, silent = true }
-  if opts then
-    options = vim.tbl_extend("force", options, opts)
-  end
-  vim.keymap.set(mode, lhs, rhs, options)
-end
 
 function setup(plugins)
   -- The base configuration for `nvim` and `vscode-nvim`
@@ -58,11 +51,6 @@ function setup(plugins)
   end
   vim.opt.rtp:prepend(lazypath)
 
-  -- NOTE: Here is where you install your plugins.
-  --  You can configure plugins using the `config` key.
-  --
-  --  You can also configure plugins after the setup call,
-  --    as they will be available in your neovim runtime.
   require('lazy').setup({
     plugins,
     languages.plugins,
@@ -72,5 +60,4 @@ function setup(plugins)
   OnLoad:load()
 
   require 'options'
-  -- The line beneath this is called `modeline`. See `:help modeline`
 end

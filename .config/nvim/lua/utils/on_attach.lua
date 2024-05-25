@@ -14,21 +14,3 @@ function OnAttach:attach(client, bufnr)
         action(client, bufnr)
     end
 end
-
----@param bufnr integer
----@param keys string
----@param func function
----@param desc string
-Nmap = function(bufnr, keys, func, desc)
-    if desc then
-        desc = 'LSP: ' .. desc
-    end
-
-    if not func then
-        error("We got an empty func!", 2)
-    end
-
-    vim.keymap.set('n', keys, func, { buffer = bufnr, desc = desc })
-end
-
-return {}

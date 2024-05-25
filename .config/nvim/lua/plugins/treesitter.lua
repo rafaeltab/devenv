@@ -1,7 +1,4 @@
 local languages = require 'languages.languages'
-require "utils.on_load"
-require "utils.plugins"
-
 Plugins:add({
 	{
 		-- Highlight, edit, and navigate code

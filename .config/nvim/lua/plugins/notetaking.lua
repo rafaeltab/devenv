@@ -1,6 +1,3 @@
-require "utils.on_load"
-require "utils.plugins"
-
 Plugins:add({
 	{
 		"epwalsh/obsidian.nvim",

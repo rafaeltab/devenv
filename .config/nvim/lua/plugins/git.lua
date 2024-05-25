@@ -1,6 +1,3 @@
-require "utils.plugins"
-require "utils.on_load"
-
 Plugins:add({
 	{
 		-- Adds git releated signs to the gutter, as well as utilities for managing changes

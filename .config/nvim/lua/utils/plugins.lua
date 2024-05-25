@@ -12,5 +12,3 @@ end
 function Plugins:get_plugins()
     return self.plugins
 end
-
-return {}

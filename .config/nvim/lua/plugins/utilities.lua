@@ -1,5 +1,3 @@
-require "utils.plugins"
-
 Plugins:add({
 	"ThePrimeagen/vim-be-good",
 	{ 'numToStr/Comment.nvim', opts = {} },

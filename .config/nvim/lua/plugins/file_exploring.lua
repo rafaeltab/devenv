@@ -1,6 +1,3 @@
-require "utils.plugins"
-require "utils.on_load"
-
 Plugins:add({
 	{
 		'stevearc/oil.nvim',

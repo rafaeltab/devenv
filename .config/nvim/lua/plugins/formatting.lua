@@ -1,6 +1,3 @@
-require "utils.on_attach"
-require "utils.on_load"
-
 local format = function()
 	vim.lsp.buf.format({ async = true })
 end

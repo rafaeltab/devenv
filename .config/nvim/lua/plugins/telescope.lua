@@ -1,7 +1,3 @@
-require "utils.on_attach"
-require "utils.on_load"
-require "utils.plugins"
-
 Plugins:add({
   {
     'nvim-telescope/telescope-fzf-native.nvim',

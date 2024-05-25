@@ -13,5 +13,3 @@ function OnLoad:load()
         action()
     end
 end
-
-return {}
