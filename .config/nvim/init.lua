@@ -1,3 +1,5 @@
+package.path = package.path .. ";" .. vim.fn.stdpath("config") .. "/lua/?.lua"
+
 -- The nvim configuration for nvim
 require 'base'
 

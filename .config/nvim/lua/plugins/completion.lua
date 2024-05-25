@@ -1,16 +1,15 @@
-completion = {}
+require "utils.plugins"
+require "utils.on_load"
 
-function completion:plugins()
-	return {
-		{
-			-- Autocompletion
-			'hrsh7th/nvim-cmp',
-			dependencies = { 'hrsh7th/cmp-nvim-lsp', 'L3MON4D3/LuaSnip', 'saadparwaiz1/cmp_luasnip' },
-		}
+Plugins:add({
+	{
+		-- Autocompletion
+		'hrsh7th/nvim-cmp',
+		dependencies = { 'hrsh7th/cmp-nvim-lsp', 'L3MON4D3/LuaSnip', 'saadparwaiz1/cmp_luasnip' },
 	}
-end
+})
 
-function completion:post_plugins()
+OnLoad:add(function()
 	-- nvim-cmp setup
 	local cmp = require 'cmp'
 	local luasnip = require 'luasnip'
@@ -61,4 +60,4 @@ function completion:post_plugins()
 			{ name = 'luasnip' },
 		},
 	}
-end
+end)
