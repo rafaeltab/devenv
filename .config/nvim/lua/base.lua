@@ -1,6 +1,7 @@
 require "utils.on_attach"
 require "utils.on_load"
 require "utils.plugins"
+require "utils.languages"
 require "utils.utils"
 
 require 'keybinds'
@@ -16,9 +17,15 @@ require 'plugins.testing'
 require 'plugins.treesitter'
 require 'plugins.utilities'
 
-require 'lsp';
+require 'languages.dart'
+require 'languages.java'
+require 'languages.json'
+require 'languages.markdown'
+require 'languages.terraform'
+require 'languages.typescript'
+require 'languages.yaml'
 
-local languages = require 'languages.languages'
+require 'lsp';
 
 function setup(plugins)
   -- The base configuration for `nvim` and `vscode-nvim`
@@ -53,7 +60,6 @@ function setup(plugins)
 
   require('lazy').setup({
     plugins,
-    languages.plugins,
     Plugins:get_plugins()
   }, {})
 

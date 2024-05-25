@@ -1,10 +1,5 @@
-return {
-  lsp = {
-    use = 'mason',
-    mason = {
-      ["terraformls"] = {},
-    }
-  },
-  plugins = { 'terramate-io/vim-terramate' },
-  treesitter = { 'terraform' }
-}
+Languages:add_lspconfig(true, "terraformls", {})
+Plugins:add({
+  'terramate-io/vim-terramate'
+})
+Languages:add_treesitter("terraform")

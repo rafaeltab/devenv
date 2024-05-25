@@ -1,14 +1,7 @@
-return {
-  lsp = {
-    use = 'settings',
-    settings = {
-      dartls = {
-        dart = {
-          lineLength = 120
-        },
-      }
-    }
+Languages:add_lspconfig(false, "dartls", {
+  dart = {
+    lineLength = 120
   },
-  plugins = {},
-  treesitter = { 'dart' }
-}
+})
+
+Languages:add_treesitter("dart")

@@ -1,4 +1,3 @@
-local languages = require 'languages.languages'
 Plugins:add({
 	{
 		-- Highlight, edit, and navigate code
@@ -16,7 +15,7 @@ OnLoad:add(function()
 	end
 
 	local treesitter_languages = vim.list_extend({ 'c', 'cpp', 'go', 'lua', 'python', 'rust', 'vimdoc', 'vim', 'ini' },
-		languages.treesitter)
+		Languages.treesitter)
 
 
 	-- [[ Configure Treesitter ]]

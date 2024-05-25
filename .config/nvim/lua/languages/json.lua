@@ -1,10 +1,2 @@
-return {
-  lsp = {
-    use = 'mason',
-    mason = {
-      jsonls = {},
-    }
-  },
-  plugins = {},
-  treesitter = { 'json' }
-}
+Languages:add_lspconfig(true, "jsonls", {})
+Languages:add_treesitter("json")

@@ -1,10 +1,2 @@
-return {
-  lsp = {
-    use = 'mason',
-    mason = {
-      ["java_language_server"] = {},
-    }
-  },
-  plugins = {},
-  treesitter = { 'json' }
-}
+Languages:add_lspconfig(true, "java_language_server", {})
+Languages:add_treesitter("java")

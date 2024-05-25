@@ -1,8 +1,6 @@
 require "utils.on_attach"
 require "utils.plugins"
 
-local languages = require 'languages.languages'
-
 Plugins:add({
     {
         "aznhe21/actions-preview.nvim"
@@ -37,40 +35,31 @@ OnLoad:add(function()
     vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = "Open floating diagnostic message" })
     vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = "Open diagnostics list" })
 
-
     vim.diagnostic.config({
         underline = true
     })
 
-    local servers = {
-        svelte = {},
-        html = {},
-        -- clangd = {},
-        gopls = {},
-        -- pyright = {},
-        rust_analyzer = {
-            ["rust-analyzer"] = {
-                checkOnSave = {
-                    command = "clippy",
-                },
+    Languages:add_lspconfig(true, "svelte", {})
+    Languages:add_lspconfig(true, "html", {})
+    Languages:add_lspconfig(true, "gopls", {})
+    Languages:add_lspconfig(true, "rust_analyzer", {
+        ["rust-analyzer"] = {
+            checkOnSave = {
+                command = "clippy",
             },
         },
-        bufls = {},
-        lua_ls = {
-            Lua = {
-                workspace = { checkThirdParty = false },
-                telemetry = { enable = false },
-            },
+    })
+    Languages:add_lspconfig(true, "bufls", {})
+    Languages:add_lspconfig(true, "lua_ls", {
+        Lua = {
+            workspace = { checkThirdParty = false },
+            telemetry = { enable = false },
         },
-        vale_ls = {
-            filetypes = { "markdown", "text" --[[ , "dart" ]] },
-            -- filetypes = { "*" },
-        }
-    }
-    servers = vim.tbl_deep_extend("keep", servers, languages.mason)
-
-    local settings = vim.tbl_deep_extend("keep", servers, languages.settings)
-
+    })
+    Languages:add_lspconfig(true, "vale_ls", {
+        filetypes = { "markdown", "text" --[[ , "dart" ]] },
+        -- filetypes = { "*" },
+    })
 
     -- nvim-cmp supports additional completion capabilities, so broadcast that to servers
     local capabilities = vim.lsp.protocol.make_client_capabilities()
@@ -93,23 +82,25 @@ OnLoad:add(function()
     local mason_lspconfig = require 'mason-lspconfig'
 
     mason_lspconfig.setup {
-        ensure_installed = vim.tbl_keys(servers),
+        ensure_installed = Languages.mason,
     }
+
     local function setup_server(server_name)
-        local filetypes = settings[server_name].filetypes
+        local server_config = Languages.lspconfig[server_name]
+        if not server_config then
+            return
+        end
+
+        local filetypes = server_config.filetypes
         require("lspconfig")[server_name].setup {
             capabilities = capabilities,
             on_attach = function(client, bufnr) OnAttach:attach(client, bufnr) end,
-            settings = settings[server_name],
+            settings = server_config,
             filetypes = filetypes
         }
     end
 
-    mason_lspconfig.setup_handlers {
-        setup_server
-    }
-
-    for k in pairs(languages.settings) do
+    for k in pairs(Languages.lspconfig) do
         setup_server(k)
     end
 end)
