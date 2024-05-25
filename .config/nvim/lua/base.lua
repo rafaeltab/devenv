@@ -284,7 +284,6 @@ function setup(plugins)
         require("nvim-treesitter.configs").setup(opts)
         -- tell treesitter to use the markdown parser for mdx files
         vim.treesitter.language.register('markdown', 'mdx')
-        pcall(require('nvim-treesitter.install').update { with_sync = true })
       end,
     },
     plugins,
@@ -513,6 +512,8 @@ function setup(plugins)
   --  Add any additional override configuration in the following tables. They will be passed to
   --  the `settings` field of the server config. You must look up that documentation yourself.
   local servers = {
+    svelte = {},
+    html = {},
     -- clangd = {},
     gopls = {},
     -- pyright = {},
@@ -531,7 +532,7 @@ function setup(plugins)
       },
     },
     vale_ls = {
-      filetypes = { "markdown", "text", "dart" },
+      filetypes = { "markdown", "text" --[[ , "dart" ]] },
       -- filetypes = { "*" },
     }
   }

@@ -27,7 +27,7 @@ setup({
     'navarasu/onedark.nvim',
     priority = 1000,
     config = {
-      style = "light",
+      style = "darker",
       transparent = true,
     },
   }
