@@ -119,3 +119,4 @@ alias k='kubectl'
 # Run machine specific zshrc
 [[ ! -f ~/.specific.zshrc ]] || source ~/.specific.zshrc
 
+VALE_CONFIG_PATH="$HOME/.config/vale/.vale.ini"

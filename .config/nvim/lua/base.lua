@@ -16,6 +16,7 @@ require 'plugins.telescope'
 require 'plugins.testing'
 require 'plugins.treesitter'
 require 'plugins.utilities'
+require 'filetypes'
 
 require 'languages.dart'
 require 'languages.java'

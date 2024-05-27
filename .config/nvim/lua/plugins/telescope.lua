@@ -24,7 +24,13 @@ OnLoad:add(function()
         },
       },
     },
+    pickers = {
+      find_files = {
+        hidden = true
+      }
+    }
   }
+
 
   -- Enable telescope fzf native, if installed
   pcall(require('telescope').load_extension, 'fzf')
