@@ -25,8 +25,26 @@ OnLoad:add(function()
       },
     },
     pickers = {
+      live_grep = {
+        additional_args = { '--hidden', '-g', '!node_modules/**', '-g', '!.git/**', },
+      },
       find_files = {
-        hidden = true
+        find_command = { 'rg', '--files', '--hidden', '-g', '!node_modules/**', '-g', '!.git/**', },
+        mappings = {
+          n = {
+            ["cd"] = function(prompt_bufnr)
+              local selection = require("telescope.actions.state").get_selected_entry()
+              local dir = vim.fn.fnamemodify(selection.path, ":p:h")
+              require("telescope.actions").close(prompt_bufnr)
+
+              local oil = require("oil")
+              oil.open(dir)
+            end
+          }
+        }
+      },
+      diagnostics = {
+        sort_by = "severity"
       }
     }
   }
@@ -51,6 +69,7 @@ OnLoad:add(function()
   vim.keymap.set('n', '<leader>sw', require('telescope.builtin').grep_string, { desc = '[S]earch current [W]ord' })
   vim.keymap.set('n', '<leader>sg', require('telescope.builtin').live_grep, { desc = '[S]earch by [G]rep' })
   vim.keymap.set('n', '<leader>sk', require('telescope.builtin').keymaps, { desc = '[S]earch [K]eymaps' })
+  vim.keymap.set('n', '<leader>sr', require('telescope.builtin').resume, { desc = '[S]earch [R]esume' })
   vim.keymap.set('n', '<leader>sc', require('telescope.builtin').commands, { desc = '[S]earch [C]ommands' })
   vim.keymap.set('n', '<leader>sb', require('telescope.builtin').builtin, { desc = '[S]earch [B]uiltin' })
   vim.keymap.set('n', '<leader>sd', require('telescope.builtin').diagnostics, { desc = '[S]earch [D]iagnostics' })
