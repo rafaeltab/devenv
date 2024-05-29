@@ -53,7 +53,6 @@ OnLoad:add(function()
   -- Enable telescope fzf native, if installed
   pcall(require('telescope').load_extension, 'fzf')
 
-  -- See `:help telescope.builtin`
   vim.keymap.set('n', '<leader>?', require('telescope.builtin').oldfiles, { desc = '[?] Find recently opened files' })
   vim.keymap.set('n', '<leader><space>', require('telescope.builtin').buffers, { desc = '[ ] Find existing buffers' })
   vim.keymap.set('n', '<leader>/', function()
@@ -80,7 +79,7 @@ OnAttach:add(function(_, bufnr)
   Nmap(bufnr, 'gtd', require('telescope.builtin').lsp_type_definitions, '[G]oto [T]ype [D]efinition')
   Nmap(bufnr, 'gI', require('telescope.builtin').lsp_implementations, '[G]oto [I]mplementations')
   Nmap(bufnr, 'gr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
-  Nmap(bufnr, '<leader>ds', require('telescope.builtin').lsp_document_symbols, '[D]ocument [S]ymbols')
-  Nmap(bufnr, '<leader>ws', require('telescope.builtin').lsp_dynamic_workspace_symbols, '[W]orkspace [S]ymbols')
-  Nmap(bufnr, '<leader>st', require('telescope.builtin').treesitter, '[W]orkspace [S]ymbols')
+  Nmap(bufnr, '<leader>ssd', require('telescope.builtin').lsp_document_symbols, '[D]ocument [S]ymbols')
+  Nmap(bufnr, '<leader>ssw', require('telescope.builtin').lsp_dynamic_workspace_symbols, '[W]orkspace [S]ymbols')
+  Nmap(bufnr, '<leader>st', require('telescope.builtin').treesitter, '[S]earch [T]reesitter')
 end)

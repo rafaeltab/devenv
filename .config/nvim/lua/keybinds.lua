@@ -13,4 +13,6 @@ OnLoad:add(function()
   vim.keymap.set({ 'n' }, 'd', '"_d')
   vim.keymap.set({ 'n', 'v' }, 'x', '"_x')
   vim.keymap.set({ 'n', 'v' }, 'c', '"_c')
+
+  vim.keymap.set({ 'n' }, '<leader>w', ':w<CR>', { desc = "Save the current file" })
 end)
