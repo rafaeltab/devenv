@@ -69,6 +69,7 @@ Plugins:add({
 
 OnLoad:add(function()
 	-- setup notify with a background color so it does not complain
+	---@diagnostic disable-next-line: missing-fields
 	require("notify").setup({
 		background_colour = "#000000"
 	})
@@ -85,6 +86,8 @@ OnLoad:add(function()
 		vim.api.nvim_set_hl(0, "RainbowGreen", { fg = "#98C379" })
 		vim.api.nvim_set_hl(0, "RainbowViolet", { fg = "#C678DD" })
 		vim.api.nvim_set_hl(0, "RainbowCyan", { fg = "#56B6C2" })
+
+		vim.api.nvim_set_hl(0, "Visual", { bg = "#555555" })
 	end)
 	vim.g.rainbow_delimiters = { highlight = highlight }
 	require("ibl").setup {
