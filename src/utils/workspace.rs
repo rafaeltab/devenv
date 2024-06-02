@@ -8,7 +8,7 @@ pub fn get_workspace_paths(config: Config) -> Vec<DataWithPath<Workspace>> {
     config
         .workspaces
         .into_iter()
-        .map(|x| DataWithPath::new(x.clone(), expand_path(&x.root)))
+        .map(|x| x.load_path())
         .collect()
 }
 
@@ -25,6 +25,12 @@ impl DataWithPath<Workspace> {
             "id": self.data.id,
             "tags": tags,
         })
+    }
+}
+
+impl Workspace {
+    pub fn load_path(&self) -> DataWithPath<Workspace> {
+        DataWithPath::new(self.clone(), expand_path(&self.root))
     }
 }
 

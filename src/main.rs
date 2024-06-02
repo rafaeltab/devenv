@@ -1,10 +1,12 @@
 use std::io;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, CommandFactory, Parser, Subcommand};
 use commands::{
     tmux::tmux,
     workspaces::{
         current::{get_current_workspace, CurrentWorkspaceOptions},
+        find::{find_workspace, FindWorkspaceOptions},
+        find_tag::{find_tag_workspace, FindTagWorkspaceOptions},
         list::{list_workspaces, ListWorkspaceOptions},
     },
 };
@@ -18,15 +20,10 @@ mod config;
 mod utils;
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None, disable_help_subcommand(true))]
 struct Cli {
-    pub name: Option<String>,
-
     #[arg(short, long, value_name = "FILE", global = true)]
     pub config: Option<String>,
-
-    #[arg(short, long, global = true)]
-    pub verbose: bool,
 
     #[command(subcommand)]
     pub command: Option<Commands>,
@@ -52,6 +49,10 @@ enum WorkspaceCommands {
     List(DisplayCommand),
     /// Get the current workspace
     Current(DisplayCommand),
+    /// Find a specific workspace using an id
+    Find(FindCommand),
+    /// Find workspaces that have a tag
+    FindTag(FindTagCommand),
 }
 
 #[derive(Debug, Args)]
@@ -65,12 +66,26 @@ struct DisplayCommand {
     pub json_pretty: bool,
 }
 
+#[derive(Debug, Args)]
+struct FindCommand {
+    #[command(flatten)]
+    display_command: DisplayCommand,
+
+    #[arg()]
+    id: String,
+}
+
+#[derive(Debug, Args)]
+struct FindTagCommand {
+    #[command(flatten)]
+    display_command: DisplayCommand,
+
+    #[arg()]
+    tag: String,
+}
+
 fn main() -> Result<(), io::Error> {
     let cli = Cli::parse();
-
-    if let Some(name) = cli.name.as_deref() {
-        println!("Value for name: {name}");
-    }
 
     let config = load_config(cli.config)?;
 
@@ -89,8 +104,24 @@ fn main() -> Result<(), io::Error> {
                     display: &*create_display(args),
                 },
             ),
+            WorkspaceCommands::Find(args) => find_workspace(
+                config,
+                &args.id,
+                FindWorkspaceOptions {
+                    display: &*create_display(&args.display_command),
+                },
+            ),
+            WorkspaceCommands::FindTag(args) => find_tag_workspace(
+                config,
+                &args.tag,
+                FindTagWorkspaceOptions {
+                    display: &*create_display(&args.display_command),
+                },
+            ),
         },
-        None => {}
+        None => {
+            let _ = Cli::command().print_help();
+        }
     }
 
     Ok(())
