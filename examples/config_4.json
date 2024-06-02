@@ -1,0 +1,25 @@
+{
+    "$schema": "../schemas/config-schema.json",
+    "workspaces": [
+        {
+            "id": "rafaeltab",
+            "root": "~",
+            "name": "Rafaeltab",
+            "tags": []
+        }
+    ],
+    "tmux": {
+        "sessions": [
+            {
+                "name": "Rafaeltab main",
+                "workspace": "rafaeltab",
+                "windows": [
+                    {
+                        "name": "neovim",
+                        "command": "nvim ."
+                    }
+                ]
+            }
+        ]
+    }
+}

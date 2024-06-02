@@ -1,0 +1,113 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "workspaces": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "root": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 20,
+                        "pattern": "^[a-z_]{3,20}$"
+                    },
+                    "name": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 20,
+                        "pattern": "^[a-zA-Z ]{3,20}$"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 20,
+                            "pattern": "^[a-z_]{3,20}$"
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "root"
+                ]
+            }
+        },
+        "tmux": {
+            "type": "object",
+            "properties": {
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "windows": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "command": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "name"
+                                    ]
+                                }
+                            }
+                        },
+                        "required": [
+                            "windows"
+                        ],
+                        "oneOf": [
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "workspace": {
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "workspace"
+                                ]
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "path": {
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "path",
+                                    "name"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            },
+            "required": [
+                "sessions"
+            ]
+        }
+    },
+    "required": [
+        "workspaces"
+    ]
+}
