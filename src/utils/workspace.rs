@@ -12,6 +12,10 @@ pub fn get_workspace_paths(config: Config) -> Vec<DataWithPath<Workspace>> {
         .collect()
 }
 
+pub fn find_workspace(config: &Config, id: &str) -> Option<Workspace> {
+    config.workspaces.clone().into_iter().find(|x| x.id == id)
+}
+
 impl DataWithPath<Workspace> {
     pub fn to_json(&self) -> Value {
         let tags: Vec<String> = match &self.data.tags {
@@ -34,8 +38,8 @@ impl Workspace {
     }
 }
 
-impl Workspace {
-    pub fn to_json(&self) -> Value {
+impl RafaeltabDisplayItem for Workspace {
+    fn to_json(&self) -> Value {
         let tags: Vec<String> = match &self.tags {
             Some(tag_list) => tag_list.to_vec(),
             None => vec![],
@@ -48,128 +52,121 @@ impl Workspace {
             "tags": tags,
         })
     }
-}
-pub trait WorkspaceDisplay {
-    fn display_list_with_path(&self, workspaces: Vec<DataWithPath<Workspace>>);
-    fn display_list(&self, workspaces: Vec<Workspace>);
-    fn display_with_path(&self, workspace: DataWithPath<Workspace>);
-    fn display(&self, workspace: Workspace);
-}
 
-pub struct PrettyWorkspaceDisplay;
-
-impl WorkspaceDisplay for PrettyWorkspaceDisplay {
-    fn display_list_with_path(&self, workspaces: Vec<DataWithPath<Workspace>>) {
-        for workspace in workspaces {
-            self.display_with_path(workspace);
-        }
-    }
-
-    fn display_list(&self, workspaces: Vec<Workspace>) {
-        for workspace in workspaces {
-            self.display(workspace);
-        }
-    }
-
-    fn display_with_path(&self, workspace: DataWithPath<Workspace>) {
-        match &workspace.data.tags {
+    fn to_pretty_string(&self) -> String {
+        match &self.tags {
             Some(tags) if !tags.is_empty() => {
-                println!(
+                format!("{} ({}): {} {:?}", self.name, self.id, self.root, tags)
+            }
+            _ => format!("{} ({}): {}", self.name, self.id, self.root),
+        }
+    }
+}
+
+impl RafaeltabDisplayItem for DataWithPath<Workspace> {
+    fn to_json(&self) -> Value {
+        let tags: Vec<String> = match &self.data.tags {
+            Some(tag_list) => tag_list.to_vec(),
+            None => vec![],
+        };
+
+        json!({
+            "name": self.data.name,
+            "root": self.path,
+            "id": self.data.id,
+            "tags": tags,
+        })
+    }
+
+    fn to_pretty_string(&self) -> String {
+        match &self.data.tags {
+            Some(tags) if !tags.is_empty() => {
+                format!(
                     "{} ({}): {} {:?}",
-                    workspace.data.name, workspace.data.id, workspace.path, tags
+                    self.data.name, self.data.id, self.path, tags
                 )
             }
-            _ => println!(
-                "{} ({}): {}",
-                workspace.data.name, workspace.data.id, workspace.path
-            ),
-        }
-    }
-
-    fn display(&self, workspace: Workspace) {
-        match &workspace.tags {
-            Some(tags) if !tags.is_empty() => {
-                println!(
-                    "{} ({}): {} {:?}",
-                    workspace.name, workspace.id, workspace.root, tags
-                )
-            }
-            _ => println!("{} ({}): {}", workspace.name, workspace.id, workspace.root),
+            _ => format!("{} ({}): {}", self.data.name, self.data.id, self.path),
         }
     }
 }
 
-pub struct JsonWorkspaceDisplay;
+pub trait ToDynVec<'a> {
+    fn to_dyn_vec(&self) -> Vec<&dyn RafaeltabDisplayItem>;
+}
 
-impl WorkspaceDisplay for JsonWorkspaceDisplay {
-    fn display_list_with_path(&self, workspaces: Vec<DataWithPath<Workspace>>) {
-        let json_arr: Vec<Value> = workspaces.into_iter().map(|x| x.to_json()).collect();
+impl<'a, T> ToDynVec<'a> for Vec<T>
+where
+    T: RafaeltabDisplayItem,
+{
+    fn to_dyn_vec(&self) -> Vec<&dyn RafaeltabDisplayItem> {
+        self.iter()
+            .map(|x| x as &dyn RafaeltabDisplayItem)
+            .collect()
+    }
+}
+
+pub trait RafaeltabDisplayItem {
+    fn to_json(&self) -> Value;
+    fn to_pretty_string(&self) -> String;
+}
+
+pub trait RafaeltabDisplay {
+    fn display_list(&self, list: Vec<&dyn RafaeltabDisplayItem>);
+    fn display(&self, element: &dyn RafaeltabDisplayItem);
+}
+
+pub struct PrettyDisplay;
+
+impl RafaeltabDisplay for PrettyDisplay {
+    fn display_list(&self, list: Vec<&dyn RafaeltabDisplayItem>) {
+        for element in list {
+            self.display(element);
+        }
+    }
+
+    fn display(&self, element: &dyn RafaeltabDisplayItem) {
+        println!("{}", element.to_pretty_string())
+    }
+}
+
+pub struct JsonDisplay;
+
+impl RafaeltabDisplay for JsonDisplay {
+    fn display_list(&self, list: Vec<&dyn RafaeltabDisplayItem>) {
+        let json_arr: Vec<Value> = list.into_iter().map(|x| x.to_json()).collect();
         let json_str = match serde_json::to_string(&json_arr) {
             Ok(str) => str,
-            Err(_) => panic!("Failed to convert workspaces to json"),
+            Err(_) => panic!("Failed to convert list to json"),
         };
         println!("{}", json_str);
     }
 
-    fn display_list(&self, workspaces: Vec<Workspace>) {
-        let json_arr: Vec<Value> = workspaces.into_iter().map(|x| x.to_json()).collect();
-        let json_str = match serde_json::to_string(&json_arr) {
+    fn display(&self, element: &dyn RafaeltabDisplayItem) {
+        let json_str = match serde_json::to_string(&element.to_json()) {
             Ok(str) => str,
-            Err(_) => panic!("Failed to convert workspaces to json"),
-        };
-        println!("{}", json_str);
-    }
-
-    fn display_with_path(&self, workspace: DataWithPath<Workspace>) {
-        let json_str = match serde_json::to_string(&workspace.to_json()) {
-            Ok(str) => str,
-            Err(_) => panic!("Failed to convert workspace to json"),
-        };
-        println!("{}", json_str);
-    }
-
-    fn display(&self, workspace: Workspace) {
-        let json_str = match serde_json::to_string(&workspace.to_json()) {
-            Ok(str) => str,
-            Err(_) => panic!("Failed to convert workspace to json"),
+            Err(_) => panic!("Failed to convert element to json"),
         };
         println!("{}", json_str);
     }
 }
 
-pub struct JsonPrettyWorkspaceDisplay;
+pub struct JsonPrettyDisplay;
 
-impl WorkspaceDisplay for JsonPrettyWorkspaceDisplay {
-    fn display_list_with_path(&self, workspaces: Vec<DataWithPath<Workspace>>) {
-        let json_arr: Vec<Value> = workspaces.into_iter().map(|x| x.to_json()).collect();
+impl RafaeltabDisplay for JsonPrettyDisplay {
+    fn display_list(&self, list: Vec<&dyn RafaeltabDisplayItem>) {
+        let json_arr: Vec<Value> = list.into_iter().map(|x| x.to_json()).collect();
         let json_str = match serde_json::to_string_pretty(&json_arr) {
             Ok(str) => str,
-            Err(_) => panic!("Failed to convert workspaces to json"),
+            Err(_) => panic!("Failed to convert list to json"),
         };
         println!("{}", json_str);
     }
 
-    fn display_list(&self, workspaces: Vec<Workspace>) {
-        let json_arr: Vec<Value> = workspaces.into_iter().map(|x| x.to_json()).collect();
-        let json_str = match serde_json::to_string_pretty(&json_arr) {
+    fn display(&self, element: &dyn RafaeltabDisplayItem) {
+        let json_str = match serde_json::to_string_pretty(&element.to_json()) {
             Ok(str) => str,
-            Err(_) => panic!("Failed to convert workspaces to json"),
-        };
-        println!("{}", json_str);
-    }
-
-    fn display_with_path(&self, workspace: DataWithPath<Workspace>) {
-        let json_str = match serde_json::to_string_pretty(&workspace.to_json()) {
-            Ok(str) => str,
-            Err(_) => panic!("Failed to convert workspace to json"),
-        };
-        println!("{}", json_str);
-    }
-
-    fn display(&self, workspace: Workspace) {
-        let json_str = match serde_json::to_string_pretty(&workspace.to_json()) {
-            Ok(str) => str,
-            Err(_) => panic!("Failed to convert workspace to json"),
+            Err(_) => panic!("Failed to convert element to json"),
         };
         println!("{}", json_str);
     }

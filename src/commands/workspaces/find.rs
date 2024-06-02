@@ -1,19 +1,19 @@
 use crate::{
     config::Config,
-    utils::{data_with_path::DataWithPath, path::expand_path, workspace::WorkspaceDisplay},
+    utils::{data_with_path::DataWithPath, path::expand_path, workspace::{find_workspace, RafaeltabDisplay}},
 };
 
 pub struct FindWorkspaceOptions<'a> {
-    pub display: &'a dyn WorkspaceDisplay,
+    pub display: &'a dyn RafaeltabDisplay,
 }
 
-pub fn find_workspace(
+pub fn find_workspace_cmd(
     config: Config,
     id: &str,
     FindWorkspaceOptions { display }: FindWorkspaceOptions,
 ) {
-    let workspace = config.workspaces.into_iter().find(|x| x.id == id);
+    let workspace = find_workspace(&config, id);
     if let Some(space) = workspace {
-        display.display_with_path(DataWithPath::new(space.clone(), expand_path(&space.root)))
+        display.display(&DataWithPath::new(space.clone(), expand_path(&space.root)))
     }
 }

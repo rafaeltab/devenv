@@ -3,11 +3,11 @@ use std::env;
 
 use crate::{
     config::Config,
-    utils::workspace::{get_workspace_paths, WorkspaceDisplay},
+    utils::workspace::{get_workspace_paths, RafaeltabDisplay},
 };
 
 pub struct CurrentWorkspaceOptions<'a> {
-    pub display: &'a dyn WorkspaceDisplay,
+    pub display: &'a dyn RafaeltabDisplay,
 }
 
 pub fn get_current_workspace(
@@ -22,7 +22,7 @@ pub fn get_current_workspace(
 
     for workspace in workspaces {
         if path_matches(&workspace.path, &cwd) {
-            display.display_with_path(workspace);
+            display.display(&workspace);
             break;
         }
     }

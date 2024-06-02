@@ -1,6 +1,11 @@
 use std::{path::PathBuf, process::Command};
 
-use crate::{config::{Config, Session, Tmux}, utils::path::expand_path_buf};
+use crate::{
+    config::{Config, Session, Tmux},
+    utils::path::expand_path_buf,
+};
+
+pub static TMUX_WORKSPACE_KEY: &str = "RAFAELTAB_WORKSPACE";
 
 pub fn tmux(config: Config) {
     let sessions = match config.clone().tmux {
@@ -18,6 +23,7 @@ fn tmux_none(config: Config) -> Vec<TmuxSession> {
         .map(|workspace| TmuxSession {
             path: expand_path_buf(&workspace.root),
             name: workspace.name,
+            workspace: Some(workspace.id),
             windows: vec![TmuxWindow {
                 name: String::from("default"),
                 command: None,
@@ -39,6 +45,7 @@ fn tmux_some(config: Config, tmux: Tmux) -> Vec<TmuxSession> {
                 TmuxSession {
                     path: expand_path_buf(&workspace.root.clone()),
                     name: workspace_session.name.unwrap_or(workspace.name.clone()),
+                    workspace: Some(workspace.id.to_string()),
                     windows: workspace_session
                         .windows
                         .into_iter()
@@ -52,6 +59,7 @@ fn tmux_some(config: Config, tmux: Tmux) -> Vec<TmuxSession> {
             Session::Path(path_session) => TmuxSession {
                 path: expand_path_buf(&path_session.path.clone()),
                 name: path_session.name,
+                workspace: None,
                 windows: path_session
                     .windows
                     .into_iter()
@@ -67,6 +75,10 @@ fn tmux_some(config: Config, tmux: Tmux) -> Vec<TmuxSession> {
 
 fn run_tmux(sessions: Vec<TmuxSession>) {
     for session in sessions {
+        let session_workspace_env = match &session.workspace {
+            None => "".to_string(),
+            Some(workspace) => format!("{}={}", TMUX_WORKSPACE_KEY, workspace),
+        };
         if session.windows.is_empty() {
             // Skip sessions with no windows
             continue;
@@ -81,7 +93,11 @@ fn run_tmux(sessions: Vec<TmuxSession>) {
             &session.name,
             "-n",
             &first_window.name,
+            "-e",
+            &session_workspace_env,
         ];
+
+        println!("{:#?}", first_window_args);
         let command = command_with_shell(first_window.command.clone());
         if let Some(ref cmd) = command {
             first_window_args.push(cmd);
@@ -135,6 +151,7 @@ fn command_with_shell(cmd: Option<String>) -> Option<String> {
 struct TmuxSession {
     pub path: PathBuf,
     pub name: String,
+    pub workspace: Option<String>,
     pub windows: Vec<TmuxWindow>,
 }
 

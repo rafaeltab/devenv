@@ -1,10 +1,10 @@
 use crate::{
     config::{Config, Workspace},
-    utils::{data_with_path::DataWithPath, workspace::WorkspaceDisplay},
+    utils::{data_with_path::DataWithPath, workspace::{RafaeltabDisplay, ToDynVec}},
 };
 
 pub struct FindTagWorkspaceOptions<'a> {
-    pub display: &'a dyn WorkspaceDisplay,
+    pub display: &'a dyn RafaeltabDisplay,
 }
 
 pub fn find_tag_workspace(
@@ -22,5 +22,5 @@ pub fn find_tag_workspace(
         .map(|x| x.load_path())
         .collect();
 
-    display.display_list_with_path(workspaces);
+    display.display_list(workspaces.to_dyn_vec());
 }

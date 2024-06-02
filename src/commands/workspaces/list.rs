@@ -1,12 +1,12 @@
 use crate::{
     config::Config,
-    utils::workspace::{get_workspace_paths, WorkspaceDisplay},
+    utils::workspace::{get_workspace_paths, RafaeltabDisplay, ToDynVec},
 };
 
 pub struct ListWorkspaceOptions<'a> {
-    pub display: &'a dyn WorkspaceDisplay,
+    pub display: &'a dyn RafaeltabDisplay,
 }
 
 pub fn list_workspaces(config: Config, ListWorkspaceOptions { display }: ListWorkspaceOptions) {
-    display.display_list_with_path(get_workspace_paths(config))
+    display.display_list(get_workspace_paths(config).to_dyn_vec())
 }

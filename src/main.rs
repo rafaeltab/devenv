@@ -5,15 +5,14 @@ use commands::{
     tmux::tmux,
     workspaces::{
         current::{get_current_workspace, CurrentWorkspaceOptions},
-        find::{find_workspace, FindWorkspaceOptions},
+        find::{find_workspace_cmd, FindWorkspaceOptions},
         find_tag::{find_tag_workspace, FindTagWorkspaceOptions},
         list::{list_workspaces, ListWorkspaceOptions},
+        tmux::{list_tmux_workspaces, ListTmuxWorkspaceOptions},
     },
 };
 use config::load_config;
-use utils::workspace::{
-    JsonPrettyWorkspaceDisplay, JsonWorkspaceDisplay, PrettyWorkspaceDisplay, WorkspaceDisplay,
-};
+use utils::workspace::{JsonDisplay, JsonPrettyDisplay, PrettyDisplay, RafaeltabDisplay};
 
 mod commands;
 mod config;
@@ -53,6 +52,8 @@ enum WorkspaceCommands {
     Find(FindCommand),
     /// Find workspaces that have a tag
     FindTag(FindTagCommand),
+    /// List tmux sessions, with their attached workspaces
+    Tmux(DisplayCommand),
 }
 
 #[derive(Debug, Args)]
@@ -104,7 +105,7 @@ fn main() -> Result<(), io::Error> {
                     display: &*create_display(args),
                 },
             ),
-            WorkspaceCommands::Find(args) => find_workspace(
+            WorkspaceCommands::Find(args) => find_workspace_cmd(
                 config,
                 &args.id,
                 FindWorkspaceOptions {
@@ -118,6 +119,12 @@ fn main() -> Result<(), io::Error> {
                     display: &*create_display(&args.display_command),
                 },
             ),
+            WorkspaceCommands::Tmux(args) => list_tmux_workspaces(
+                config,
+                ListTmuxWorkspaceOptions {
+                    display: &*create_display(args),
+                },
+            ),
         },
         None => {
             let _ = Cli::command().print_help();
@@ -127,19 +134,19 @@ fn main() -> Result<(), io::Error> {
     Ok(())
 }
 
-fn create_display(command: &DisplayCommand) -> Box<dyn WorkspaceDisplay> {
-    let display: Box<dyn WorkspaceDisplay> = match command {
+fn create_display(command: &DisplayCommand) -> Box<dyn RafaeltabDisplay> {
+    let display: Box<dyn RafaeltabDisplay> = match command {
         DisplayCommand {
             json: true,
             json_pretty: false,
             ..
-        } => Box::new(JsonWorkspaceDisplay {}),
+        } => Box::new(JsonDisplay {}),
         DisplayCommand {
             json: true,
             json_pretty: true,
             ..
-        } => Box::new(JsonPrettyWorkspaceDisplay {}),
-        DisplayCommand { json: false, .. } => Box::new(PrettyWorkspaceDisplay {}),
+        } => Box::new(JsonPrettyDisplay {}),
+        DisplayCommand { json: false, .. } => Box::new(PrettyDisplay {}),
     };
     display
 }
