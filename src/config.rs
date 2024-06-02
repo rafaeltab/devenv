@@ -1,11 +1,10 @@
-use std::{
-    fs, io,
-    path::Path,
-};
+use std::{fs, io, path::Path};
 
 use serde::Deserialize;
 
-static PATH_LOCATIONS_LINUX: &[&str] = &["$HOME/.rafaeltab.json"];
+use crate::utils::path::expand_path;
+
+static PATH_LOCATIONS_LINUX: &[&str] = &["~/.rafaeltab.json"];
 
 pub fn load_config(config_path: Option<String>) -> Result<Config, io::Error> {
     let content = read_config(config_path)?;
@@ -21,8 +20,9 @@ fn read_config(config_path: Option<String>) -> Result<String, io::Error> {
     } else {
         // If config_path is not set, loop over PATH_LOCATIONS and find the first existing path
         for &path in PATH_LOCATIONS_LINUX {
-            if Path::new(path).exists() {
-                return fs::read_to_string(path);
+            let full_path = expand_path(path);
+            if Path::new(&full_path).exists() {
+                return fs::read_to_string(full_path);
             }
         }
         // If no existing path found, return an error

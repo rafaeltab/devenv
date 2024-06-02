@@ -1,7 +1,6 @@
-use shellexpand::{full, tilde};
 use std::{path::PathBuf, process::Command};
 
-use crate::config::{Config, Session, Tmux};
+use crate::{config::{Config, Session, Tmux}, utils::path::expand_path_buf};
 
 pub fn tmux(config: Config) {
     let sessions = match config.clone().tmux {
@@ -17,7 +16,7 @@ fn tmux_none(config: Config) -> Vec<TmuxSession> {
         .workspaces
         .into_iter()
         .map(|workspace| TmuxSession {
-            path: expand_path(&workspace.root),
+            path: expand_path_buf(&workspace.root),
             name: workspace.name,
             windows: vec![TmuxWindow {
                 name: String::from("default"),
@@ -25,17 +24,6 @@ fn tmux_none(config: Config) -> Vec<TmuxSession> {
             }],
         })
         .collect()
-}
-
-fn expand_path(path: &str) -> PathBuf {
-    let res = match full(path) {
-        Ok(val) => val,
-        Err(err) => {
-            eprintln!("Encountered error while expanding path, defaulting to only tilde replacement: {}", err);
-            tilde(path)
-        }
-    };
-    PathBuf::from(res.to_string())
 }
 
 fn tmux_some(config: Config, tmux: Tmux) -> Vec<TmuxSession> {
@@ -49,7 +37,7 @@ fn tmux_some(config: Config, tmux: Tmux) -> Vec<TmuxSession> {
                     .find(|w| w.id == workspace_session.workspace)
                     .unwrap();
                 TmuxSession {
-                    path: expand_path(&workspace.root.clone()),
+                    path: expand_path_buf(&workspace.root.clone()),
                     name: workspace_session.name.unwrap_or(workspace.name.clone()),
                     windows: workspace_session
                         .windows
@@ -62,7 +50,7 @@ fn tmux_some(config: Config, tmux: Tmux) -> Vec<TmuxSession> {
                 }
             }
             Session::Path(path_session) => TmuxSession {
-                path: expand_path(&path_session.path.clone()),
+                path: expand_path_buf(&path_session.path.clone()),
                 name: path_session.name,
                 windows: path_session
                     .windows
