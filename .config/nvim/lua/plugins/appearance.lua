@@ -88,6 +88,11 @@ OnLoad:add(function()
 		vim.api.nvim_set_hl(0, "RainbowCyan", { fg = "#56B6C2" })
 
 		vim.api.nvim_set_hl(0, "Visual", { bg = "#555555" })
+		-- Default 535965
+		vim.api.nvim_set_hl(0, "Comment", { fg = "#417841" })
+		vim.api.nvim_set_hl(0, "@comment", { link = "Comment"  })
+		vim.api.nvim_set_hl(0, "@lsp.type.comment", { link = "@comment"  })
+		vim.api.nvim_set_hl(0, "SpecialComment", { link = "Comment" })
 	end)
 	vim.g.rainbow_delimiters = { highlight = highlight }
 	require("ibl").setup {

@@ -8,7 +8,7 @@ Plugins:add({
       return vim.fn.executable 'make' == 1
     end,
   },
-  { 'nvim-telescope/telescope.nvim', version = '*', dependencies = { 'nvim-lua/plenary.nvim' } },
+  { 'nvim-telescope/telescope.nvim', branch = "master",  dependencies = { 'nvim-lua/plenary.nvim' } },
 })
 
 OnLoad:add(function()
@@ -71,7 +71,8 @@ OnLoad:add(function()
   vim.keymap.set('n', '<leader>sr', require('telescope.builtin').resume, { desc = '[S]earch [R]esume' })
   vim.keymap.set('n', '<leader>sc', require('telescope.builtin').commands, { desc = '[S]earch [C]ommands' })
   vim.keymap.set('n', '<leader>sb', require('telescope.builtin').builtin, { desc = '[S]earch [B]uiltin' })
-  vim.keymap.set('n', '<leader>sd', require('telescope.builtin').diagnostics, { desc = '[S]earch [D]iagnostics' })
+  vim.keymap.set('n', '<leader>sd', function ()require('telescope.builtin').diagnostics({sort_by = "severity", }) end, { desc = '[S]earch [D]iagnostics' })
+  vim.keymap.set('n', '<leader>d', function () require('telescope.builtin').diagnostics({bufnr = 0}) end, { desc = '[D]iagnostics' })
 end)
 
 OnAttach:add(function(_, bufnr)

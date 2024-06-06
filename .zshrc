@@ -85,6 +85,7 @@ plugins=(git docker docker-compose kubectl minikube terraform nvm)
 
 source $ZSH/oh-my-zsh.sh
 
+
 # User configuration
 
 # export MANPATH="/usr/local/man:$MANPATH"
@@ -120,3 +121,11 @@ alias k='kubectl'
 [[ ! -f ~/.specific.zshrc ]] || source ~/.specific.zshrc
 
 VALE_CONFIG_PATH="$HOME/.config/vale/.vale.ini"
+
+bindkey -v
+
+# # Bind jkl; to move the cursor in normal mode
+bindkey -M vicmd 'j' vi-backward-char
+bindkey -M vicmd 'k' vi-down-line-or-history
+bindkey -M vicmd 'l' vi-up-line-or-history
+bindkey -M vicmd ';' vi-forward-char
