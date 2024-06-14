@@ -5,15 +5,25 @@ use crate::{
     utils::path::expand_path_buf,
 };
 
+use super::command::RafaeltabCommand;
+
 pub static TMUX_WORKSPACE_KEY: &str = "RAFAELTAB_WORKSPACE";
 
-pub fn tmux(config: Config) {
-    let sessions = match config.clone().tmux {
-        None => tmux_none(config),
-        Some(tmux_config) => tmux_some(config, tmux_config),
-    };
+#[derive(Default)]
+pub struct TmuxCommand;
+pub struct TmuxCommandArgs {
+    pub config: Config,
+}
 
-    run_tmux(sessions);
+impl RafaeltabCommand<TmuxCommandArgs> for TmuxCommand {
+    fn execute(&self, args: TmuxCommandArgs) {
+        let sessions = match args.config.clone().tmux {
+            None => tmux_none(args.config),
+            Some(tmux_config) => tmux_some(args.config, tmux_config),
+        };
+
+        run_tmux(sessions);
+    }
 }
 
 fn tmux_none(config: Config) -> Vec<TmuxSession> {

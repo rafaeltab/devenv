@@ -1,12 +1,21 @@
 use crate::{
+    commands::command::RafaeltabCommand,
     config::Config,
-    utils::workspace::{get_workspace_paths, RafaeltabDisplay, ToDynVec},
+    utils::{
+        display::{RafaeltabDisplay, ToDynVec},
+        workspace::get_workspace_paths,
+    },
 };
 
-pub struct ListWorkspaceOptions<'a> {
+#[derive(Default)]
+pub struct ListWorkspacesCommand;
+pub struct ListWorkspacesCommandArgs<'a> {
+    pub config: Config,
     pub display: &'a dyn RafaeltabDisplay,
 }
 
-pub fn list_workspaces(config: Config, ListWorkspaceOptions { display }: ListWorkspaceOptions) {
-    display.display_list(get_workspace_paths(config).to_dyn_vec())
+impl<'a> RafaeltabCommand<ListWorkspacesCommandArgs<'a>> for ListWorkspacesCommand {
+    fn execute(&self, ListWorkspacesCommandArgs { display, config }: ListWorkspacesCommandArgs) {
+        display.display_list(get_workspace_paths(config).to_dyn_vec())
+    }
 }

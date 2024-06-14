@@ -1,6 +1,9 @@
 use crate::{
     config::Config,
-    utils::{data_with_path::DataWithPath, path::expand_path, workspace::{find_workspace, RafaeltabDisplay}},
+    utils::{
+        data_with_path::DataWithPath, display::RafaeltabDisplay, path::expand_path,
+        workspace::find_workspace,
+    },
 };
 
 pub struct FindWorkspaceOptions<'a> {

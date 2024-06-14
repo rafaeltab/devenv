@@ -3,7 +3,7 @@ use std::env;
 
 use crate::{
     config::Config,
-    utils::workspace::{get_workspace_paths, RafaeltabDisplay},
+    utils::{display::RafaeltabDisplay, workspace::get_workspace_paths},
 };
 
 pub struct CurrentWorkspaceOptions<'a> {

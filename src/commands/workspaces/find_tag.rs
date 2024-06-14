@@ -1,6 +1,9 @@
 use crate::{
     config::{Config, Workspace},
-    utils::{data_with_path::DataWithPath, workspace::{RafaeltabDisplay, ToDynVec}},
+    utils::{
+        data_with_path::DataWithPath,
+        display::{RafaeltabDisplay, ToDynVec},
+    },
 };
 
 pub struct FindTagWorkspaceOptions<'a> {

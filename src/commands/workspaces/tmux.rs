@@ -3,14 +3,22 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::{
-    commands::tmux::TMUX_WORKSPACE_KEY, config::{Config, Workspace}, utils::workspace::{self, find_workspace, RafaeltabDisplay, RafaeltabDisplayItem, ToDynVec}
+    commands::tmux::TMUX_WORKSPACE_KEY,
+    config::{Config, Workspace},
+    utils::{
+        display::{RafaeltabDisplay, RafaeltabDisplayItem, ToDynVec},
+        workspace::find_workspace,
+    },
 };
 
 pub struct ListTmuxWorkspaceOptions<'a> {
     pub display: &'a dyn RafaeltabDisplay,
 }
 
-pub fn list_tmux_workspaces(config: Config, ListTmuxWorkspaceOptions { display }: ListTmuxWorkspaceOptions) {
+pub fn list_tmux_workspaces(
+    config: Config,
+    ListTmuxWorkspaceOptions { display }: ListTmuxWorkspaceOptions,
+) {
     let format = json!({
         "name": "#{session_name}",
         "path": "#{session_path}",
@@ -80,7 +88,12 @@ impl RafaeltabDisplayItem for SessionResult {
 
     fn to_pretty_string(&self) -> String {
         match &self.workspace {
-            Some(workspace) => format!("{} {} In workspace: {}", self.session_name, self.session_path, workspace.to_pretty_string()),
+            Some(workspace) => format!(
+                "{} {} In workspace: {}",
+                self.session_name,
+                self.session_path,
+                workspace.to_pretty_string()
+            ),
             None => format!("{} {}", self.session_name, self.session_path),
         }
     }
