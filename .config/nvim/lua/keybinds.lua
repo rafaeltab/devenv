@@ -14,6 +14,9 @@ OnLoad:add(function()
   vim.keymap.set({ 'n', 'v' }, 'x', '"_x')
   vim.keymap.set({ 'n', 'v' }, 'c', '"_c')
 
+  -- Visual block mode
+  vim.keymap.set({ 'n', 'x' }, '<leader>v', '<c-q>')
+
   vim.keymap.set({ 'n' }, '<leader>w', ':w<CR>', { desc = "Save the current file" })
 
   -- exit terminal mode

@@ -2,10 +2,14 @@ Plugins:add({
 	{
 		-- Highlight, edit, and navigate code
 		'nvim-treesitter/nvim-treesitter',
+		version = "0.9.2",
 		dependencies = {
 			'nvim-treesitter/nvim-treesitter-textobjects',
 		},
 	},
+	{
+		'nvim-treesitter/playground'
+	}
 })
 
 OnLoad:add(function()

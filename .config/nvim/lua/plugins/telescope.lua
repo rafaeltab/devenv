@@ -8,7 +8,7 @@ Plugins:add({
       return vim.fn.executable 'make' == 1
     end,
   },
-  { 'nvim-telescope/telescope.nvim', branch = "master",  dependencies = { 'nvim-lua/plenary.nvim' } },
+  { 'nvim-telescope/telescope.nvim', url = 'https://github.com/rafaeltab/telescope.nvim.git', tag = "rafaeltab/0.1.9", dependencies = { 'nvim-lua/plenary.nvim' } },
 })
 
 OnLoad:add(function()
@@ -71,8 +71,20 @@ OnLoad:add(function()
   vim.keymap.set('n', '<leader>sr', require('telescope.builtin').resume, { desc = '[S]earch [R]esume' })
   vim.keymap.set('n', '<leader>sc', require('telescope.builtin').commands, { desc = '[S]earch [C]ommands' })
   vim.keymap.set('n', '<leader>sb', require('telescope.builtin').builtin, { desc = '[S]earch [B]uiltin' })
-  vim.keymap.set('n', '<leader>sd', function ()require('telescope.builtin').diagnostics({sort_by = "severity", }) end, { desc = '[S]earch [D]iagnostics' })
-  vim.keymap.set('n', '<leader>d', function () require('telescope.builtin').diagnostics({bufnr = 0}) end, { desc = '[D]iagnostics' })
+
+  vim.keymap.set('n', '<leader>gb', require('telescope.builtin').git_branches, { desc = '[G]it [B]ranches' })
+  vim.keymap.set('n', '<leader>gc', require('telescope.builtin').git_commits, { desc = '[G]it [C]ommits' })
+  vim.keymap.set('n', '<leader>gh', require('telescope.builtin').git_bcommits,
+    { desc = '[G]it [H]istory (commits for current buffer)' })
+  vim.keymap.set('n', '<leader>gs', require('telescope.builtin').git_status,
+    { desc = '[G]it [S]tatus' })
+  vim.keymap.set('n', '<leader>gf', ":G<CR>",
+    { desc = '[G]it [F]ugitive' })
+
+  vim.keymap.set('n', '<leader>sd', function() require('telescope.builtin').diagnostics({ sort_by = "severity", }) end,
+    { desc = '[S]earch [D]iagnostics' })
+  vim.keymap.set('n', '<leader>d', function() require('telescope.builtin').diagnostics({ bufnr = 0 }) end,
+    { desc = '[D]iagnostics' })
 end)
 
 OnAttach:add(function(_, bufnr)
