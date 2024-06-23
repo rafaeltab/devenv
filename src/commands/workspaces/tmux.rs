@@ -3,7 +3,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::{
-    commands::tmux::TMUX_WORKSPACE_KEY,
+    commands::tmux::legacy::TMUX_WORKSPACE_KEY,
     config::{Config, Workspace},
     utils::{
         display::{RafaeltabDisplay, RafaeltabDisplayItem, ToDynVec},

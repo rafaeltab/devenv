@@ -100,10 +100,12 @@
                             }
                         ]
                     }
+                },
+                "default_windows": {
                 }
             },
             "required": [
-                "sessions"
+                "default_windows"
             ]
         }
     },

@@ -6,6 +6,7 @@ use crate::{
     infrastructure::tmux::tmux_format::TmuxFilterNode,
 };
 
+#[allow(dead_code)]
 pub enum GetWindowsTarget<'a> {
     Session { id: &'a str },
     None,

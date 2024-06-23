@@ -3,7 +3,10 @@ use std::io;
 use clap::{Args, CommandFactory, Parser, Subcommand};
 use commands::{
     command::RafaeltabCommand,
-    tmux::{TmuxCommand, TmuxCommandArgs},
+    tmux::{
+        // legacy::{TmuxCommand, TmuxCommandArgs},
+        list::{TmuxListCommand, TmuxListOptions},
+    },
     workspaces::{
         current::{get_current_workspace, CurrentWorkspaceOptions},
         find::{find_workspace_cmd, FindWorkspaceOptions},
@@ -13,18 +16,8 @@ use commands::{
     },
 };
 use config::load_config;
-use domain::{
-    aggregates::tmux::include_fields_builder::IncludeFieldsBuilder,
-    repositories::tmux::{
-        client_repository::TmuxClientRepository,
-        pane_repository::{ListPanesTarget, TmuxPaneRepository},
-        window_repository::{GetWindowsTarget, TmuxWindowRepository},
-    },
-};
 use infrastructure::repositories::tmux::tmux_client::TmuxRepository;
 use utils::display::{JsonDisplay, JsonPrettyDisplay, PrettyDisplay, RafaeltabDisplay};
-
-use crate::domain::repositories::tmux::session_repository::TmuxSessionRepository;
 
 mod commands;
 mod config;
@@ -45,9 +38,22 @@ struct Cli {
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Run tmux sessions
-    Tmux,
+    Tmux(TmuxArgs),
     /// Manage workspaces
     Workspace(WorkspaceArgs),
+}
+
+#[derive(Debug, Args)]
+struct TmuxArgs {
+    #[command(subcommand)]
+    pub command: TmuxCommands,
+}
+
+#[derive(Debug, Subcommand)]
+enum TmuxCommands {
+    List(DisplayCommand),
+    Start,
+    Legacy,
 }
 
 #[derive(Debug, Args)]
@@ -100,31 +106,33 @@ struct FindTagCommand {
 }
 
 fn main() -> Result<(), io::Error> {
-    let repo = TmuxRepository {};
-    let includes = IncludeFieldsBuilder::new()
-        .with_panes(true)
-        .with_windows(true)
-        .with_attached_to(true);
-    let clients = repo.get_clients(None, includes.build_client());
-    let sessions = repo.get_sessions(None, includes.build_session());
-    let windows = repo.get_windows(None, includes.build_window(), GetWindowsTarget::All);
-    let panes = repo.list_panes(None, ListPanesTarget::All);
-
-    println!("{:#?}", clients);
-    println!("{:#?}", sessions);
-    println!("{:#?}", windows);
-    println!("{:#?}", panes);
-
-    let a = false;
-    if !a {
-        return Ok(());
-    }
+    // let repo = TmuxRepository {};
+    // let includes = IncludeFieldsBuilder::new()
+    //     .with_panes(true)
+    //     .with_windows(true)
+    //     .with_environment(true)
+    //     .with_attached_to(true);
+    // let sessions = repo.get_sessions(None, includes.build_session());
+    //
+    // println!("{:#?}", sessions);
+    //
+    // let a = false;
+    // if !a {
+    //     return Ok(());
+    // }
     let cli = Cli::parse();
 
     let config = load_config(cli.config)?;
 
     match &cli.command {
-        Some(Commands::Tmux) => TmuxCommand.execute(TmuxCommandArgs { config }),
+        Some(Commands::Tmux(tmux_args)) => match &tmux_args.command {
+            TmuxCommands::List(args) => TmuxListCommand.execute(TmuxListOptions {
+                display: &*create_display(args),
+                session_repository: &TmuxRepository {},
+            }),
+            TmuxCommands::Start => todo!(),
+            TmuxCommands::Legacy => todo!()/* TmuxCommand.execute(TmuxCommandArgs { config }) */,
+        },
         Some(Commands::Workspace(workspace_args)) => match &workspace_args.command {
             WorkspaceCommands::List(args) => {
                 ListWorkspacesCommand.execute(ListWorkspacesCommandArgs {

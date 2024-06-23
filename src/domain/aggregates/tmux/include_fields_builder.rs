@@ -2,7 +2,6 @@ use super::{
     client::ClientIncludeFields, session::SessionIncludeFields, window::WindowIncludeFields,
 };
 
-
 #[allow(dead_code)]
 pub struct IncludeFieldsBuilder {
     client: ClientIncludeFields,
@@ -10,12 +9,21 @@ pub struct IncludeFieldsBuilder {
     window: WindowIncludeFields,
 }
 
+impl Default for IncludeFieldsBuilder {
+    fn default() -> Self {
+        IncludeFieldsBuilder::new()
+    }
+}
+
 #[allow(dead_code)]
 impl IncludeFieldsBuilder {
     pub fn new() -> Self {
         IncludeFieldsBuilder {
             client: ClientIncludeFields { attached_to: None },
-            session: SessionIncludeFields { windows: None },
+            session: SessionIncludeFields {
+                windows: None,
+                environment: None,
+            },
             window: WindowIncludeFields { panes: None },
         }
     }
@@ -34,6 +42,21 @@ impl IncludeFieldsBuilder {
         }
     }
 
+    pub fn with_environment(&self, environment: bool) -> Self {
+        let session = SessionIncludeFields {
+            windows: self.session.windows.clone(),
+
+            environment: if environment { Some(()) } else { None },
+        };
+        IncludeFieldsBuilder {
+            client: ClientIncludeFields {
+                attached_to: self.client.attached_to.clone().map(|_| session.clone()),
+            },
+            session,
+            window: self.window.clone(),
+        }
+    }
+
     pub fn with_windows(&self, windows: bool) -> Self {
         let session = SessionIncludeFields {
             windows: if windows {
@@ -41,6 +64,7 @@ impl IncludeFieldsBuilder {
             } else {
                 None
             },
+            environment: self.session.environment,
         };
         IncludeFieldsBuilder {
             client: ClientIncludeFields {
@@ -58,6 +82,7 @@ impl IncludeFieldsBuilder {
 
         let session = SessionIncludeFields {
             windows: self.session.windows.clone().map(|_| window.clone()),
+            environment: self.session.environment,
         };
         IncludeFieldsBuilder {
             client: ClientIncludeFields {

@@ -8,7 +8,7 @@ use crate::{
     domain::{
         aggregates::tmux::{pane::TmuxPane, window::WindowIncludeFields},
         repositories::tmux::{
-            pane_repository::{ListPanesTarget, SplitDirection, TmuxPaneRepository},
+            pane_repository::{GetPanesTarget, SplitDirection, TmuxPaneRepository},
             window_repository::{GetWindowsTarget, TmuxWindowRepository},
         },
     },
@@ -21,7 +21,7 @@ use crate::{
 use super::tmux_client::TmuxRepository;
 
 impl TmuxPaneRepository for TmuxRepository {
-    fn list_panes(&self, filter: Option<TmuxFilterNode>, target: ListPanesTarget) -> Vec<TmuxPane> {
+    fn get_panes(&self, filter: Option<TmuxFilterNode>, target: GetPanesTarget) -> Vec<TmuxPane> {
         let list_format = json!({
             "id": TmuxFormatVariable::PaneId.to_format(),
             "index": TmuxFormatVariable::PaneIndex.to_format(),
@@ -32,12 +32,12 @@ impl TmuxPaneRepository for TmuxRepository {
         let mut args = vec!["list-panes", "-F", &list_format];
 
         let target_args = match target {
-            ListPanesTarget::Window { id: window_id } => vec!["-t", window_id],
-            ListPanesTarget::Session { id: session_id } => {
+            GetPanesTarget::Window { id: window_id } => vec!["-t", window_id],
+            GetPanesTarget::Session { id: session_id } => {
                 vec!["-s", "-t", session_id]
             }
-            ListPanesTarget::None => vec![],
-            ListPanesTarget::All => vec!["-a"],
+            GetPanesTarget::None => vec![],
+            GetPanesTarget::All => vec!["-a"],
         };
 
         let filter_str = filter.map(|x| x.as_string()).unwrap_or("".to_string());
@@ -128,7 +128,7 @@ impl TmuxRepository {
                 );
                 return window.first().unwrap().clone().panes.unwrap();
             }
-            None => self.list_panes(None, ListPanesTarget::None),
+            None => self.get_panes(None, GetPanesTarget::None),
         }
     }
 }

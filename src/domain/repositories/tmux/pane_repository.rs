@@ -10,7 +10,7 @@ pub enum SplitDirection {
 }
 
 #[allow(dead_code)]
-pub enum ListPanesTarget<'a> {
+pub enum GetPanesTarget<'a> {
     None,
     Window { id: &'a str },
     Session { id: &'a str },
@@ -18,7 +18,7 @@ pub enum ListPanesTarget<'a> {
 }
 
 pub trait TmuxPaneRepository {
-    fn list_panes(&self, filter: Option<TmuxFilterNode>, target: ListPanesTarget) -> Vec<TmuxPane>;
+    fn get_panes(&self, filter: Option<TmuxFilterNode>, target: GetPanesTarget) -> Vec<TmuxPane>;
     fn kill_pane(&self, pane: Option<&TmuxPane>);
     fn split_window(
         &self,

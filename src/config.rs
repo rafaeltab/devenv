@@ -37,7 +37,7 @@ fn read_config(config_path: Option<String>) -> Result<String, io::Error> {
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     pub workspaces: Vec<Workspace>,
-    pub tmux: Option<Tmux>,
+    pub tmux: Tmux,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -52,7 +52,8 @@ pub struct Workspace {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Tmux {
-    pub sessions: Vec<Session>,
+    pub sessions: Option<Vec<Session>>,
+    pub default_windows: Vec<Window>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]

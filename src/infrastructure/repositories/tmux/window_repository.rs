@@ -8,7 +8,7 @@ use crate::{
     domain::{
         aggregates::tmux::window::{TmuxWindow, WindowIncludeFields},
         repositories::tmux::{
-            pane_repository::{ListPanesTarget, TmuxPaneRepository},
+            pane_repository::{GetPanesTarget, TmuxPaneRepository},
             window_repository::{GetWindowsTarget, NewWindowBuilder, TmuxWindowRepository},
         },
     },
@@ -63,14 +63,14 @@ impl TmuxWindowRepository for TmuxRepository {
 
         let response = serde_json::from_str::<ListWindowsResponse>(&out)
             .expect("Failed to parse window response");
-        let panes = self.list_panes(
+        let panes = self.get_panes(
             Some(TmuxFilterAstBuilder::build(|b| {
                 b.eq(
                     b.var(TmuxFormatVariable::WindowId),
                     b.const_val(&response.id),
                 )
             })),
-            ListPanesTarget::All,
+            GetPanesTarget::All,
         );
 
         TmuxWindow {
@@ -135,7 +135,7 @@ impl TmuxWindowRepository for TmuxRepository {
         let window_ids: HashSet<String> = responses.iter().map(|x| x.id.clone()).collect();
         match include.panes {
             Some(_) => {
-                let panes = self.list_panes(
+                let panes = self.get_panes(
                     Some(TmuxFilterAstBuilder::build(|b| {
                         b.any(
                             window_ids
@@ -144,7 +144,7 @@ impl TmuxWindowRepository for TmuxRepository {
                                 .collect(),
                         )
                     })),
-                    ListPanesTarget::All,
+                    GetPanesTarget::All,
                 );
                 responses
                     .iter()
@@ -183,5 +183,4 @@ struct ListWindowsResponse {
     name: String,
     id: String,
     index: String,
-    session_id: String,
 }

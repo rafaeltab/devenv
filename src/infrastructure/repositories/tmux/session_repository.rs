@@ -34,6 +34,13 @@ impl TmuxSessionRepository for TmuxRepository {
             .expect("Failed to get sessions");
     }
 
+    fn get_environment(&self, session_id: &str) -> String {
+        cmd!("tmux", "show-environment", "-t", session_id)
+            .stderr_to_stdout()
+            .read()
+            .expect("Failed to get sessions")
+    }
+
     fn get_sessions(
         &self,
         filter: Option<TmuxFilterNode>,
@@ -42,7 +49,7 @@ impl TmuxSessionRepository for TmuxRepository {
         let list_format = json!({
             "id": TmuxFormatVariable::SessionId.to_format(),
             "name": TmuxFormatVariable::SessionName.to_format(),
-            "window_count": TmuxFormatVariable::SessionWindows.to_format(),
+            "path": TmuxFormatVariable::SessionPath.to_format(),
         })
         .to_string();
         let mut args = vec!["list-sessions", "-F", &list_format];
@@ -63,9 +70,11 @@ impl TmuxSessionRepository for TmuxRepository {
                 serde_json::from_str::<ListSessionResponse>(x).expect("Failed to get sessions")
             })
             .map(|x| TmuxSession {
-                name: x.name,
                 id: x.id,
+                name: x.name,
+                path: x.path,
                 windows: None,
+                environment: None,
                 include_fields: include.clone(),
             })
             .collect();
@@ -81,6 +90,12 @@ impl TmuxSessionRepository for TmuxRepository {
                 sessions[i].windows = Some(windows);
             });
         }
+        if let Some(()) = include.environment {
+            (0..sessions.len()).for_each(|i| {
+                let environment = self.get_environment(&sessions[i].id);
+                sessions[i].environment = Some(environment);
+            });
+        }
 
         sessions
     }
@@ -88,6 +103,7 @@ impl TmuxSessionRepository for TmuxRepository {
 
 #[derive(Deserialize)]
 struct ListSessionResponse {
+    path: String,
     name: String,
     id: String,
 }
