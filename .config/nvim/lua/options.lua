@@ -46,6 +46,7 @@ vim.opt.shiftwidth = 4
 vim.opt.expandtab = true
 vim.opt.copyindent = false
 vim.opt.preserveindent = false
+vim.opt.modeline = false
 
 vim.opt.smartindent = true
 
@@ -70,3 +71,12 @@ vim.opt.isfname:append("@-@")
 vim.opt.updatetime = 50
 vim.opt.colorcolumn = "120"
 vim.opt.conceallevel = 0
+
+vim.g.editorconfig = true
+
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = "*",
+    callback = function(opts)
+        require("editorconfig").config(opts.buf)
+    end
+})

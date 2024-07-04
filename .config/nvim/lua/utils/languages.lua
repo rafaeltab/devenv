@@ -14,7 +14,7 @@ function Languages:add_lspconfig(mason, language, settings)
         table.insert(self.mason, language)
     end
 
-   self.lspconfig = vim.tbl_deep_extend("keep", self.lspconfig, {
+    self.lspconfig = vim.tbl_deep_extend("keep", self.lspconfig, {
         [language] = settings
     })
 end
