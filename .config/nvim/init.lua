@@ -4,27 +4,27 @@ package.path = package.path .. ";" .. vim.fn.stdpath("config") .. "/lua/?.lua"
 require 'base'
 
 vim.opt.termguicolors = true
-setup({
+Plugins:add({
   {
     'declancm/cinnamon.nvim',
     config = function()
       require('cinnamon').setup({
-        default_keymaps = true,
-        extra_keymaps = true,
-        extended_keymaps = true,
-        always_scroll = true,
-        centered = true,
-        scroll_limit = 256
+        disabled = false,
+        keymaps = {
+          basic = true,
+          extra = true,
+        },
+        options = {
+          delay = 1,
+          mode = "window",
+          max_delta = {
+            line = 2048,
+            column = 2048,
+          }
+        }
       })
     end
   },
-  -- {
-  --   'martinsione/darkplus.nvim',
-  --   priority = 1000,
-  --   config = function()
-  --     vim.cmd.colorscheme 'darkplus'
-  --   end,
-  -- }
   {
     'navarasu/onedark.nvim',
     priority = 1000,
@@ -34,6 +34,7 @@ setup({
     },
   }
 })
+setup()
 
 
 vim.cmd.colorscheme 'onedark'

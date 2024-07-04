@@ -28,7 +28,7 @@ require 'languages.yaml'
 
 require 'lsp';
 
-function setup(plugins)
+function setup()
   -- The base configuration for `nvim` and `vscode-nvim`
   -- Set <space> as the leader key
   -- See `:help mapleader`
@@ -60,7 +60,6 @@ function setup(plugins)
   vim.opt.rtp:prepend(lazypath)
 
   require('lazy').setup({
-    plugins,
     Plugins:get_plugins()
   }, {})
 
