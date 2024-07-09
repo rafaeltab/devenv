@@ -26,9 +26,14 @@ jobs:
       - name: Test release
         run: cargo test --release
 
-      - name: Get Rust toolchain version
-        id: rust-version
-        run: echo "rust_version=$(cargo --version | awk '{print $2}')" >> $GITHUB_ENV
+      - name: Get Rust toolchain
+        id: rust-toolchain
+        run: |
+          toolchain=$(rustup show active-toolchain | awk '{print $1}')
+          # Remove any trailing '(default)' part
+          toolchain=${toolchain//\ (default)/}
+          tree
+          echo "toolchain=${toolchain}" >> $GITHUB_ENV
 
       - name: Upload release artifacts
         if: success()
