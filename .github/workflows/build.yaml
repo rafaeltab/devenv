@@ -1,0 +1,45 @@
+name: Rust CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Rust
+        uses: actions/setup-rust@v1
+        id: rust
+        with:
+          rust-version: 1.77.1 
+
+      - name: Build and test
+        run: cargo test --release
+
+      - name: Build release
+        run: cargo build --release
+
+      - name: Get Rust toolchain version
+        id: rust-version
+        run: echo "rust_version=$(cargo --version | awk '{print $2}')" >> $GITHUB_ENV
+
+      - name: Upload release artifacts
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-artifacts-${{ env.rust_version }}-${{ runner.os }}
+          path: |
+            target/release/your-binary-name # replace with your binary name or path to artifacts
