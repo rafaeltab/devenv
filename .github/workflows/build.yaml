@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build release
         run: cargo build --release
@@ -36,7 +36,7 @@ jobs:
 
       - name: Upload release artifacts
         if: success()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: rafaeltab-${{ env.toolchain }}
           path: |
