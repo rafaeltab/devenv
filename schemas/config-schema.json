@@ -50,18 +50,7 @@
                             "windows": {
                                 "type": "array",
                                 "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "name": {
-                                            "type": "string"
-                                        },
-                                        "command": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "name"
-                                    ]
+                                    "$ref": "#/definitions/Window"
                                 }
                             }
                         },
@@ -101,15 +90,35 @@
                         ]
                     }
                 },
-                "default_windows": {
+                "defaultWindows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Window"
+                    }
                 }
             },
             "required": [
-                "default_windows"
+                "defaultWindows"
             ]
         }
     },
     "required": [
         "workspaces"
-    ]
+    ],
+    "definitions": {
+        "Window": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "command": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "name"
+            ]
+        }
+    }
 }

@@ -4,23 +4,89 @@ use serde_json::json;
 
 use crate::{
     domain::{
-        aggregates::tmux::session::{SessionIncludeFields, TmuxSession},
+        aggregates::tmux::{
+            description::{
+                session::{SessionDescription, SessionKind},
+                window::WindowDescription,
+            },
+            include_fields_builder::IncludeFieldsBuilder,
+            session::{SessionIncludeFields, TmuxSession},
+        },
         repositories::tmux::{
             session_repository::TmuxSessionRepository,
-            window_repository::{GetWindowsTarget, TmuxWindowRepository},
+            window_repository::{GetWindowsTarget, NewWindowBuilder, TmuxWindowRepository},
         },
     },
     infrastructure::tmux::{
-        tmux_format::TmuxFilterNode,
+        tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode},
         tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
     },
 };
 
+static TMUX_SESSION_ID_KEY: &str = "RAFAELTAB_SESSION_ID";
+
 use super::tmux_client::TmuxRepository;
 
 impl TmuxSessionRepository for TmuxRepository {
-    fn new_session(&self) -> TmuxSession {
-        todo!()
+    fn new_session(&self, description: &SessionDescription) -> TmuxSession {
+        let name = &description.name;
+        let path = match &description.kind {
+            SessionKind::Path(path) => &path.path,
+            SessionKind::Workspace(workspace) => &workspace.path,
+        };
+        let id = &description.id;
+
+        let mut windows: Vec<NewWindowBuilder> = vec![];
+
+        for window in description.windows.clone().iter().skip(1) {
+            let builder = NewWindowBuilder::new()
+                .with_dir(path.clone())
+                .with_name(window.name.clone());
+            windows.push(builder);
+        }
+        let default_description = WindowDescription {
+            command: None,
+            name: "zsh".to_string(),
+        };
+        let first_window = description.windows.first().unwrap_or(&default_description);
+        let env = format!("{}={}", TMUX_SESSION_ID_KEY, id);
+        let format = TmuxFormatVariable::SessionId.to_format();
+        let mut args = vec![
+            "new-session",
+            "-d",
+            "-P",
+            "-F",
+            &format,
+            "-c",
+            &path,
+            "-e",
+            &env,
+            "-n",
+            &first_window.name,
+            "-s",
+            &name,
+        ];
+
+        if let Some(ref command) = first_window.command {
+            args.push(command);
+        }
+
+        let session_id = cmd("tmux", args)
+            .stderr_to_stdout()
+            .read()
+            .expect("Expected to succeed creating session");
+
+        let sessions = self.get_sessions(
+            Some(TmuxFilterAstBuilder::build(|b| {
+                b.eq(
+                    b.const_val(&session_id),
+                    b.var(TmuxFormatVariable::SessionId),
+                )
+            })),
+            IncludeFieldsBuilder::new().build_session(),
+        );
+
+        sessions.first().unwrap().clone()
     }
 
     fn kill_session(&self, session: Option<&TmuxSession>) {

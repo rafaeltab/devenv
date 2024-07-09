@@ -1,9 +1,6 @@
 use crate::{
     commands::command::RafaeltabCommand,
-    domain::{
-        aggregates::tmux::include_fields_builder::IncludeFieldsBuilder,
-        repositories::tmux::session_repository::TmuxSessionRepository,
-    },
+    domain::repositories::tmux::description_repository::SessionDescriptionRepository,
     utils::display::{RafaeltabDisplay, ToDynVec},
 };
 
@@ -12,7 +9,7 @@ pub struct TmuxListCommand;
 
 pub struct TmuxListOptions<'a> {
     pub display: &'a dyn RafaeltabDisplay,
-    pub session_repository: &'a dyn TmuxSessionRepository,
+    pub session_description_repository: &'a dyn SessionDescriptionRepository,
 }
 
 impl<'a> RafaeltabCommand<TmuxListOptions<'a>> for TmuxListCommand {
@@ -20,23 +17,11 @@ impl<'a> RafaeltabCommand<TmuxListOptions<'a>> for TmuxListCommand {
         &self,
         TmuxListOptions {
             display,
-            session_repository,
+            session_description_repository,
         }: TmuxListOptions,
     ) {
-        // First get tmux sessions
-        let sessions = session_repository.get_sessions(
-            None,
-            IncludeFieldsBuilder::default()
-                .with_windows(true)
-                .build_session(),
-        );
+        let descriptions = session_description_repository.get_session_descriptions();
 
-        display.display_list(sessions.to_dyn_vec());
-
-        // Then get the possible tmux sessions
-
-        // Eliminate those that are already open
-
-        // Print both together 
+        display.display_list(descriptions.to_dyn_vec());
     }
 }

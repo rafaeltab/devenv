@@ -16,7 +16,10 @@ use commands::{
     },
 };
 use config::load_config;
-use infrastructure::repositories::tmux::tmux_client::TmuxRepository;
+use infrastructure::repositories::{
+    tmux::{description_repository::ImplDescriptionRepository, tmux_client::TmuxRepository},
+    workspace::workspace_repository::ImplWorkspaceRepository,
+};
 use utils::display::{JsonDisplay, JsonPrettyDisplay, PrettyDisplay, RafaeltabDisplay};
 
 mod commands;
@@ -128,10 +131,16 @@ fn main() -> Result<(), io::Error> {
         Some(Commands::Tmux(tmux_args)) => match &tmux_args.command {
             TmuxCommands::List(args) => TmuxListCommand.execute(TmuxListOptions {
                 display: &*create_display(args),
-                session_repository: &TmuxRepository {},
+                session_description_repository: &ImplDescriptionRepository {
+                    workspace_repository: &ImplWorkspaceRepository {
+                        config: config.clone(),
+                    },
+                    session_repository: &TmuxRepository {},
+                    config: config.clone(),
+                },
             }),
             TmuxCommands::Start => todo!(),
-            TmuxCommands::Legacy => todo!()/* TmuxCommand.execute(TmuxCommandArgs { config }) */,
+            TmuxCommands::Legacy => todo!(), /* TmuxCommand.execute(TmuxCommandArgs { config }) */
         },
         Some(Commands::Workspace(workspace_args)) => match &workspace_args.command {
             WorkspaceCommands::List(args) => {
