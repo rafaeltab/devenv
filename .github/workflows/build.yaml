@@ -20,17 +20,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Rust
-        uses: actions/setup-rust@v1
-        id: rust
-        with:
-          rust-version: 1.77.1 
-
-      - name: Build and test
-        run: cargo test --release
-
       - name: Build release
         run: cargo build --release
+
+      - name: Test release
+        run: cargo test --release
 
       - name: Get Rust toolchain version
         id: rust-version
