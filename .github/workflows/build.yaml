@@ -34,6 +34,6 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v3
         with:
-          name: release-artifacts-${{ env.rust_version }}-${{ runner.os }}
+          name: rafaeltab-${{ env.rust_version }}-${{ runner.os }}
           path: |
-            target/release/your-binary-name # replace with your binary name or path to artifacts
+            target/release/rafaeltab # replace with your binary name or path to artifacts
