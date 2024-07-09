@@ -38,6 +38,6 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v3
         with:
-          name: rafaeltab-${{ env.rust_version }}-${{ runner.os }}
+          name: rafaeltab-${{ env.toolchain }}
           path: |
             target/release/rafaeltab
