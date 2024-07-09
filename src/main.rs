@@ -6,6 +6,7 @@ use commands::{
     tmux::{
         // legacy::{TmuxCommand, TmuxCommandArgs},
         list::{TmuxListCommand, TmuxListOptions},
+        start::{TmuxStartCommand, TmuxStartOptions},
     },
     workspaces::{
         current::{get_current_workspace, CurrentWorkspaceOptions},
@@ -56,7 +57,6 @@ struct TmuxArgs {
 enum TmuxCommands {
     List(DisplayCommand),
     Start,
-    Legacy,
 }
 
 #[derive(Debug, Args)]
@@ -135,12 +135,27 @@ fn main() -> Result<(), io::Error> {
                     workspace_repository: &ImplWorkspaceRepository {
                         config: config.clone(),
                     },
-                    session_repository: &TmuxRepository {},
+                    session_repository: &TmuxRepository {
+                        config: config.clone(),
+                    },
                     config: config.clone(),
                 },
             }),
-            TmuxCommands::Start => todo!(),
-            TmuxCommands::Legacy => todo!(), /* TmuxCommand.execute(TmuxCommandArgs { config }) */
+            TmuxCommands::Start => {
+                let session_repository = &TmuxRepository {
+                    config: config.clone(),
+                };
+                TmuxStartCommand.execute(TmuxStartOptions {
+                    session_description_repository: &ImplDescriptionRepository {
+                        workspace_repository: &ImplWorkspaceRepository {
+                            config: config.clone(),
+                        },
+                        session_repository,
+                        config: config.clone(),
+                    },
+                    session_repository,
+                })
+            }
         },
         Some(Commands::Workspace(workspace_args)) => match &workspace_args.command {
             WorkspaceCommands::List(args) => {

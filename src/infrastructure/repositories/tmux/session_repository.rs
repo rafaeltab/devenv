@@ -21,6 +21,7 @@ use crate::{
         tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode},
         tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
     },
+    utils::path::expand_path,
 };
 
 static TMUX_SESSION_ID_KEY: &str = "RAFAELTAB_SESSION_ID";
@@ -51,6 +52,7 @@ impl TmuxSessionRepository for TmuxRepository {
         let first_window = description.windows.first().unwrap_or(&default_description);
         let env = format!("{}={}", TMUX_SESSION_ID_KEY, id);
         let format = TmuxFormatVariable::SessionId.to_format();
+        let full_path = expand_path(path);
         let mut args = vec![
             "new-session",
             "-d",
@@ -58,7 +60,7 @@ impl TmuxSessionRepository for TmuxRepository {
             "-F",
             &format,
             "-c",
-            &path,
+            &full_path,
             "-e",
             &env,
             "-n",
@@ -67,7 +69,9 @@ impl TmuxSessionRepository for TmuxRepository {
             &name,
         ];
 
-        if let Some(ref command) = first_window.command {
+        let first_command_with_shell = command_with_shell(first_window.command.clone());
+
+        if let Some(ref command) = first_command_with_shell {
             args.push(command);
         }
 
@@ -86,7 +90,13 @@ impl TmuxSessionRepository for TmuxRepository {
             IncludeFieldsBuilder::new().build_session(),
         );
 
-        sessions.first().unwrap().clone()
+        let session = sessions.first().unwrap().clone();
+
+        for window in windows {
+            self.new_window(&window.with_target(session.clone()));
+        }
+
+        session
     }
 
     fn kill_session(&self, session: Option<&TmuxSession>) {
@@ -126,45 +136,53 @@ impl TmuxSessionRepository for TmuxRepository {
         if !filter_string.is_empty() {
             args.extend(["-f", &filter_string]);
         }
-        let res = cmd("tmux", args)
-            .stderr_to_stdout()
-            .read()
-            .expect("Failed to get sessions");
-        let mut sessions: Vec<TmuxSession> = res
-            .lines()
-            .map(|x| {
-                serde_json::from_str::<ListSessionResponse>(x).expect("Failed to get sessions")
-            })
-            .map(|x| TmuxSession {
-                id: x.id,
-                name: x.name,
-                path: x.path,
-                windows: None,
-                environment: None,
-                include_fields: include.clone(),
-            })
-            .collect();
-        if let Some(window_includes) = include.windows {
-            (0..sessions.len()).for_each(|i| {
-                let windows = self.get_windows(
-                    None,
-                    window_includes.clone(),
-                    GetWindowsTarget::Session {
-                        id: &sessions[i].id,
-                    },
-                );
-                sessions[i].windows = Some(windows);
-            });
-        }
-        if let Some(()) = include.environment {
-            (0..sessions.len()).for_each(|i| {
-                let environment = self.get_environment(&sessions[i].id);
-                sessions[i].environment = Some(environment);
-            });
-        }
+        let result = cmd("tmux", args).stderr_to_stdout().read();
 
-        sessions
+        match result {
+            Ok(res) => {
+                let mut sessions: Vec<TmuxSession> = res
+                    .lines()
+                    .map(|x| {
+                        serde_json::from_str::<ListSessionResponse>(x)
+                            .expect("Failed to get sessions")
+                    })
+                    .map(|x| TmuxSession {
+                        id: x.id,
+                        name: x.name,
+                        path: x.path,
+                        windows: None,
+                        environment: None,
+                        include_fields: include.clone(),
+                    })
+                    .collect();
+                if let Some(window_includes) = include.windows {
+                    (0..sessions.len()).for_each(|i| {
+                        let windows = self.get_windows(
+                            None,
+                            window_includes.clone(),
+                            GetWindowsTarget::Session {
+                                id: &sessions[i].id,
+                            },
+                        );
+                        sessions[i].windows = Some(windows);
+                    });
+                }
+                if let Some(()) = include.environment {
+                    (0..sessions.len()).for_each(|i| {
+                        let environment = self.get_environment(&sessions[i].id);
+                        sessions[i].environment = Some(environment);
+                    });
+                }
+
+                sessions
+            }
+            Err(_) => vec![],
+        }
     }
+}
+
+fn command_with_shell(cmd: Option<String>) -> Option<String> {
+    cmd.map(|cmd_str| cmd_str + "; exec $SHELL")
 }
 
 #[derive(Deserialize)]

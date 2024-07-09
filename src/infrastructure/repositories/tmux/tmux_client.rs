@@ -1,5 +1,7 @@
-pub struct TmuxRepository {
+use crate::config::Config;
 
+pub struct TmuxRepository {
+    pub config: Config
 }
 
 

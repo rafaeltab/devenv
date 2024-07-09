@@ -95,10 +95,14 @@
                     "items": {
                         "$ref": "#/definitions/Window"
                     }
+                },
+                "shell": {
+                    "type": "string"
                 }
             },
             "required": [
-                "defaultWindows"
+                "defaultWindows",
+                "shell"
             ]
         }
     },

@@ -44,7 +44,9 @@ impl TmuxWindowRepository for TmuxRepository {
             args.extend(["-t", &target.id]);
         }
 
-        if let Some(command) = &new_window.command {
+        let window_command_with_shell = command_with_shell(new_window.command.clone());
+
+        if let Some(ref command) = window_command_with_shell {
             args.push(command);
         }
 
@@ -176,6 +178,10 @@ impl TmuxWindowRepository for TmuxRepository {
                 .collect(),
         }
     }
+}
+
+fn command_with_shell(cmd: Option<String>) -> Option<String> {
+    cmd.map(|cmd_str| cmd_str + "; exec $SHELL")
 }
 
 #[derive(Deserialize)]

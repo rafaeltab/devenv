@@ -64,6 +64,7 @@ mod test {
             tmux: Tmux {
                 sessions: None,
                 default_windows: vec![],
+                shell: "zsh -c".to_string(),
             },
         }
     }
