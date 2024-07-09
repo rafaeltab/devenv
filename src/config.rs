@@ -54,7 +54,6 @@ pub struct Workspace {
 pub struct Tmux {
     pub sessions: Option<Vec<Session>>,
     pub default_windows: Vec<Window>,
-    pub shell: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]

@@ -208,7 +208,6 @@ mod tests {
                         command: None,
                     },
                 ],
-                shell: "zsh -c".to_string(),
             },
         }
     }
