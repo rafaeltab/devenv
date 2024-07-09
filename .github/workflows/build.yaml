@@ -32,7 +32,6 @@ jobs:
           toolchain=$(rustup show active-toolchain | awk '{print $1}')
           # Remove any trailing '(default)' part
           toolchain=${toolchain//\ (default)/}
-          tree
           echo "toolchain=${toolchain}" >> $GITHUB_ENV
 
       - name: Upload release artifacts
@@ -41,4 +40,4 @@ jobs:
         with:
           name: rafaeltab-${{ env.rust_version }}-${{ runner.os }}
           path: |
-            target/release/rafaeltab # replace with your binary name or path to artifacts
+            target/release/rafaeltab
