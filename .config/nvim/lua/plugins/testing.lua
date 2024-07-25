@@ -8,6 +8,7 @@ Plugins:add({
             'sidlatau/neotest-dart',
             'rouge8/neotest-rust',
             'nvim-neotest/neotest-go',
+            'Issafalcon/neotest-dotnet',
             'nvim-neotest/nvim-nio'
         },
         config = function()
@@ -19,7 +20,8 @@ Plugins:add({
                         custom_test_method_names = { "blocTest" }
                     },
                     require("neotest-rust"),
-                    require("neotest-go")
+                    require("neotest-go"),
+                    require("neotest-dotnet"),
                 },
                 consumers = { require("neotest").diagnostic, require("neotest").status }
             })

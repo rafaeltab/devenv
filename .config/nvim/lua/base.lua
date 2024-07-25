@@ -25,6 +25,7 @@ require 'languages.markdown'
 require 'languages.terraform'
 require 'languages.typescript'
 require 'languages.yaml'
+require 'languages.csharp'
 
 require 'lsp';
 

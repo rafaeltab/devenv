@@ -23,6 +23,9 @@ Plugins:add({
         main = "ibl",
     },
     {
+        'norcalli/nvim-colorizer.lua',
+    },
+    {
         -- Set lualine as statusline
         'nvim-lualine/lualine.nvim',
         -- See `:help lualine.txt`
@@ -77,7 +80,8 @@ Plugins:add({
     {
         "rcarriga/nvim-notify",
         opts = {
-            background_color = "#000000"
+            background_color = "#000000",
+            stages = "static",
         }
     },
 })

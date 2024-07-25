@@ -3,7 +3,25 @@ require "utils.plugins"
 
 Plugins:add({
     {
-        "aznhe21/actions-preview.nvim"
+        "aznhe21/actions-preview.nvim",
+        dependencies = {
+            'telescope.nvim'
+        },
+        opts = function()
+            return {
+                telescope = vim.tbl_extend(
+                    "force",
+                    -- telescope theme: https://github.com/nvim-telescope/telescope.nvim#themes
+                    require("telescope.themes").get_dropdown(),
+                    -- a table for customizing content
+                    {
+                        layout_config = {
+                            width = 0.5,
+                        },
+                    }
+                ),
+            }
+        end
     },
     {
         -- LSP Configuration & Plugins
@@ -92,11 +110,13 @@ OnLoad:add(function()
         end
 
         local filetypes = server_config.filetypes
+        local cmd = server_config.cmd
         require("lspconfig")[server_name].setup {
             capabilities = capabilities,
             on_attach = function(client, bufnr) OnAttach:attach(client, bufnr) end,
             settings = server_config,
-            filetypes = filetypes
+            filetypes = filetypes,
+            cmd = cmd,
         }
     end
 
