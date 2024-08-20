@@ -93,7 +93,11 @@ impl TmuxSessionRepository for TmuxRepository {
         let session = sessions.first().unwrap().clone();
 
         for window in windows {
-            self.new_window(&window.with_target(session.clone()));
+            self.new_window(
+                &window
+                    .with_target(session.clone())
+                    .with_dir(&full_path)
+            );
         }
 
         session
