@@ -14,22 +14,22 @@ pub struct MockTmuxStorage {
 
 impl WorkspaceStorage for MockWorkspaceStorage {}
 impl Storage<Vec<Workspace>> for MockWorkspaceStorage {
-    fn read(&self) -> &Vec<Workspace> {
-        &self.data
+    fn read(&self) -> Vec<Workspace> {
+        self.data.clone()
     }
 
-    fn write(&mut self, _: &Vec<Workspace>) -> Result<(), std::io::Error> {
+    fn write(&self, _: &Vec<Workspace>) -> Result<(), std::io::Error> {
         Ok(())
     }
 }
 
 impl TmuxStorage for MockTmuxStorage {}
 impl Storage<Tmux> for MockTmuxStorage {
-    fn read(&self) -> &Tmux {
-        &self.data
+    fn read(&self) -> Tmux {
+        self.data.clone()
     }
 
-    fn write(&mut self, _: &Tmux) -> Result<(), std::io::Error> {
+    fn write(&self, _: &Tmux) -> Result<(), std::io::Error> {
         Ok(())
     }
 }

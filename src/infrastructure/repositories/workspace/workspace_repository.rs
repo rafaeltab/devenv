@@ -3,7 +3,7 @@ use crate::{
         aggregates::workspaces::workspace::{Workspace, WorkspaceTag},
         repositories::workspace::workspace_repository::WorkspaceRepository,
     },
-    storage::workspace::WorkspaceStorage,
+    storage::{self, workspace::WorkspaceStorage},
 };
 
 pub struct ImplWorkspaceRepository<'a, TWorkspaceStorage: WorkspaceStorage> {
@@ -35,6 +35,43 @@ impl<'a, TWorkspaceStorage: WorkspaceStorage> WorkspaceRepository
                 importance: 0,
             })
             .collect()
+    }
+
+    fn create_workspace(
+        &self,
+        name: String,
+        tags: Vec<String>,
+        root: String,
+        id: String,
+    ) -> Workspace {
+        let workspace = storage::workspace::Workspace {
+            id,
+            name,
+            tags: Some(tags),
+            root,
+        };
+
+        let mut workspaces = self.workspace_storage.read().clone();
+        workspaces.push(workspace.clone());
+        self.workspace_storage.write(&workspaces).expect("");
+
+        Workspace {
+            id: workspace.id.clone(),
+            tags: workspace
+                .tags
+                .clone()
+                .map(|x| {
+                    x.iter()
+                        .map(|tag| WorkspaceTag {
+                            name: tag.to_string(),
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
+            name: workspace.name.clone(),
+            path: workspace.root.clone(),
+            importance: 0,
+        }
     }
 }
 
@@ -71,10 +108,10 @@ mod test {
 
     #[test]
     fn should_map_all_workspaces() {
-        let workspace_storage = storage_factory();
+        let mut workspace_storage = storage_factory();
 
         let sut = ImplWorkspaceRepository {
-            workspace_storage: &workspace_storage,
+            workspace_storage: &mut workspace_storage,
         };
 
         let result = sut.get_workspaces();
@@ -84,9 +121,11 @@ mod test {
 
     #[test]
     fn should_map_root_to_path() {
-        let workspace_storage = storage_factory();
+        let mut workspace_storage = storage_factory();
 
-        let sut = ImplWorkspaceRepository { workspace_storage: &workspace_storage };
+        let sut = ImplWorkspaceRepository {
+            workspace_storage: &mut workspace_storage,
+        };
 
         let result = sut.get_workspaces();
 
@@ -95,9 +134,11 @@ mod test {
 
     #[test]
     fn should_map_basic_fields() {
-        let workspace_storage = storage_factory();
+        let mut workspace_storage = storage_factory();
 
-        let sut = ImplWorkspaceRepository { workspace_storage: &workspace_storage };
+        let sut = ImplWorkspaceRepository {
+            workspace_storage: &mut workspace_storage,
+        };
 
         let result = sut.get_workspaces();
 
@@ -107,9 +148,11 @@ mod test {
 
     #[test]
     fn should_map_none_tags_to_empty_vec() {
-        let workspace_storage = storage_factory();
+        let mut workspace_storage = storage_factory();
 
-        let sut = ImplWorkspaceRepository { workspace_storage: &workspace_storage };
+        let sut = ImplWorkspaceRepository {
+            workspace_storage: &mut workspace_storage,
+        };
 
         let result = sut.get_workspaces();
 
@@ -118,9 +161,11 @@ mod test {
 
     #[test]
     fn should_map_tags_to_workspace_tags() {
-        let workspace_storage = storage_factory();
+        let mut workspace_storage = storage_factory();
 
-        let sut = ImplWorkspaceRepository { workspace_storage: &workspace_storage };
+        let sut = ImplWorkspaceRepository {
+            workspace_storage: &mut workspace_storage,
+        };
 
         let result = sut.get_workspaces();
         let tag_result = &result.last().unwrap().tags;

@@ -4,11 +4,11 @@ use clap::{Args, CommandFactory, Parser, Subcommand};
 use commands::{
     command::RafaeltabCommand,
     tmux::{
-        // legacy::{TmuxCommand, TmuxCommandArgs},
         list::{TmuxListCommand, TmuxListOptions},
         start::{TmuxStartCommand, TmuxStartOptions},
     },
     workspaces::{
+        add::{WorkspaceAddCommand, WorkspaceAddOptions},
         current::{get_current_workspace, CurrentWorkspaceOptions},
         find::{find_workspace_cmd, FindWorkspaceOptions},
         find_tag::{find_tag_workspace, FindTagWorkspaceOptions},
@@ -77,6 +77,8 @@ enum WorkspaceCommands {
     FindTag(FindTagCommand),
     /// List tmux sessions, with their attached workspaces
     Tmux(DisplayCommand),
+    /// Add a new workspace
+    Add(AddCommand),
 }
 
 #[derive(Debug, Args)]
@@ -88,6 +90,24 @@ struct DisplayCommand {
     /// Print json, but pretty (implies --json)
     #[arg(long)]
     pub json_pretty: bool,
+}
+
+#[derive(Debug, Args)]
+struct AddCommand {
+    #[command(flatten)]
+    display_command: DisplayCommand,
+
+    #[arg(long)]
+    name: Option<String>,
+
+    #[arg(long)]
+    tags: Option<Vec<String>>,
+
+    #[arg(long)]
+    path: Option<String>,
+
+    #[arg(long)]
+    interactive: Option<bool>,
 }
 
 #[derive(Debug, Args)]
@@ -191,6 +211,19 @@ fn main() -> Result<(), io::Error> {
                     display: &*create_display(args),
                 },
             ),
+            WorkspaceCommands::Add(args) => {
+                let workspace_repository = ImplWorkspaceRepository {
+                    workspace_storage: &storage,
+                };
+                WorkspaceAddCommand.execute(WorkspaceAddOptions {
+                    display: &*create_display(&args.display_command),
+                    workspace_repository: &workspace_repository,
+                    interactive: args.interactive,
+                    name: args.name.clone(),
+                    tags: args.tags.clone(),
+                    path: args.path.clone(),
+                })
+            }
         },
         None => {
             let _ = Cli::command().print_help();

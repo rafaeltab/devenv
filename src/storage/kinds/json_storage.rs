@@ -1,4 +1,4 @@
-use std::{fs, io, path::Path};
+use std::{cell::RefCell, fs, io, path::Path};
 
 use serde::{Deserialize, Serialize};
 
@@ -16,7 +16,7 @@ pub struct JsonStorageProvider {
 }
 pub struct JsonStorage {
     path: String,
-    data: JsonData,
+    data: RefCell<JsonData>,
 }
 
 impl JsonStorageProvider {
@@ -31,41 +31,41 @@ impl JsonStorageProvider {
 
         Ok(JsonStorage {
             path: self.path.clone(),
-            data: json_data,
+            data: RefCell::new(json_data),
         })
     }
 }
 
 impl WorkspaceStorage for JsonStorage {}
 impl Storage<Vec<Workspace>> for JsonStorage {
-    fn read(&self) -> &Vec<Workspace> {
-        &self.data.workspaces
+    fn read(&self) -> Vec<Workspace> {
+        self.data.borrow().workspaces.clone()
     }
 
-    fn write(&mut self, value: &Vec<Workspace>) -> Result<(), io::Error> {
+    fn write(&self, value: &Vec<Workspace>) -> Result<(), io::Error> {
         let new_value = JsonData {
             workspaces: value.clone(),
-            tmux: self.data.tmux.clone(),
+            tmux: self.data.borrow().tmux.clone(),
         };
         let _ = write_json_data(self.path.clone(), &new_value);
-        self.data = load_json_data(self.path.clone())?;
+        self.data.replace(load_json_data(self.path.clone())?);
         Ok(())
     }
 }
 
 impl TmuxStorage for JsonStorage {}
 impl Storage<Tmux> for JsonStorage {
-    fn read(&self) -> &Tmux {
-        &self.data.tmux
+    fn read(&self) -> Tmux {
+        self.data.borrow().tmux.clone()
     }
 
-    fn write(&mut self, value: &Tmux) -> Result<(), io::Error> {
+    fn write(&self, value: &Tmux) -> Result<(), io::Error> {
         let new_value = JsonData {
-            workspaces: self.data.workspaces.clone(),
+            workspaces: self.data.borrow().workspaces.clone(),
             tmux: value.clone(),
         };
         let _ = write_json_data(self.path.clone(), &new_value);
-        self.data = load_json_data(self.path.clone())?;
+        self.data.replace(load_json_data(self.path.clone())?);
         Ok(())
     }
 }
@@ -84,7 +84,7 @@ fn load_json_data(path: String) -> Result<JsonData, io::Error> {
 }
 
 fn write_json_data(path: String, data: &JsonData) -> Result<(), io::Error> {
-    let string_data = serde_json::to_string(&data)?;
+    let string_data = serde_json::to_string_pretty(&data)?;
     fs::write(path, string_data)?;
 
     Ok(())
