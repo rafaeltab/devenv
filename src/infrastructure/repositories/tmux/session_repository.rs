@@ -21,6 +21,7 @@ use crate::{
         tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode},
         tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
     },
+    storage::tmux::TmuxStorage,
     utils::path::expand_path,
 };
 
@@ -28,7 +29,7 @@ static TMUX_SESSION_ID_KEY: &str = "RAFAELTAB_SESSION_ID";
 
 use super::tmux_client::TmuxRepository;
 
-impl TmuxSessionRepository for TmuxRepository {
+impl<'a, TTmuxStorage: TmuxStorage> TmuxSessionRepository for TmuxRepository<'a, TTmuxStorage> {
     fn new_session(&self, description: &SessionDescription) -> TmuxSession {
         let name = &description.name;
         let path = match &description.kind {
@@ -93,11 +94,7 @@ impl TmuxSessionRepository for TmuxRepository {
         let session = sessions.first().unwrap().clone();
 
         for window in windows {
-            self.new_window(
-                &window
-                    .with_target(session.clone())
-                    .with_dir(&full_path)
-            );
+            self.new_window(&window.with_target(session.clone()).with_dir(&full_path));
         }
 
         session

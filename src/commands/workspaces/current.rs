@@ -2,19 +2,18 @@ use core::panic;
 use std::env;
 
 use crate::{
-    config::Config,
-    utils::{display::RafaeltabDisplay, workspace::get_workspace_paths},
+    storage::workspace::WorkspaceStorage, utils::{display::RafaeltabDisplay, workspace::get_workspace_paths}
 };
 
 pub struct CurrentWorkspaceOptions<'a> {
     pub display: &'a dyn RafaeltabDisplay,
 }
 
-pub fn get_current_workspace(
-    config: Config,
+pub fn get_current_workspace< TWorkspaceStorage: WorkspaceStorage>(
+    workspace_storage: &TWorkspaceStorage,
     CurrentWorkspaceOptions { display }: CurrentWorkspaceOptions,
 ) {
-    let workspaces = get_workspace_paths(config);
+    let workspaces = get_workspace_paths(workspace_storage);
     let cwd = match env::current_dir() {
         Ok(cwd_path) => cwd_path.to_string_lossy().to_string(),
         Err(_) => panic!("Failed to read cwd"),

@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 
 use crate::{
     commands::tmux::legacy::TMUX_WORKSPACE_KEY,
-    config::{Config, Workspace},
+    storage::workspace::{Workspace, WorkspaceStorage},
     utils::{
         display::{RafaeltabDisplay, RafaeltabDisplayItem, ToDynVec},
         workspace::find_workspace,
@@ -15,8 +15,8 @@ pub struct ListTmuxWorkspaceOptions<'a> {
     pub display: &'a dyn RafaeltabDisplay,
 }
 
-pub fn list_tmux_workspaces(
-    config: Config,
+pub fn list_tmux_workspaces<TWorkspaceStorage: WorkspaceStorage>(
+    workspace_storage: &TWorkspaceStorage,
     ListTmuxWorkspaceOptions { display }: ListTmuxWorkspaceOptions,
 ) {
     let format = json!({
@@ -51,7 +51,7 @@ pub fn list_tmux_workspaces(
                 SessionResult {
                     session_name: session.name.clone(),
                     session_path: session.path.clone(),
-                    workspace: find_workspace(&config, workspace_id),
+                    workspace: find_workspace(workspace_storage, workspace_id),
                 }
             }
         });

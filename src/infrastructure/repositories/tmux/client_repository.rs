@@ -7,6 +7,7 @@ use crate::domain::repositories::tmux::client_repository::{
     SwitchClientTarget, TmuxClientRepository,
 };
 use crate::infrastructure::tmux::tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode};
+use crate::storage::tmux::TmuxStorage;
 use crate::{
     domain::{
         aggregates::tmux::client::TmuxClient,
@@ -17,7 +18,7 @@ use crate::{
 
 use super::tmux_client::TmuxRepository;
 
-impl TmuxClientRepository for TmuxRepository {
+impl<'a, TTmuxStorage: TmuxStorage> TmuxClientRepository for TmuxRepository<'a, TTmuxStorage> {
     fn get_clients(
         &self,
         filter: Option<TmuxFilterNode>,

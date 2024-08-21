@@ -16,11 +16,12 @@ use crate::{
         tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode},
         tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
     },
+    storage::tmux::TmuxStorage,
 };
 
 use super::tmux_client::TmuxRepository;
 
-impl TmuxPaneRepository for TmuxRepository {
+impl<'a, TTmuxStorage: TmuxStorage> TmuxPaneRepository for TmuxRepository<'a, TTmuxStorage> {
     fn get_panes(&self, filter: Option<TmuxFilterNode>, target: GetPanesTarget) -> Vec<TmuxPane> {
         let list_format = json!({
             "id": TmuxFormatVariable::PaneId.to_format(),
@@ -114,7 +115,7 @@ impl TmuxPaneRepository for TmuxRepository {
     }
 }
 
-impl TmuxRepository {
+impl<'a, TTmuxStorage: TmuxStorage> TmuxRepository<'a, TTmuxStorage> {
     fn get_current_panes(&self, pane: Option<&TmuxPane>) -> Vec<TmuxPane> {
         match pane {
             Some(pane_value) => {

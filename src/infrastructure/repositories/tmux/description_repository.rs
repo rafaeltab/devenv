@@ -1,7 +1,6 @@
 use uuid::{uuid, Uuid};
 
 use crate::{
-    config::{Config, Session},
     domain::{
         aggregates::tmux::{
             description::{
@@ -18,21 +17,34 @@ use crate::{
             workspace::workspace_repository::WorkspaceRepository,
         },
     },
+    storage::tmux::{Session, TmuxStorage},
 };
 
-pub struct ImplDescriptionRepository<'a> {
-    pub workspace_repository: &'a dyn WorkspaceRepository,
-    pub session_repository: &'a dyn TmuxSessionRepository,
-    pub config: Config,
+pub struct ImplDescriptionRepository<
+    'a,
+    TWorkspaceRepository: WorkspaceRepository,
+    TTmuxSessionRepository: TmuxSessionRepository,
+    TTmuxStorage: TmuxStorage,
+> {
+    pub workspace_repository: &'a TWorkspaceRepository,
+    pub session_repository: &'a TTmuxSessionRepository,
+    pub tmux_storage: &'a TTmuxStorage,
 }
 
-impl<'a> SessionDescriptionRepository for ImplDescriptionRepository<'a> {
+impl<
+        'a,
+        TWorkspaceRepository: WorkspaceRepository,
+        TTmuxSessionRepository: TmuxSessionRepository,
+        TTmuxStorage: TmuxStorage,
+    > SessionDescriptionRepository
+    for ImplDescriptionRepository<'a, TWorkspaceRepository, TTmuxSessionRepository, TTmuxStorage>
+{
     fn get_session_descriptions(&self) -> Vec<SessionDescription> {
         let workspaces = self.workspace_repository.get_workspaces();
         let mut result: Vec<SessionDescription> = vec![];
         let default_window_descriptions: Vec<WindowDescription> = self
-            .config
-            .tmux
+            .tmux_storage
+            .read()
             .default_windows
             .iter()
             .map(|x| WindowDescription {
@@ -55,7 +67,13 @@ impl<'a> SessionDescriptionRepository for ImplDescriptionRepository<'a> {
             });
         }
 
-        for session in self.config.tmux.sessions.clone().unwrap_or_default() {
+        for session in self
+            .tmux_storage
+            .read()
+            .sessions
+            .clone()
+            .unwrap_or_default()
+        {
             match session {
                 Session::Workspace(workspace) => {
                     let windows: Vec<WindowDescription> = workspace
@@ -147,7 +165,6 @@ fn find_session_id(input: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        config::{Config, PathSession, Session, Tmux, Window, Workspace, WorkspaceSession},
         domain::{
             aggregates::tmux::description::session::{SessionDescription, SessionKind},
             repositories::{
@@ -159,13 +176,18 @@ mod tests {
             },
         },
         infrastructure::repositories::workspace::workspace_repository::ImplWorkspaceRepository,
+        storage::{
+            test::mocks::{MockTmuxStorage, MockWorkspaceStorage},
+            tmux::{PathSession, Session, Tmux, TmuxStorage, Window, WorkspaceSession},
+            workspace::{Workspace, WorkspaceStorage},
+        },
     };
 
     use super::ImplDescriptionRepository;
 
-    fn config_factory() -> Config {
-        Config {
-            workspaces: vec![
+    fn workspace_storage_factory() -> impl WorkspaceStorage {
+        MockWorkspaceStorage {
+            data: vec![
                 Workspace {
                     name: "Home".to_string(),
                     id: "home".to_string(),
@@ -179,7 +201,12 @@ mod tests {
                     tags: Some(vec![]),
                 },
             ],
-            tmux: Tmux {
+        }
+    }
+
+    fn tmux_storage_factory() -> impl TmuxStorage {
+        MockTmuxStorage {
+            data: Tmux {
                 sessions: Some(vec![
                     Session::Path(PathSession {
                         windows: vec![Window {
@@ -212,21 +239,28 @@ mod tests {
         }
     }
 
-    fn workspace_repo_factory(config: Config) -> impl WorkspaceRepository {
-        ImplWorkspaceRepository { config }
+    fn workspace_repo_factory<TWorkspaceStorage: WorkspaceStorage>(
+        workspace_storage: &TWorkspaceStorage,
+    ) -> impl WorkspaceRepository + '_ {
+        ImplWorkspaceRepository { workspace_storage }
     }
 
     fn session_repo_factory() -> impl TmuxSessionRepository {
         MockSessionRepo {}
     }
 
-    fn sut_factory<'a>(
-        config: Config,
-        workspace_repository: &'a dyn WorkspaceRepository,
-        session_repository: &'a dyn TmuxSessionRepository,
-    ) -> ImplDescriptionRepository<'a> {
+    fn sut_factory<
+        'a,
+        TStorage: TmuxStorage,
+        TWorkspaceRepo: WorkspaceRepository,
+        TSessionRepo: TmuxSessionRepository,
+    >(
+        tmux_storage: &'a TStorage,
+        workspace_repository: &'a TWorkspaceRepo,
+        session_repository: &'a TSessionRepo,
+    ) -> impl SessionDescriptionRepository + 'a {
         ImplDescriptionRepository {
-            config,
+            tmux_storage,
             workspace_repository,
             session_repository,
         }
@@ -234,10 +268,11 @@ mod tests {
 
     #[test]
     fn should_include_all_workspaces() {
-        let config = config_factory();
-        let workspace_repo = workspace_repo_factory(config.clone());
+        let tmux_storage = tmux_storage_factory();
+        let workspace_storage = workspace_storage_factory();
+        let workspace_repo = workspace_repo_factory(&workspace_storage);
         let session_repository = session_repo_factory();
-        let sut = sut_factory(config.clone(), &workspace_repo, &session_repository);
+        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
 
         let result = sut.get_session_descriptions();
 
@@ -250,10 +285,11 @@ mod tests {
 
     #[test]
     fn should_include_all_path_sessions() {
-        let config = config_factory();
-        let workspace_repo = workspace_repo_factory(config.clone());
+        let tmux_storage = tmux_storage_factory();
+        let workspace_storage = workspace_storage_factory();
+        let workspace_repo = workspace_repo_factory(&workspace_storage);
         let session_repository = session_repo_factory();
-        let sut = sut_factory(config.clone(), &workspace_repo, &session_repository);
+        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
 
         let result = sut.get_session_descriptions();
 
@@ -266,10 +302,11 @@ mod tests {
 
     #[test]
     fn should_use_session_definition_for_workspace_sessions() {
-        let config = config_factory();
-        let workspace_repo = workspace_repo_factory(config.clone());
+        let tmux_storage = tmux_storage_factory();
+        let workspace_storage = workspace_storage_factory();
+        let workspace_repo = workspace_repo_factory(&workspace_storage);
         let session_repository = session_repo_factory();
-        let sut = sut_factory(config.clone(), &workspace_repo, &session_repository);
+        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
 
         let result = sut.get_session_descriptions();
 
@@ -279,10 +316,11 @@ mod tests {
 
     #[test]
     fn should_apply_default_windows_to_workspaces() {
-        let config = config_factory();
-        let workspace_repo = workspace_repo_factory(config.clone());
+        let tmux_storage = tmux_storage_factory();
+        let workspace_storage = workspace_storage_factory();
+        let workspace_repo = workspace_repo_factory(&workspace_storage);
         let session_repository = session_repo_factory();
-        let sut = sut_factory(config.clone(), &workspace_repo, &session_repository);
+        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
 
         let result = sut.get_session_descriptions();
 
@@ -292,10 +330,11 @@ mod tests {
 
     #[test]
     fn should_not_apply_workspaces_twice_when_defined_in_sessions() {
-        let config = config_factory();
-        let workspace_repo = workspace_repo_factory(config.clone());
+        let tmux_storage = tmux_storage_factory();
+        let workspace_storage = workspace_storage_factory();
+        let workspace_repo = workspace_repo_factory(&workspace_storage);
         let session_repository = session_repo_factory();
-        let sut = sut_factory(config.clone(), &workspace_repo, &session_repository);
+        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
 
         let result = sut.get_session_descriptions();
 
@@ -311,7 +350,7 @@ mod tests {
             &self,
             _description: &SessionDescription,
         ) -> crate::domain::aggregates::tmux::session::TmuxSession {
-            todo!()
+            panic!()
         }
 
         fn kill_session(

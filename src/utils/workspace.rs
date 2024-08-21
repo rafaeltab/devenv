@@ -1,19 +1,28 @@
 use serde_json::{json, Value};
 
-use crate::config::{Config, Workspace};
+use crate::storage::workspace::{Workspace, WorkspaceStorage};
 
 use super::{data_with_path::DataWithPath, display::RafaeltabDisplayItem, path::expand_path};
 
-pub fn get_workspace_paths(config: Config) -> Vec<DataWithPath<Workspace>> {
-    config
-        .workspaces
-        .into_iter()
+pub fn get_workspace_paths<TWorkspaceStorage: WorkspaceStorage>(
+    workspace_storage: &TWorkspaceStorage,
+) -> Vec<DataWithPath<Workspace>> {
+    workspace_storage
+        .read()
+        .iter()
         .map(|x| x.load_path())
         .collect()
 }
 
-pub fn find_workspace(config: &Config, id: &str) -> Option<Workspace> {
-    config.workspaces.clone().into_iter().find(|x| x.id == id)
+pub fn find_workspace<TWorkspaceStorage: WorkspaceStorage>(
+    workspace_storage: &TWorkspaceStorage,
+    id: &str,
+) -> Option<Workspace> {
+    workspace_storage
+        .read()
+        .clone()
+        .into_iter()
+        .find(|x| x.id == id)
 }
 
 impl Workspace {
@@ -74,4 +83,3 @@ impl RafaeltabDisplayItem for DataWithPath<Workspace> {
         }
     }
 }
-

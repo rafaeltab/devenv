@@ -15,12 +15,12 @@ use crate::{
     infrastructure::tmux::{
         tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode},
         tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
-    },
+    }, storage::tmux::TmuxStorage,
 };
 
 use super::tmux_client::TmuxRepository;
 
-impl TmuxWindowRepository for TmuxRepository {
+impl<'a, TTmuxStorage: TmuxStorage> TmuxWindowRepository for TmuxRepository<'a, TTmuxStorage> {
     fn new_window(&self, new_window: &NewWindowBuilder) -> TmuxWindow {
         let mut args = vec!["new-window"];
         if let Some(dir_val) = &new_window.dir {

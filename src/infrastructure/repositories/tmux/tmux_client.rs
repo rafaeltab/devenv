@@ -1,7 +1,5 @@
-use crate::config::Config;
+use crate::storage::tmux::TmuxStorage;
 
-pub struct TmuxRepository {
-    pub config: Config
+pub struct TmuxRepository<'a, TTmuxStorage: TmuxStorage> {
+    pub tmux_storage: &'a TTmuxStorage,
 }
-
-

@@ -16,17 +16,17 @@ use commands::{
         tmux::{list_tmux_workspaces, ListTmuxWorkspaceOptions},
     },
 };
-use config::load_config;
 use infrastructure::repositories::{
     tmux::{description_repository::ImplDescriptionRepository, tmux_client::TmuxRepository},
     workspace::workspace_repository::ImplWorkspaceRepository,
 };
+use storage::kinds::json_storage::JsonStorageProvider;
 use utils::display::{JsonDisplay, JsonPrettyDisplay, PrettyDisplay, RafaeltabDisplay};
 
 mod commands;
-mod config;
 mod domain;
 mod infrastructure;
+mod storage;
 mod utils;
 
 #[derive(Parser, Debug)]
@@ -125,7 +125,8 @@ fn main() -> Result<(), io::Error> {
     // }
     let cli = Cli::parse();
 
-    let config = load_config(cli.config)?;
+    let storage_provider = JsonStorageProvider::new(cli.config)?;
+    let storage = storage_provider.load()?;
 
     match &cli.command {
         Some(Commands::Tmux(tmux_args)) => match &tmux_args.command {
@@ -133,25 +134,25 @@ fn main() -> Result<(), io::Error> {
                 display: &*create_display(args),
                 session_description_repository: &ImplDescriptionRepository {
                     workspace_repository: &ImplWorkspaceRepository {
-                        config: config.clone(),
+                        workspace_storage: &storage,
                     },
                     session_repository: &TmuxRepository {
-                        config: config.clone(),
+                        tmux_storage: &storage,
                     },
-                    config: config.clone(),
+                    tmux_storage: &storage,
                 },
             }),
             TmuxCommands::Start => {
                 let session_repository = &TmuxRepository {
-                    config: config.clone(),
+                    tmux_storage: &storage,
                 };
                 TmuxStartCommand.execute(TmuxStartOptions {
                     session_description_repository: &ImplDescriptionRepository {
                         workspace_repository: &ImplWorkspaceRepository {
-                            config: config.clone(),
+                            workspace_storage: &storage,
                         },
                         session_repository,
-                        config: config.clone(),
+                        tmux_storage: &storage,
                     },
                     session_repository,
                 })
@@ -160,32 +161,32 @@ fn main() -> Result<(), io::Error> {
         Some(Commands::Workspace(workspace_args)) => match &workspace_args.command {
             WorkspaceCommands::List(args) => {
                 ListWorkspacesCommand.execute(ListWorkspacesCommandArgs {
-                    config,
+                    workspace_storage: &storage,
                     display: &*create_display(args),
                 })
             }
             WorkspaceCommands::Current(args) => get_current_workspace(
-                config,
+                &storage,
                 CurrentWorkspaceOptions {
                     display: &*create_display(args),
                 },
             ),
             WorkspaceCommands::Find(args) => find_workspace_cmd(
-                config,
+                &storage,
                 &args.id,
                 FindWorkspaceOptions {
                     display: &*create_display(&args.display_command),
                 },
             ),
             WorkspaceCommands::FindTag(args) => find_tag_workspace(
-                config,
+                &storage,
                 &args.tag,
                 FindTagWorkspaceOptions {
                     display: &*create_display(&args.display_command),
                 },
             ),
             WorkspaceCommands::Tmux(args) => list_tmux_workspaces(
-                config,
+                &storage,
                 ListTmuxWorkspaceOptions {
                     display: &*create_display(args),
                 },

@@ -1,19 +1,21 @@
 use crate::{
-    config::Config,
     domain::{
         aggregates::workspaces::workspace::{Workspace, WorkspaceTag},
         repositories::workspace::workspace_repository::WorkspaceRepository,
     },
+    storage::workspace::WorkspaceStorage,
 };
 
-pub struct ImplWorkspaceRepository {
-    pub config: Config,
+pub struct ImplWorkspaceRepository<'a, TWorkspaceStorage: WorkspaceStorage> {
+    pub workspace_storage: &'a TWorkspaceStorage,
 }
 
-impl WorkspaceRepository for ImplWorkspaceRepository {
+impl<'a, TWorkspaceStorage: WorkspaceStorage> WorkspaceRepository
+    for ImplWorkspaceRepository<'a, TWorkspaceStorage>
+{
     fn get_workspaces(&self) -> Vec<Workspace> {
-        self.config
-            .workspaces
+        self.workspace_storage
+            .read()
             .iter()
             .map(|workspace| Workspace {
                 id: workspace.id.clone(),
@@ -39,15 +41,18 @@ impl WorkspaceRepository for ImplWorkspaceRepository {
 #[cfg(test)]
 mod test {
     use crate::{
-        config::{Config, Tmux, Workspace},
         domain::repositories::workspace::workspace_repository::WorkspaceRepository,
+        storage::{
+            test::mocks::MockWorkspaceStorage,
+            workspace::{Workspace, WorkspaceStorage},
+        },
     };
 
     use super::ImplWorkspaceRepository;
 
-    fn config_factory() -> Config {
-        Config {
-            workspaces: vec![
+    fn storage_factory() -> impl WorkspaceStorage {
+        MockWorkspaceStorage {
+            data: vec![
                 Workspace {
                     id: "workspace-1".to_string(),
                     root: "~".to_string(),
@@ -61,18 +66,16 @@ mod test {
                     tags: Some(vec!["tag-1".to_string(), "tag-2".to_string()]),
                 },
             ],
-            tmux: Tmux {
-                sessions: None,
-                default_windows: vec![],
-            },
         }
     }
 
     #[test]
     fn should_map_all_workspaces() {
-        let config = config_factory();
+        let workspace_storage = storage_factory();
 
-        let sut = ImplWorkspaceRepository { config };
+        let sut = ImplWorkspaceRepository {
+            workspace_storage: &workspace_storage,
+        };
 
         let result = sut.get_workspaces();
 
@@ -81,9 +84,9 @@ mod test {
 
     #[test]
     fn should_map_root_to_path() {
-        let config = config_factory();
+        let workspace_storage = storage_factory();
 
-        let sut = ImplWorkspaceRepository { config };
+        let sut = ImplWorkspaceRepository { workspace_storage: &workspace_storage };
 
         let result = sut.get_workspaces();
 
@@ -92,9 +95,9 @@ mod test {
 
     #[test]
     fn should_map_basic_fields() {
-        let config = config_factory();
+        let workspace_storage = storage_factory();
 
-        let sut = ImplWorkspaceRepository { config };
+        let sut = ImplWorkspaceRepository { workspace_storage: &workspace_storage };
 
         let result = sut.get_workspaces();
 
@@ -104,9 +107,9 @@ mod test {
 
     #[test]
     fn should_map_none_tags_to_empty_vec() {
-        let config = config_factory();
+        let workspace_storage = storage_factory();
 
-        let sut = ImplWorkspaceRepository { config };
+        let sut = ImplWorkspaceRepository { workspace_storage: &workspace_storage };
 
         let result = sut.get_workspaces();
 
@@ -115,9 +118,9 @@ mod test {
 
     #[test]
     fn should_map_tags_to_workspace_tags() {
-        let config = config_factory();
+        let workspace_storage = storage_factory();
 
-        let sut = ImplWorkspaceRepository { config };
+        let sut = ImplWorkspaceRepository { workspace_storage: &workspace_storage };
 
         let result = sut.get_workspaces();
         let tag_result = &result.last().unwrap().tags;
