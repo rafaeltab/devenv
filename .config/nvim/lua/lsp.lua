@@ -43,7 +43,28 @@ Plugins:add({
             'folke/neodev.nvim',
         },
     },
-    { 'folke/neodev.nvim', opts = {} }
+    { 'folke/neodev.nvim', opts = {} },
+    {
+        'dense-analysis/ale',
+        config = function()
+            -- Configuration goes here.
+            local g = vim.g
+
+            g.ale_linters_explicit = 1
+
+            g.ale_fixers = {
+                javascript = { 'prettier' },
+                typescript = { 'prettier' },
+            }
+
+            g.ale_linters = {
+                javascript = {'cspell'},
+                typescript = {'cspell'},
+                lua = {},
+                markdown = {'cspell'}
+            }
+        end
+    }
 })
 
 OnLoad:add(function()

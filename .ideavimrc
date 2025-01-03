@@ -1,0 +1,134 @@
+let mapleader = " "
+let maplocalleader = " "
+
+nnoremap <silent> <Space> <Nop>
+vnoremap <silent> <Space> <Nop>
+
+noremap ; l
+noremap l k
+noremap k j
+noremap j h
+noremap h ;
+
+nnoremap <C-W>; <C-W>l
+nnoremap <C-W>l <C-W>k
+nnoremap <C-W>k <C-W>j
+nnoremap <C-W>j <C-W>h
+nnoremap <silent> <C-W>h <Nop>
+
+nremap d "_d
+
+nremap x "_x
+vremap x "_x
+
+nremap c "_c
+vremap c "_c
+
+nnoremap <leader>v <c-q>
+xnoremap <leader>v <c-q>
+
+noremap <leader>w :w<CR>
+
+nnoremap <leader>sf :action GotoFile<CR>
+nnoremap <leader>sg :action FindInPath<CR>
+nnoremap gr :action ShowUsages<CR>
+nnoremap gd :action GotoDeclaration<CR>
+nnoremap gtd :action GotoTypeDeclaration<CR>
+nnoremap gI :action GotoImplementation<CR>
+nnoremap <leader>f :action ReformatCode<CR>
+nnoremap <leader>e :action ShowErrorDescription<CR>
+nnoremap <leader>ca :action ShowIntentionActions<CR>
+inoremap <C-E> :action CodeCompletion<CR>
+nnoremap <C-E> :action ShowErrorDescription<CR>
+nnoremap <leader>rn :action RenameElement<CR>
+
+" [[ Setting options ]]
+
+" Set highlight on search
+set nohlsearch
+
+" Make line numbers default
+set number
+
+" Sync clipboard between OS and Vim (clipboard support may depend on system setup)
+set clipboard=unnamedplus
+
+" Enable break indent
+set breakindent
+
+" Save undo history
+set undofile
+
+" Case insensitive searching UNLESS /C or capital in search
+set ignorecase
+set smartcase
+
+" Keep signcolumn on by default
+set signcolumn=yes
+
+" Decrease update time
+set updatetime=250
+set timeout
+set timeoutlen=300
+
+" Set completeopt for better completion experience
+set completeopt=menuone,noselect
+
+" NOTE: Ensure your terminal supports this
+set termguicolors
+
+" Tab settings
+" set nomodeline   " Disable modeline
+
+" Enable smart indent
+set smartindent
+
+" Disable text wrapping
+set nowrap
+
+" Enable relative line numbers
+set relativenumber
+
+" Disable swap file and backup, configure undo directory
+set noswapfile
+set nobackup
+set undodir="~/.vim/undodir"
+
+" Enable incremental search
+set incsearch
+
+" Ensure terminal colors are enabled
+set termguicolors
+
+" Keep 8 lines of context when scrolling
+set scrolloff=8
+
+" Keep signcolumn on at all times
+set signcolumn=yes
+
+" Append special characters to file name list
+set isfname+=@-@
+
+" Decrease update time for better responsiveness
+set updatetime=50
+
+" Highlight at column 120
+set colorcolumn=120
+
+" Disable conceal feature (for Markdown, LaTeX, etc.)
+set conceallevel=0
+
+" Enable editorconfig (Note: Vim may need a plugin for editorconfig)
+" let g:editorconfig = true  " You may need the EditorConfig Vim plugin for this functionality
+
+" In Vim, autocmds are used instead of Neovim's Lua API.
+" This example autocmd will not work without editorconfig plugin support.
+" autocmd FileType * call editorconfig#config(bufnr())
+" Neovim specific code:
+" vim.api.nvim_create_autocmd("FileType", {
+"     pattern = "*",
+"     callback = function(opts)
+"         require("editorconfig").config(opts.buf)
+"     end
+" })
+"
