@@ -88,7 +88,7 @@ OnLoad:add(function()
             },
         },
     })
-    Languages:add_lspconfig(true, "bufls", {})
+    Languages:add_lspconfig(true, "buf_ls", {})
     Languages:add_lspconfig(true, "lua_ls", {
         Lua = {
             workspace = { checkThirdParty = false },

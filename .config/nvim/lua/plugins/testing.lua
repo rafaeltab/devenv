@@ -8,8 +8,9 @@ Plugins:add({
             'sidlatau/neotest-dart',
             'rouge8/neotest-rust',
             'nvim-neotest/neotest-go',
+            'nvim-neotest/nvim-nio',
             'Issafalcon/neotest-dotnet',
-            'nvim-neotest/nvim-nio'
+            "marilari88/neotest-vitest",
         },
         config = function()
             require("neotest").setup({
@@ -22,6 +23,7 @@ Plugins:add({
                     require("neotest-rust"),
                     require("neotest-go"),
                     require("neotest-dotnet"),
+                    require("neotest-vitest"),
                 },
                 consumers = { require("neotest").diagnostic, require("neotest").status }
             })

@@ -6,33 +6,34 @@ Plugins:add({
     }
 })
 
-local cmp_kinds = {
-    Text = '  ',
-    Method = '  ',
-    Function = '  ',
-    Constructor = '  ',
-    Field = '  ',
-    Variable = '  ',
-    Class = '  ',
-    Interface = '  ',
-    Module = '  ',
-    Property = '  ',
-    Unit = '  ',
-    Value = '  ',
-    Enum = '  ',
-    Keyword = '  ',
-    Snippet = '  ',
-    Color = '  ',
-    File = '  ',
-    Reference = '  ',
-    Folder = '  ',
-    EnumMember = '  ',
-    Constant = '  ',
-    Struct = '  ',
-    Event = '  ',
-    Operator = '  ',
-    TypeParameter = '  ',
-}
+-- Use later
+-- local cmp_kinds = {
+--     Text = '  ',
+--     Method = '  ',
+--     Function = '  ',
+--     Constructor = '  ',
+--     Field = '  ',
+--     Variable = '  ',
+--     Class = '  ',
+--     Interface = '  ',
+--     Module = '  ',
+--     Property = '  ',
+--     Unit = '  ',
+--     Value = '  ',
+--     Enum = '  ',
+--     Keyword = '  ',
+--     Snippet = '  ',
+--     Color = '  ',
+--     File = '  ',
+--     Reference = '  ',
+--     Folder = '  ',
+--     EnumMember = '  ',
+--     Constant = '  ',
+--     Struct = '  ',
+--     Event = '  ',
+--     Operator = '  ',
+--     TypeParameter = '  ',
+-- }
 
 OnLoad:add(function()
     -- nvim-cmp setup
