@@ -131,3 +131,4 @@ bindkey -M vicmd 'l' vi-up-line-or-history
 bindkey -M vicmd ';' vi-forward-char
 
 export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+export PATH=$PATH:$HOME/scripts/
