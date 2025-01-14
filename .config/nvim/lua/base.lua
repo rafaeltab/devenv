@@ -25,9 +25,10 @@ require 'languages.markdown'
 require 'languages.terraform'
 require 'languages.typescript'
 require 'languages.yaml'
---require 'languages.csharp'
---require 'languages.powershell'
---require 'languages.bicep'
+require 'languages.csharp'
+require 'languages.powershell'
+require 'languages.bicep'
+require 'languages.swift'
 
 require 'lsp';
 

@@ -1,7 +1,7 @@
 __tmux_fzf_get_session__() {
     session=$(__tmux_list_sessions__ |
         fzf --with-nth=2.. --print0 --preview="echo {} | cut -d' ' -f1 | xargs -I{} tmux_preview.sh {}" | cut -d' ' -f1)
-    tmux attach-session -t $session
+    tmux switch-client -t $session
 }
 
 __tmux_list_sessions__() {
