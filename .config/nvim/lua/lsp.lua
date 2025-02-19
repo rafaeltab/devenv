@@ -67,6 +67,31 @@ Plugins:add({
     }
 })
 
+
+LanguagesV2:configure_language(function()
+    --- @type LanguageConfig
+    return {
+        lspconfig = {
+            ['svelte'] = {},
+            ['html'] = {},
+            ['lua_ls'] = {
+                settings = {
+                    Lua = {
+                        workspace = { checkThirdParty = false },
+                        telemetry = { enable = false },
+                    },
+                }
+            },
+            ['buf_ls'] = {},
+            ['vale_ls'] = {
+                filetypes = { "markdown", "text" --[[ , "dart" ]] },
+            },
+        },
+        mason = { 'svelte', 'html', 'lua_ls', 'buf_ls', 'vale_ls' },
+        treesitter = {}
+    }
+end)
+
 OnLoad:add(function()
     -- Diagnostic keymaps
     vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = "Go to previous diagnostic message" })
@@ -76,20 +101,6 @@ OnLoad:add(function()
 
     vim.diagnostic.config({
         underline = true
-    })
-    Languages:add_lspconfig(true, "svelte", {})
-    Languages:add_lspconfig(true, "html", {})
-    Languages:add_lspconfig(true, "gopls", {})
-    Languages:add_lspconfig(true, "buf_ls", {})
-    Languages:add_lspconfig(true, "lua_ls", {
-        Lua = {
-            workspace = { checkThirdParty = false },
-            telemetry = { enable = false },
-        },
-    })
-    Languages:add_lspconfig(true, "vale_ls", {
-        filetypes = { "markdown", "text" --[[ , "dart" ]] },
-        -- filetypes = { "*" },
     })
 
     -- nvim-cmp supports additional completion capabilities, so broadcast that to servers
@@ -112,35 +123,32 @@ OnLoad:add(function()
     -- Ensure the servers above are installed
     local mason_lspconfig = require 'mason-lspconfig'
 
+    local language_config = LanguagesV2:build()
+
     mason_lspconfig.setup {
-        ensure_installed = Languages.mason,
+        ensure_installed = language_config.mason,
     }
 
     local function setup_server(server_name)
-        local server_config = Languages.lspconfig[server_name]
+        local server_config = language_config.lspconfig[server_name]
         if not server_config then
             return
         end
 
-        local filetypes = server_config.filetypes
-        local root_dir = server_config.root_dir
-        local cmd = server_config.cmd
-        local settings = vim.tbl_deep_extend('force', {}, server_config)
-        settings.filetypes = nil
-        settings.root_dir = nil
-        settings.cmd = nil
-
-        require("lspconfig")[server_name].setup {
+        local default_config = {
             capabilities = capabilities,
-            on_attach = function(client, bufnr) OnAttach:attach(client, bufnr) end,
-            settings = settings,
-            filetypes = filetypes,
-            cmd = cmd,
-            root_dir = root_dir
+            on_attach = function(client, bufnr)
+                OnAttach:attach(client, bufnr)
+            end,
+            settings = {},
         }
+
+        local config = vim.tbl_deep_extend("force", default_config, server_config)
+
+        require("lspconfig")[server_name].setup(config)
     end
 
-    for k in pairs(Languages.lspconfig) do
+    for k in pairs(language_config.lspconfig) do
         setup_server(k)
     end
 end)

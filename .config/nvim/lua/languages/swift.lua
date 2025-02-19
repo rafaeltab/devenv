@@ -1,3 +1,10 @@
-Languages:add_lspconfig(false, "sourcekit", {})
-
-Languages:add_treesitter("swift")
+LanguagesV2:configure_language(function()
+    --- @type LanguageConfig
+    return {
+        lspconfig = {
+            ['sourcekit'] = {}
+        },
+        mason = {},
+        treesitter = { 'swift' }
+    }
+end)

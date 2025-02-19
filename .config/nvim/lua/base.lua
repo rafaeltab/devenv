@@ -1,8 +1,9 @@
 require "utils.on_attach"
 require "utils.on_load"
 require "utils.plugins"
-require "utils.languages"
+require "utils.languages_v2"
 require "utils.utils"
+require "utils.types"
 
 require 'keybinds'
 require 'plugins.appearance'

@@ -1,2 +1,10 @@
-Languages:add_lspconfig(true, "java_language_server", {})
-Languages:add_treesitter("java")
+LanguagesV2:configure_language(function()
+    --- @type LanguageConfig
+    return {
+        lspconfig = {
+            ['java_language_server'] = {}
+        },
+        mason = { 'java_language_server' },
+        treesitter = { 'java' }
+    }
+end)

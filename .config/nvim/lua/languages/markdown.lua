@@ -1,3 +1,10 @@
-Languages:add_lspconfig(true, "marksman", {})
-Languages:add_treesitter("markdown")
-Languages:add_treesitter("markdown_inline")
+LanguagesV2:configure_language(function()
+    --- @type LanguageConfig
+    return {
+        lspconfig = {
+            ['marksman'] = {}
+        },
+        mason = { 'marksman' },
+        treesitter = { 'markdown','markdown_inline' },
+    }
+end)

@@ -1,6 +1,13 @@
-Languages:add_lspconfig(true, "bicep", {
-    cmd = { "dotnet", "/usr/local/bin/bicep-langserver/Bicep.LangServer.dll" };
-    filetypes = { "bicep" };
-})
-
-Languages:add_treesitter("bicep")
+LanguagesV2:configure_language(function()
+    --- @type LanguageConfig
+    return {
+        lspconfig = {
+            bicep = {
+                cmd = { "dotnet", "/usr/local/bin/bicep-langserver/Bicep.LangServer.dll" },
+                filetypes = { "bicep" },
+            }
+        },
+        mason = { 'bicep' },
+        treesitter = { 'bicep' }
+    }
+end)

@@ -18,7 +18,7 @@ OnLoad:add(function()
     end
 
     local treesitter_languages = vim.list_extend({ 'c', 'cpp', 'go', 'lua', 'python', 'rust', 'vimdoc', 'vim', 'ini' },
-        Languages.treesitter)
+        LanguagesV2:build().treesitter)
 
 
     -- [[ Configure Treesitter ]]

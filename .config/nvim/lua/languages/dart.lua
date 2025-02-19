@@ -1,7 +1,16 @@
-Languages:add_lspconfig(false, "dartls", {
-    dart = {
-        lineLength = 120
-    },
-})
-
-Languages:add_treesitter("dart")
+LanguagesV2:configure_language(function()
+    --- @type LanguageConfig
+    return {
+        lspconfig = {
+            ['dartls'] = {
+                settings = {
+                    dart = {
+                        lineLength = 120
+                    }
+                }
+            }
+        },
+        mason = { },
+        treesitter = { 'dart' }
+    }
+end)
