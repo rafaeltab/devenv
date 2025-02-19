@@ -1,2 +1,2 @@
 stow:
-	stow -t ~ --restow .
+	stow -t ~ -S .

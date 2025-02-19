@@ -29,6 +29,11 @@ require 'languages.csharp'
 require 'languages.powershell'
 require 'languages.bicep'
 require 'languages.swift'
+require 'languages.go'
+require 'languages.csharp'
+require 'languages.powershell'
+require 'languages.bicep'
+require 'languages.rust'
 
 require 'lsp';
 

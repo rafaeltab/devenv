@@ -58,10 +58,10 @@ Plugins:add({
             }
 
             g.ale_linters = {
-                javascript = {'cspell'},
-                typescript = {'cspell'},
+                javascript = { 'cspell' },
+                typescript = { 'cspell' },
                 lua = {},
-                markdown = {'cspell'}
+                markdown = { 'cspell' }
             }
         end
     }
@@ -77,17 +77,9 @@ OnLoad:add(function()
     vim.diagnostic.config({
         underline = true
     })
-
     Languages:add_lspconfig(true, "svelte", {})
     Languages:add_lspconfig(true, "html", {})
     Languages:add_lspconfig(true, "gopls", {})
-    Languages:add_lspconfig(true, "rust_analyzer", {
-        ["rust-analyzer"] = {
-            checkOnSave = {
-                command = "clippy",
-            },
-        },
-    })
     Languages:add_lspconfig(true, "buf_ls", {})
     Languages:add_lspconfig(true, "lua_ls", {
         Lua = {
@@ -131,13 +123,20 @@ OnLoad:add(function()
         end
 
         local filetypes = server_config.filetypes
+        local root_dir = server_config.root_dir
         local cmd = server_config.cmd
+        local settings = vim.tbl_deep_extend('force', {}, server_config)
+        settings.filetypes = nil
+        settings.root_dir = nil
+        settings.cmd = nil
+
         require("lspconfig")[server_name].setup {
             capabilities = capabilities,
             on_attach = function(client, bufnr) OnAttach:attach(client, bufnr) end,
-            settings = server_config,
+            settings = settings,
             filetypes = filetypes,
             cmd = cmd,
+            root_dir = root_dir
         }
     end
 
