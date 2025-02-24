@@ -1,4 +1,5 @@
 local format = function()
+    vim.cmd("ALEFix")
     vim.lsp.buf.format({ async = true })
 end
 
