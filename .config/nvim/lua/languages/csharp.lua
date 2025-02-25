@@ -2,11 +2,10 @@ LanguagesV2:configure_language(function()
     --- @type LanguageConfig
     return {
         lspconfig = {
-            ['omnisharp'] = {
-                cmd = { "dotnet", "/usr/local/share/omnisharp/OmniSharp.dll" },
+            ['csharp_ls'] = {
             }
         },
-        mason = { 'omnisharp' },
+        mason = { 'csharp_ls' },
         treesitter = { 'c_sharp' }
     }
 end)
