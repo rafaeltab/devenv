@@ -1,5 +1,5 @@
 {
-  "name": "@rafaeltab-devenv/zsh-config",
+  "name": "@rafaeltab-devenv/ideavim-config",
   "version": "0.0.0",
   "scripts": {
     "activate": "stow -t ~ -S -d ./src ."

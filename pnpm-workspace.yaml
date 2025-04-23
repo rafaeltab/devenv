@@ -4,3 +4,7 @@ packages:
   - apps/cli
   - apps/previ
   - config/neovim
+  - config/tmux
+  - config/vale
+  - config/ideavim
+  - config/zsh
