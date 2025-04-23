@@ -15,10 +15,9 @@ structure.
 1. Independent from tool preferences
 2. Good separation
 3. Well defined
-4. Flexible
-5. Simple
-6. Intuitive
-7. Support migration
+4. Flexible and simple
+5. Intuitive
+6. Support migration
 
 ## Reference file structure
 
@@ -165,9 +164,9 @@ instead enforce good separation between the different dotfiles, putting neovim i
 workspace from tmux, etc. These workspaces can then contain the actual file location that it should
 have on disk, but only inside a `src` folder for consistency.
 
-This can be seen in the reference file structure in the `config/neovim` workspace. Here the
+This can be seen in the reference file structure in the `/config/neovim` workspace. Here the
 actual disk location of the config should be `~/.config/nvim/init.lua`. However, the actual location
-places the configuration first in a dedicated workspace, `config/neovim`, making it easier to
+places the configuration first in a dedicated workspace, `/config/neovim`, making it easier to
 find specific configuration files. It then also locations the actual configuration inside the `src`
 folder, separating the configuration files, from monorepo specific files, such as the package.json,
 and potential linting configuration.
@@ -185,8 +184,7 @@ When use cases are well separated it will lead effortless evolution, new use cas
 ease, and obscure, obsolete, or deprecated use cases can be eliminated without worry.
 
 This requirement truly shines in the reference file structure, each tool configuration, each
-project, and each
-use case has it's own dedicated place.
+project, and each use case has it's own dedicated place.
 
 ### Well defined
 
@@ -196,3 +194,32 @@ structure, they're just files that someone decided to put in specific folders fo
 reason. Without a definition the reference file structure is only a bunch of files put into folders,
 the addition of the definition makes it a file structure.
 
+### Flexible and simple
+
+The file structure must be flexible and simple, allowing new things to be added easily, and not hindering
+change by over-complicating things. The reference file structure achieves this by forgoing dedicated
+workspaces in certain places, such as in the scripts, but also by allowing additional workspaces
+where necessary, such as in apps. Complexity is added where it serves a purpose.
+
+### Intuitive
+
+An unintuitive file structure serves the opposite purpose of what you want from a file structure. A
+file structure needs to make it easier to find what you want, and easier to place things where they
+should go. The reference file structure accomplishes this by separating concerns such as
+documentation from configuration, and applications. The concerns are also well-documented meaning
+anyone can know where something has to go, even if they don't understand it at first.
+
+Concerns are not nested in weird ways, and it is clear from an eye shot where anything is located.
+If you want to find the configuration for neovim you look in the `/config` folder, and then in the
+`neovim` folder.
+
+### Support migration
+
+If file structures don't accomodate migration one of two things can happen. Either migration
+stagnates because there is no good place to put things while they are in the middle of migration, or
+the file structure gets diluted by having legacy concerns mixed with modern concerns.
+
+The reference file structure accomodates this by having a dedicated `/legacy` folder, with a nested
+folder for each thing being migrated. This naming also doesn't add confusion with a seemingly
+logical choice, `migrations`, which may be added later for supporting migration from older versions
+of the repository to newer versions.
