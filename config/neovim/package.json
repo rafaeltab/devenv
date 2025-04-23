@@ -2,6 +2,6 @@
   "name": "@rafaeltab-devenv/neovim-config",
   "version": "0.0.0",
   "scripts": {
-    "activate": ""
+    "activate": "stow -t ~ -S -d ./src ."
   }
 }

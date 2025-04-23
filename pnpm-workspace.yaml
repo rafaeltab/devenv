@@ -3,3 +3,4 @@ packages:
   - scripts
   - apps/cli
   - apps/previ
+  - config/neovim

@@ -135,6 +135,8 @@ importers:
         specifier: ^3.0.6
         version: 3.1.2(@types/debug@4.1.12)(@types/node@22.14.1)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.29.2)(tsx@4.19.3)
 
+  config/neovim: {}
+
   docs:
     dependencies:
       fumadocs-core:

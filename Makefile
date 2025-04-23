@@ -14,3 +14,6 @@ install:
 
 dev:
 	pnpm exec turbo run dev
+
+activate:
+	pnpm exec turbo run activate
