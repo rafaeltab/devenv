@@ -1,0 +1,23 @@
+{
+    "type": "object",
+    "properties": {
+        "protocolVersion": {
+            "type": "string",
+            "description": "The version of the protocol to use."
+        },
+        "messageType": {
+            "type": "string",
+            "const": "start",
+            "description": "The type of the message."
+        },
+        "capabilities": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "An array of capabilities to enable."
+        }
+    },
+    "required": ["protocolVersion", "messageType", "capabilities"],
+    "additionalProperties": false
+}

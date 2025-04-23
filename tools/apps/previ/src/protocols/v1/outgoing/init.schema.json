@@ -1,0 +1,23 @@
+{
+    "type": "object",
+    "properties": {
+        "protocolVersion": {
+            "type": "string",
+            "description": "The version of the protocol supported by the script."
+        },
+        "messageType": {
+            "type": "string",
+            "const": "init",
+            "description": "The type of the message."
+        },
+        "capabilities": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "An array of supported capabilities."
+        }
+    },
+    "required": ["protocolVersion", "messageType", "capabilities"],
+    "additionalProperties": false
+}

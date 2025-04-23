@@ -1,0 +1,24 @@
+{
+    "type": "object",
+    "properties": {
+        "protocolVersion": {
+            "type": "string",
+            "description": "The version of the protocol."
+        },
+        "messageType": {
+            "type": "string",
+            "const": "preview_complete",
+            "description": "The type of the message."
+        },
+        "message": {
+            "type": "string",
+            "description": "A human-readable message indicating the successful completion of the preview process."
+        },
+        "path": {
+            "type": "string",
+            "description": "The path of the file that is being previewed."
+        }
+    },
+    "required": ["protocolVersion", "messageType", "message", "path"],
+    "additionalProperties": false
+}

@@ -1,0 +1,12 @@
+{
+    "tasks": {
+        "build": {
+            "dependsOn": ["gen:schema"]
+        },
+        "test": {},
+        "dev": {
+            "dependsOn": ["build"]
+        },
+        "gen:schema": {}
+    }
+}
