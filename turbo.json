@@ -1,12 +1,6 @@
 {
   "ui": "tui",
   "tasks": {
-    "build": {},
-    "build:release": {},
-    "lint": {},
-    "test": {},
-    "test:integration": {},
-    "format": {},
     "activate": {
       "interactive": true,
       "cache": false,
@@ -14,10 +8,21 @@
         "build:release"
       ]
     },
+    "build": {
+      "dependsOn": [
+        "gen:schema"
+      ]
+    },
+    "build:release": {},
     "dev": {
       "interactive": true,
       "persistent": true,
       "cache": false
-    }
+    },
+    "format": {},
+    "gen:schema": {},
+    "lint": {},
+    "test": {},
+    "test:integration": {}
   }
 }

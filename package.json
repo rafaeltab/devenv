@@ -5,8 +5,12 @@
   "keywords": [],
   "author": "rafaeltab",
   "license": "ISC",
+  "scripts": {
+    "format": "prettier . --write"
+  },
   "devDependencies": {
-    "turbo": "^2.5.0"
+    "turbo": "^2.5.0",
+    "prettier": "^3.5.2"
   },
   "packageManager": "pnpm@9.15.2"
 }

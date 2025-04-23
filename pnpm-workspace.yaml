@@ -2,3 +2,4 @@ packages:
   - docs
   - scripts
   - apps/cli
+  - apps/previ
