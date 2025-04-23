@@ -1,0 +1,7 @@
+{
+  "name": "@rafaeltab-devenv/tmux-config",
+  "version": "0.0.0",
+  "scripts": {
+    "activate": "stow -t ~ -S -d ./src ."
+  }
+}

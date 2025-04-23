@@ -1,0 +1,7 @@
+{
+  "name": "@rafaeltab-devenv/vale-config",
+  "version": "0.0.0",
+  "scripts": {
+    "activate": "stow -t ~ -S -d ./src ."
+  }
+}
