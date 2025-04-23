@@ -1,0 +1,7 @@
+{
+  "name": "@rafaeltab-devenv/neovim-config",
+  "version": "0.0.0",
+  "scripts": {
+    "activate": ""
+  }
+}
