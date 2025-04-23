@@ -1,0 +1,198 @@
+---
+title: Structure
+description: The structure of the repository
+---
+
+import {File, Folder, Files} from "fumadocs-ui/components/files"
+
+How is the repository structured, where do what projects go, and why?
+
+## Requirements
+
+This section outlines the requirements that were taken in consideration while defining the file
+structure.
+
+1. Independent from tool preferences
+2. Good separation
+3. Well defined
+4. Flexible
+5. Simple
+6. Intuitive
+7. Support migration
+
+## Reference file structure
+
+<Files>
+  <Folder name="docs">
+    <File name="package.json" />
+  </Folder>
+
+  <Folder name="config" defaultOpen>
+    <Folder name="neovim" defaultOpen>
+      <File name="package.json" />
+      <Folder name="src" defaultOpen>
+        <Folder name=".config" defaultOpen>
+          <Folder name="nvim" defaultOpen>
+            <File name="init.lua" />
+          </Folder>
+        </Folder>
+      </Folder>
+    </Folder>
+    <Folder name="tmux">
+      <File name="package.json" />
+    </Folder>
+    <Folder name="vale">
+      <File name="package.json" />
+    </Folder>
+  </Folder>
+
+  <Folder name="apps" defaultOpen>
+    <Folder name="cli">
+      <File name="package.json" />
+    </Folder>
+    <Folder name="previ">
+      <File name="package.json" />
+    </Folder>
+  </Folder>
+
+  <Folder name="scripts" defaultOpen>
+    <Folder name="src" defaultOpen>
+      <File name="schema_download.sh" />
+      <File name="schema_list.sh" />
+      <File name="tmux_preview.sh" />
+      <File name="tmux_select.sh" />
+    </Folder>
+    <File name="package.json" />
+  </Folder>
+
+  <Folder name="legacy" defaultOpen>
+    <Folder name="dotfiles" defaultOpen>
+      <Folder name=".config" defaultOpen>
+        <Folder name="tmux" defaultOpen>
+          <File name="tmux.conf" />
+        </Folder>
+      </Folder>
+    </Folder>
+  </Folder>
+
+  <File name="Cargo.toml"  />
+  <File name="Cargo.lock"  />
+  <File name="package.json"  />
+  <File name="pnpm-lock.yaml" />
+  <File name="pnpm-workspace.yaml" />
+  <File name="turbo.json" />
+</Files>
+
+### Definition
+
+The file structure consists of 6 main sections.
+
+1. Documentation
+2. Configuration
+3. Applications
+4. Scripts
+5. Legacy support
+6. Support files
+
+Each workspace **must** have a `package.json` file, containing all scripts necessary to work with
+the workspace. For the documentation this includes `dev`, `build`, `start` and `postinstall`, each
+serving a different purpose for interacting with the repository.
+
+#### Documentation
+
+The documentation has a dedicated workspace in the `/docs` folder. This allows grouping all
+documentation in one common location.
+
+This workspace **must not** contain `README` files for each specific workspace, these **must** be
+colocated with their workspace. This workspace **must** contain all other non-code documentation,
+including but not limited to guidelines, usage guides, and blogs. Code **must** still be documented
+using comments, doc comments, or other means that are normal for the language used.
+
+#### Configuration
+
+Each tool configuration has a dedicated workspace in the `/config/<tool>/` folder. This means all
+configuration is grouped together, while each specific tool still has it's own place.
+
+Each tool **must** be in it's own workspace inside the `/config` folder, they **must** not share a
+workspace. The actual configuration files **must** be inside a `src` folder inside the workspace of
+the tool it belongs to, and example being `/config/neovim/src/.config/nvim/init.lua`.
+
+#### Applications
+
+Applications have their own place inside a dedicated `/apps/<app>` folder. This means all
+applications are grouped together, while also having a dedicated place for each application.
+
+Each application **must** be inside their dedicated folder, but **may** specify multiple workspaces inside
+their folder. An example is `apps/order-service/domain` and `apps/order-service/application`,
+these would be separate workspaces, yet be used for the same application. If an application has multiple
+possible entrypoints, such as a CLI, and an HTTP API, these **must** be separate workspaces inside
+the same shared application folder. An example is `apps/calculator/cli` and
+`apps/calculator/api`. Applications **must** use a `src` folder for their code.
+
+#### Scripts
+
+Scripts are all inside the same `/scripts` folder, without having a separate workspace per script.
+This makes it easier to add scripts, which often are added quickly without significant planning.
+
+Script files **must** be inside the `src` folder inside the `/scripts` workspace, though they
+**may** be nested inside the `src` folder. An example is `/scripts/src/git/prune_branches.sh`.
+
+#### Legacy support
+
+This folder purely exists to make it easier to migrate legacy repositories to the new file
+structure. It **must not** container anything other than repositories that are in the progress of
+being migrated, and they **must not** remain there for a significant amount of time.
+
+
+#### Support files
+
+Support files are located where they have to be, such as the `package.json` in the root workspace,
+this is needed to support pnpm workspaces. There **must not** be any files outside of support files
+outside of their dedicated workspaces.
+
+## Detailed description
+
+This section details the requirements, and how they are achieved in the reference file structure.
+
+### Independent from tool requirements
+
+Sometimes tools prefer a specific folder structure. The defined file structure must not yield to
+these preferences.
+
+As an example, dotfiles would rather have all dotfiles in the same folder, with
+the actual dotfiles in the actual location they should be in on the disk. The folder structure must
+instead enforce good separation between the different dotfiles, putting neovim in a different
+workspace from tmux, etc. These workspaces can then contain the actual file location that it should
+have on disk, but only inside a `src` folder for consistency.
+
+This can be seen in the reference file structure in the `config/neovim` workspace. Here the
+actual disk location of the config should be `~/.config/nvim/init.lua`. However, the actual location
+places the configuration first in a dedicated workspace, `config/neovim`, making it easier to
+find specific configuration files. It then also locations the actual configuration inside the `src`
+folder, separating the configuration files, from monorepo specific files, such as the package.json,
+and potential linting configuration.
+
+### Good separation
+
+One of the main purposes of a good file structure is to offer separation between different projects
+or uses. Such uses include documentation, scripts, projects, and configuration.
+
+It would be possible to throw everything together in one place, but this has many disadvantages. The
+main concern is that it will be impossible to know which files are needed for which use case,
+leading to change-averse inaction.
+
+When use cases are well separated it will lead effortless evolution, new use cases can be added with
+ease, and obscure, obsolete, or deprecated use cases can be eliminated without worry.
+
+This requirement truly shines in the reference file structure, each tool configuration, each
+project, and each
+use case has it's own dedicated place.
+
+### Well defined
+
+There is no point to having a file structure if it isn't well defined. The definition of a file
+structure, is the creation of a file structure itself. Without a definition there is no file
+structure, they're just files that someone decided to put in specific folders for an unknown
+reason. Without a definition the reference file structure is only a bunch of files put into folders,
+the addition of the definition makes it a file structure.
+

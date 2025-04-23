@@ -12,3 +12,5 @@ format:
 install:
 	pnpm i
 
+dev:
+	pnpm exec turbo run dev

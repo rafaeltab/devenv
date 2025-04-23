@@ -1,7 +1,13 @@
 {
+    "ui": "tui",
     "tasks": {
         "build": {},
         "lint": {},
-        "format": {}
+        "format": {},
+        "dev": {
+            "interactive": true,
+            "persistent": true,
+            "cache": false
+        }
     }
 }
