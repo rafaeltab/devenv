@@ -1,0 +1,11 @@
+{
+    "$schema": "../schemas/config-schema.json",
+    "workspaces": [
+        {
+            "id": "rafaeltab",
+            "root": "/home/rafaeltab/home/source/rafaeltab",
+            "name": "Rafaeltab",
+            "tags": []
+        }
+    ]
+}

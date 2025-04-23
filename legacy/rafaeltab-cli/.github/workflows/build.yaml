@@ -1,0 +1,43 @@
+name: Rust CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build release
+        run: cargo build --release
+
+      - name: Test release
+        run: cargo test --release
+
+      - name: Get Rust toolchain
+        id: rust-toolchain
+        run: |
+          toolchain=$(rustup show active-toolchain | awk '{print $1}')
+          # Remove any trailing '(default)' part
+          toolchain=${toolchain//\ (default)/}
+          echo "toolchain=${toolchain}" >> $GITHUB_ENV
+
+      - name: Upload release artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rafaeltab-${{ env.toolchain }}
+          path: |
+            target/release/rafaeltab
