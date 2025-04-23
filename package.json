@@ -1,0 +1,12 @@
+{
+  "name": "devenv",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "author": "rafaeltab",
+  "license": "ISC",
+  "devDependencies": {
+    "turbo": "^2.5.0"
+  },
+  "packageManager": "pnpm@9.15.2"
+}
