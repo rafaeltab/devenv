@@ -1,0 +1,15 @@
+{
+  "name": "@rafaeltab-devenv/cli",
+  "version": "0.0.0",
+  "scripts": {
+    "build": "cargo build",
+    "build:release": "cargo build --release",
+    "build:docker": "docker build -t rafaeltab_cli_integration_tests .",
+    "dev": "cargo dev",
+    "test": "cargo test -- --skip integration_test",
+    "test:integration": "pnpm run build:docker && docker run rafaeltab_cli_integration_tests",
+    "activate": "sudo cp target/release/rafaeltab /usr/local/bin/",
+    "format": "cargo fmt",
+    "lint": "cargo build --all-features && cargo clippy --all-features -- -Dwarnings"
+  }
+}

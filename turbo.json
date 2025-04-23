@@ -1,13 +1,23 @@
 {
-    "ui": "tui",
-    "tasks": {
-        "build": {},
-        "lint": {},
-        "format": {},
-        "dev": {
-            "interactive": true,
-            "persistent": true,
-            "cache": false
-        }
+  "ui": "tui",
+  "tasks": {
+    "build": {},
+    "build:release": {},
+    "lint": {},
+    "test": {},
+    "test:integration": {},
+    "format": {},
+    "activate": {
+      "interactive": true,
+      "cache": false,
+      "dependsOn": [
+        "build:release"
+      ]
+    },
+    "dev": {
+      "interactive": true,
+      "persistent": true,
+      "cache": false
     }
+  }
 }
