@@ -1,0 +1,34 @@
+{
+    "type": "object",
+    "properties": {
+        "protocolVersion": {
+            "type": "string",
+            "description": "The version of the protocol."
+        },
+        "messageType": {
+            "type": "string",
+            "const": "preview_progress",
+            "description": "The type of the message."
+        },
+        "message": {
+            "type": "string",
+            "description": "A human-readable message indicating the progress of the preview process."
+        },
+        "path": {
+            "type": "string",
+            "description": "The path of the file that is being previewed."
+        },
+        "progress": {
+            "type": "number",
+            "description": "A number between 0 and 1 indicating the progress (0 = start, 1 = complete)."
+        }
+    },
+    "required": [
+        "protocolVersion",
+        "messageType",
+        "message",
+        "path",
+        "progress"
+    ],
+    "additionalProperties": false
+}

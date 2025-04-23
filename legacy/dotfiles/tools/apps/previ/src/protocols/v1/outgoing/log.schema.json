@@ -1,0 +1,39 @@
+{
+    "type": "object",
+    "properties": {
+        "protocolVersion": {
+            "type": "string",
+            "description": "The version of the protocol."
+        },
+        "messageType": {
+            "type": "string",
+            "const": "log",
+            "description": "The type of the message."
+        },
+        "level": {
+            "type": "string",
+            "enum": ["debug", "info", "warn", "error"],
+            "description": "The log level."
+        },
+        "message": {
+            "type": "string",
+            "description": "The log message."
+        },
+        "data": {
+            "type": "object",
+            "description": "Optional data associated with the log message.",
+            "properties": {
+                "related.path": {
+                    "type": "string",
+                    "description": "The path to the file being processed when the log message was created."
+                },
+                "origin.path": {
+                    "type": "string",
+                    "description": "The path to the file the log message originates from."
+                }
+            }
+        }
+    },
+    "required": ["protocolVersion", "messageType", "level", "path", "message"],
+    "additionalProperties": true
+}

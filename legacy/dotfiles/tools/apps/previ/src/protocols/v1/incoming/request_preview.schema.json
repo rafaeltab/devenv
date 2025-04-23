@@ -1,0 +1,25 @@
+{
+    "type": "object",
+    "properties": {
+        "protocolVersion": {
+            "type": "string",
+            "description": "The version of the protocol to use."
+        },
+        "messageType": {
+            "type": "string",
+            "const": "request_preview",
+            "description": "The type of the message."
+        },
+        "path": {
+            "type": "string",
+            "description": "The path to the file to preview."
+        },
+        "liveUpdate": {
+            "type": "boolean",
+            "description": "Whether to enable live updates (re-render and re-present on file changes).",
+            "default": false
+        }
+    },
+    "required": ["protocolVersion", "messageType", "path"],
+    "additionalProperties": false
+}

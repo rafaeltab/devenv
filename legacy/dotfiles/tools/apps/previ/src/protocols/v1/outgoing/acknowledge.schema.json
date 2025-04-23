@@ -1,0 +1,20 @@
+{
+    "type": "object",
+    "properties": {
+        "protocolVersion": {
+            "type": "string",
+            "description": "The version of the protocol."
+        },
+        "messageType": {
+            "type": "string",
+            "const": "acknowledge",
+            "description": "The type of the message."
+        },
+        "message": {
+            "type": "string",
+            "description": "A human-readable message indicating successful initialization."
+        }
+    },
+    "required": ["protocolVersion", "messageType", "message"],
+    "additionalProperties": false
+}

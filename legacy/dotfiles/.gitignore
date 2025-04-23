@@ -1,0 +1,4 @@
+.git/
+.config/tmux/plugins
+catalog.json
+.vite/

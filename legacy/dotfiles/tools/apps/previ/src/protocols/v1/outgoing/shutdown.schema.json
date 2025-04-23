@@ -1,0 +1,26 @@
+{
+    "type": "object",
+    "properties": {
+        "protocolVersion": {
+            "type": "string",
+            "description": "The version of the protocol."
+        },
+        "messageType": {
+            "type": "string",
+            "const": "shutdown",
+            "description": "The type of the message."
+        },
+        "reason": {
+            "type": "string",
+            "description": "A human-readable message explaining why the shutdown was requested.",
+            "default": "Shutdown requested by Previ."
+        },
+        "code": {
+            "type": "integer",
+            "description": "An optional status code indicating the reason for the shutdown.",
+            "default": 0
+        }
+    },
+    "required": ["protocolVersion", "messageType", "reason", "code"],
+    "additionalProperties": false
+}
