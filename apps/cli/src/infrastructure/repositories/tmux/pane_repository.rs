@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde_json::json;
 
 use crate::{
-    domain::{
+    domain::tmux_workspaces::{
         aggregates::tmux::{pane::TmuxPane, window::WindowIncludeFields},
         repositories::tmux::{
             pane_repository::{GetPanesTarget, SplitDirection, TmuxPaneRepository},
@@ -21,7 +21,10 @@ use crate::{
 
 use super::tmux_client::TmuxRepository;
 
-impl<'a, TTmuxStorage: TmuxStorage> TmuxPaneRepository for TmuxRepository<'a, TTmuxStorage> {
+impl<TTmuxStorage> TmuxPaneRepository for TmuxRepository<'_, TTmuxStorage>
+where
+    TTmuxStorage: TmuxStorage,
+{
     fn get_panes(&self, filter: Option<TmuxFilterNode>, target: GetPanesTarget) -> Vec<TmuxPane> {
         let list_format = json!({
             "id": TmuxFormatVariable::PaneId.to_format(),
@@ -115,7 +118,10 @@ impl<'a, TTmuxStorage: TmuxStorage> TmuxPaneRepository for TmuxRepository<'a, TT
     }
 }
 
-impl<'a, TTmuxStorage: TmuxStorage> TmuxRepository<'a, TTmuxStorage> {
+impl<TTmuxStorage> TmuxRepository<'_, TTmuxStorage>
+where
+    TTmuxStorage: TmuxStorage,
+{
     fn get_current_panes(&self, pane: Option<&TmuxPane>) -> Vec<TmuxPane> {
         match pane {
             Some(pane_value) => {
@@ -127,7 +133,7 @@ impl<'a, TTmuxStorage: TmuxStorage> TmuxRepository<'a, TTmuxStorage> {
                     WindowIncludeFields { panes: Some(()) },
                     GetWindowsTarget::None,
                 );
-                return window.first().unwrap().clone().panes.unwrap();
+                window.first().unwrap().clone().panes.unwrap()
             }
             None => self.get_panes(None, GetPanesTarget::None),
         }

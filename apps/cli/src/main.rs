@@ -23,10 +23,15 @@ use infrastructure::repositories::{
 use storage::kinds::json_storage::JsonStorageProvider;
 use utils::display::{JsonDisplay, JsonPrettyDisplay, PrettyDisplay, RafaeltabDisplay};
 
+#[allow(dead_code)]
 mod commands;
+#[allow(dead_code)]
 mod domain;
+#[allow(dead_code)]
 mod infrastructure;
+#[allow(dead_code)]
 mod storage;
+#[allow(dead_code)]
 mod utils;
 
 #[derive(Parser, Debug)]

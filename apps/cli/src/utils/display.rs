@@ -4,7 +4,7 @@ pub trait ToDynVec<'a> {
     fn to_dyn_vec(&self) -> Vec<&dyn RafaeltabDisplayItem>;
 }
 
-impl<'a, T> ToDynVec<'a> for Vec<T>
+impl<T> ToDynVec<'_> for Vec<T>
 where
     T: RafaeltabDisplayItem,
 {

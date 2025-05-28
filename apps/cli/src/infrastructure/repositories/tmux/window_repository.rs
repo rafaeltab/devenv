@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde_json::json;
 
 use crate::{
-    domain::{
+    domain::tmux_workspaces::{
         aggregates::tmux::window::{TmuxWindow, WindowIncludeFields},
         repositories::tmux::{
             pane_repository::{GetPanesTarget, TmuxPaneRepository},
@@ -15,16 +15,20 @@ use crate::{
     infrastructure::tmux::{
         tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode},
         tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
-    }, storage::tmux::TmuxStorage,
+    },
+    storage::tmux::TmuxStorage,
 };
 
 use super::tmux_client::TmuxRepository;
 
-impl<'a, TTmuxStorage: TmuxStorage> TmuxWindowRepository for TmuxRepository<'a, TTmuxStorage> {
+impl<TTmuxStorage> TmuxWindowRepository for TmuxRepository<'_, TTmuxStorage>
+where
+    TTmuxStorage: TmuxStorage,
+{
     fn new_window(&self, new_window: &NewWindowBuilder) -> TmuxWindow {
         let mut args = vec!["new-window"];
         if let Some(dir_val) = &new_window.dir {
-            args.extend(["-c", &dir_val]);
+            args.extend(["-c", dir_val]);
         }
         let env: Vec<String> = new_window
             .environment

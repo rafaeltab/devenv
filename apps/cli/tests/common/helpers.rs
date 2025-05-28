@@ -1,4 +1,3 @@
-use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::process::Command;
@@ -23,18 +22,6 @@ pub fn setup_test_file(content: &str) {
     let mut file = File::create(get_path()).expect("Unable to create file");
     file.write_all(content.as_bytes())
         .expect("Unable to write data");
-}
-
-pub fn run_cli_command(args: &[&str]) -> (String, String) {
-    let output = Command::new("target/debug/rafaeltab")
-        .args(args)
-        .output()
-        .expect("failed to execute process");
-
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-
-    (stdout, stderr)
 }
 
 pub fn run_cli_with_stdin(args: &[&str], input: &str) -> (String, String) {
@@ -63,15 +50,6 @@ pub fn run_cli_with_stdin(args: &[&str], input: &str) -> (String, String) {
 
 pub fn verify_output(expected: &str, actual: &str) {
     assert_eq!(expected, actual, "Output did not match");
-}
-
-pub fn verify_file_contents(expected_content: &str) {
-    let content = fs::read_to_string(get_path()).expect("Unable to read file");
-    assert_eq!(expected_content, content, "File content did not match");
-}
-
-pub fn cleanup() {
-    let _ = fs::remove_file(get_path());
 }
 
 fn get_path() -> String {

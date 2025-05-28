@@ -1,5 +1,5 @@
 use crate::{
-    domain::{
+    domain::tmux_workspaces::{
         aggregates::workspaces::workspace::{Workspace, WorkspaceTag},
         repositories::workspace::workspace_repository::WorkspaceRepository,
     },
@@ -10,8 +10,9 @@ pub struct ImplWorkspaceRepository<'a, TWorkspaceStorage: WorkspaceStorage> {
     pub workspace_storage: &'a TWorkspaceStorage,
 }
 
-impl<'a, TWorkspaceStorage: WorkspaceStorage> WorkspaceRepository
-    for ImplWorkspaceRepository<'a, TWorkspaceStorage>
+impl<TWorkspaceStorage> WorkspaceRepository for ImplWorkspaceRepository<'_, TWorkspaceStorage>
+where
+    TWorkspaceStorage: WorkspaceStorage,
 {
     fn get_workspaces(&self) -> Vec<Workspace> {
         self.workspace_storage
@@ -78,7 +79,7 @@ impl<'a, TWorkspaceStorage: WorkspaceStorage> WorkspaceRepository
 #[cfg(test)]
 mod test {
     use crate::{
-        domain::repositories::workspace::workspace_repository::WorkspaceRepository,
+        domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository,
         storage::{
             test::mocks::MockWorkspaceStorage,
             workspace::{Workspace, WorkspaceStorage},

@@ -3,7 +3,7 @@ use inquire::{Confirm, Text};
 
 use crate::{
     commands::command::RafaeltabCommand,
-    domain::repositories::workspace::workspace_repository::WorkspaceRepository,
+    domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository,
     utils::display::RafaeltabDisplay,
 };
 
@@ -19,7 +19,7 @@ pub struct WorkspaceAddOptions<'a> {
     pub path: Option<String>,
 }
 
-impl<'a> RafaeltabCommand<WorkspaceAddOptions<'a>> for WorkspaceAddCommand {
+impl RafaeltabCommand<WorkspaceAddOptions<'_>> for WorkspaceAddCommand {
     fn execute(&self, options: WorkspaceAddOptions) {
         let path = match options.path.clone() {
             Some(path) => path,

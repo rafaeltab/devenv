@@ -3,7 +3,7 @@ use serde::Deserialize;
 use serde_json::json;
 
 use crate::{
-    domain::{
+    domain::tmux_workspaces::{
         aggregates::tmux::{
             description::{
                 session::{SessionDescription, SessionKind},
@@ -29,7 +29,10 @@ static TMUX_SESSION_ID_KEY: &str = "RAFAELTAB_SESSION_ID";
 
 use super::tmux_client::TmuxRepository;
 
-impl<'a, TTmuxStorage: TmuxStorage> TmuxSessionRepository for TmuxRepository<'a, TTmuxStorage> {
+impl<TTmuxStorage> TmuxSessionRepository for TmuxRepository<'_, TTmuxStorage>
+where
+    TTmuxStorage: TmuxStorage,
+{
     fn new_session(&self, description: &SessionDescription) -> TmuxSession {
         let name = &description.name;
         let path = match &description.kind {

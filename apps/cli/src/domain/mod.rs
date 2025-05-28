@@ -1,2 +1,1 @@
-pub mod aggregates;
-pub mod repositories;
+pub mod tmux_workspaces;

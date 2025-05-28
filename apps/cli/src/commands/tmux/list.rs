@@ -1,6 +1,6 @@
 use crate::{
     commands::command::RafaeltabCommand,
-    domain::repositories::tmux::description_repository::SessionDescriptionRepository,
+    domain::tmux_workspaces::repositories::tmux::description_repository::SessionDescriptionRepository,
     utils::display::{RafaeltabDisplay, ToDynVec},
 };
 
@@ -12,7 +12,7 @@ pub struct TmuxListOptions<'a> {
     pub session_description_repository: &'a dyn SessionDescriptionRepository,
 }
 
-impl<'a> RafaeltabCommand<TmuxListOptions<'a>> for TmuxListCommand {
+impl RafaeltabCommand<TmuxListOptions<'_>> for TmuxListCommand {
     fn execute(
         &self,
         TmuxListOptions {

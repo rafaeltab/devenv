@@ -1,5 +1,5 @@
 use crate::{
-    domain::aggregates::tmux::pane::TmuxPane,
+    domain::tmux_workspaces::aggregates::tmux::pane::TmuxPane,
     infrastructure::tmux::tmux_format::TmuxFilterNode,
 };
 

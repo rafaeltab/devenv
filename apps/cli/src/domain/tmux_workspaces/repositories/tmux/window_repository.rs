@@ -1,5 +1,5 @@
 use crate::{
-    domain::aggregates::tmux::{
+    domain::tmux_workspaces::aggregates::tmux::{
         session::TmuxSession,
         window::{TmuxWindow, WindowIncludeFields},
     },

@@ -1,6 +1,6 @@
 use crate::{
     commands::command::RafaeltabCommand,
-    domain::repositories::tmux::{
+    domain::tmux_workspaces::repositories::tmux::{
         description_repository::SessionDescriptionRepository,
         session_repository::TmuxSessionRepository,
     },
@@ -14,7 +14,7 @@ pub struct TmuxStartOptions<'a> {
     pub session_repository: &'a dyn TmuxSessionRepository,
 }
 
-impl<'a> RafaeltabCommand<TmuxStartOptions<'a>> for TmuxStartCommand {
+impl RafaeltabCommand<TmuxStartOptions<'_>> for TmuxStartCommand {
     fn execute(
         &self,
         TmuxStartOptions {

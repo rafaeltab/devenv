@@ -2,14 +2,14 @@ use duct::cmd;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::domain::aggregates::tmux::client::ClientIncludeFields;
-use crate::domain::repositories::tmux::client_repository::{
+use crate::domain::tmux_workspaces::aggregates::tmux::client::ClientIncludeFields;
+use crate::domain::tmux_workspaces::repositories::tmux::client_repository::{
     SwitchClientTarget, TmuxClientRepository,
 };
 use crate::infrastructure::tmux::tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode};
 use crate::storage::tmux::TmuxStorage;
 use crate::{
-    domain::{
+    domain::tmux_workspaces::{
         aggregates::tmux::client::TmuxClient,
         repositories::tmux::session_repository::TmuxSessionRepository,
     },
@@ -18,7 +18,7 @@ use crate::{
 
 use super::tmux_client::TmuxRepository;
 
-impl<'a, TTmuxStorage: TmuxStorage> TmuxClientRepository for TmuxRepository<'a, TTmuxStorage> {
+impl<TTmuxStorage: TmuxStorage> TmuxClientRepository for TmuxRepository<'_, TTmuxStorage> {
     fn get_clients(
         &self,
         filter: Option<TmuxFilterNode>,
@@ -75,8 +75,8 @@ impl<'a, TTmuxStorage: TmuxStorage> TmuxClientRepository for TmuxRepository<'a, 
 
     fn switch_client(
         &self,
-        client: &crate::domain::aggregates::tmux::client::TmuxClient,
-        target: crate::domain::repositories::tmux::client_repository::SwitchClientTarget,
+        client: &crate::domain::tmux_workspaces::aggregates::tmux::client::TmuxClient,
+        target: crate::domain::tmux_workspaces::repositories::tmux::client_repository::SwitchClientTarget,
     ) -> TmuxClient {
         let target_id = match target {
             SwitchClientTarget::Session(session) => &session.id,

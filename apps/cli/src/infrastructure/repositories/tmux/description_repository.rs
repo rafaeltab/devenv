@@ -1,7 +1,7 @@
 use uuid::{uuid, Uuid};
 
 use crate::{
-    domain::{
+    domain::tmux_workspaces::{
         aggregates::tmux::{
             description::{
                 session::{PathSessionDescription, SessionDescription, SessionKind},
@@ -31,13 +31,12 @@ pub struct ImplDescriptionRepository<
     pub tmux_storage: &'a TTmuxStorage,
 }
 
-impl<
-        'a,
-        TWorkspaceRepository: WorkspaceRepository,
-        TTmuxSessionRepository: TmuxSessionRepository,
-        TTmuxStorage: TmuxStorage,
-    > SessionDescriptionRepository
-    for ImplDescriptionRepository<'a, TWorkspaceRepository, TTmuxSessionRepository, TTmuxStorage>
+impl<TWorkspaceRepository, TTmuxSessionRepository, TTmuxStorage> SessionDescriptionRepository
+    for ImplDescriptionRepository<'_, TWorkspaceRepository, TTmuxSessionRepository, TTmuxStorage>
+where
+    TWorkspaceRepository: WorkspaceRepository,
+    TTmuxSessionRepository: TmuxSessionRepository,
+    TTmuxStorage: TmuxStorage,
 {
     fn get_session_descriptions(&self) -> Vec<SessionDescription> {
         let workspaces = self.workspace_repository.get_workspaces();
@@ -165,7 +164,7 @@ fn find_session_id(input: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        domain::{
+        domain::tmux_workspaces::{
             aggregates::tmux::description::session::{SessionDescription, SessionKind},
             repositories::{
                 tmux::{
@@ -349,13 +348,15 @@ mod tests {
         fn new_session(
             &self,
             _description: &SessionDescription,
-        ) -> crate::domain::aggregates::tmux::session::TmuxSession {
+        ) -> crate::domain::tmux_workspaces::aggregates::tmux::session::TmuxSession {
             panic!()
         }
 
         fn kill_session(
             &self,
-            _session: Option<&crate::domain::aggregates::tmux::session::TmuxSession>,
+            _session: Option<
+                &crate::domain::tmux_workspaces::aggregates::tmux::session::TmuxSession,
+            >,
         ) {
         }
 
@@ -366,8 +367,8 @@ mod tests {
         fn get_sessions(
             &self,
             _filter: Option<crate::infrastructure::tmux::tmux_format::TmuxFilterNode>,
-            _include: crate::domain::aggregates::tmux::session::SessionIncludeFields,
-        ) -> Vec<crate::domain::aggregates::tmux::session::TmuxSession> {
+            _include: crate::domain::tmux_workspaces::aggregates::tmux::session::SessionIncludeFields,
+        ) -> Vec<crate::domain::tmux_workspaces::aggregates::tmux::session::TmuxSession> {
             vec![]
         }
     }
