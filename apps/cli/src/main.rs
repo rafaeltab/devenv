@@ -134,20 +134,6 @@ struct FindTagCommand {
 }
 
 fn main() -> Result<(), io::Error> {
-    // let repo = TmuxRepository {};
-    // let includes = IncludeFieldsBuilder::new()
-    //     .with_panes(true)
-    //     .with_windows(true)
-    //     .with_environment(true)
-    //     .with_attached_to(true);
-    // let sessions = repo.get_sessions(None, includes.build_session());
-    //
-    // println!("{:#?}", sessions);
-    //
-    // let a = false;
-    // if !a {
-    //     return Ok(());
-    // }
     let cli = Cli::parse();
 
     let storage_provider = JsonStorageProvider::new(cli.config)?;
