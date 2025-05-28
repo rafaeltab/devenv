@@ -174,7 +174,7 @@ mod tests {
                 workspace::workspace_repository::WorkspaceRepository,
             },
         },
-        infrastructure::repositories::workspace::workspace_repository::ImplWorkspaceRepository,
+        infrastructure::tmux_workspaces::repositories::workspace::workspace_repository::ImplWorkspaceRepository,
         storage::{
             test::mocks::{MockTmuxStorage, MockWorkspaceStorage},
             tmux::{PathSession, Session, Tmux, TmuxStorage, Window, WorkspaceSession},
@@ -366,7 +366,7 @@ mod tests {
 
         fn get_sessions(
             &self,
-            _filter: Option<crate::infrastructure::tmux::tmux_format::TmuxFilterNode>,
+            _filter: Option<crate::infrastructure::tmux_workspaces::tmux::tmux_format::TmuxFilterNode>,
             _include: crate::domain::tmux_workspaces::aggregates::tmux::session::SessionIncludeFields,
         ) -> Vec<crate::domain::tmux_workspaces::aggregates::tmux::session::TmuxSession> {
             vec![]

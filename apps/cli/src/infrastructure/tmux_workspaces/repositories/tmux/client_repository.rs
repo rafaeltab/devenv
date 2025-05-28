@@ -6,14 +6,14 @@ use crate::domain::tmux_workspaces::aggregates::tmux::client::ClientIncludeField
 use crate::domain::tmux_workspaces::repositories::tmux::client_repository::{
     SwitchClientTarget, TmuxClientRepository,
 };
-use crate::infrastructure::tmux::tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode};
+use crate::infrastructure::tmux_workspaces::tmux::tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode};
 use crate::storage::tmux::TmuxStorage;
 use crate::{
     domain::tmux_workspaces::{
         aggregates::tmux::client::TmuxClient,
         repositories::tmux::session_repository::TmuxSessionRepository,
     },
-    infrastructure::tmux::tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
+    infrastructure::tmux_workspaces::tmux::tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
 };
 
 use super::tmux_client::TmuxRepository;

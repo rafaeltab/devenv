@@ -16,7 +16,7 @@ use commands::{
         tmux::{list_tmux_workspaces, ListTmuxWorkspaceOptions},
     },
 };
-use infrastructure::repositories::{
+use infrastructure::tmux_workspaces::repositories::{
     tmux::{description_repository::ImplDescriptionRepository, tmux_client::TmuxRepository},
     workspace::workspace_repository::ImplWorkspaceRepository,
 };

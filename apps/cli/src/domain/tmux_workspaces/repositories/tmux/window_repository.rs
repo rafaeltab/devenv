@@ -3,7 +3,7 @@ use crate::{
         session::TmuxSession,
         window::{TmuxWindow, WindowIncludeFields},
     },
-    infrastructure::tmux::tmux_format::TmuxFilterNode,
+    infrastructure::tmux_workspaces::tmux::tmux_format::TmuxFilterNode,
 };
 
 #[allow(dead_code)]

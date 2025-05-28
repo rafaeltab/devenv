@@ -12,7 +12,7 @@ use crate::{
             window_repository::{GetWindowsTarget, NewWindowBuilder, TmuxWindowRepository},
         },
     },
-    infrastructure::tmux::{
+    infrastructure::tmux_workspaces::tmux::{
         tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode},
         tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
     },

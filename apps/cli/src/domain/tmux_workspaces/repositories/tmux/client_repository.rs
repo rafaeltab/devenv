@@ -1,6 +1,6 @@
 use crate::{domain::tmux_workspaces::aggregates::tmux::{
     client::{ClientIncludeFields, TmuxClient}, pane::TmuxPane, session::TmuxSession, window::TmuxWindow,
-}, infrastructure::tmux::tmux_format::TmuxFilterNode};
+}, infrastructure::tmux_workspaces::tmux::tmux_format::TmuxFilterNode};
 
 #[allow(dead_code)]
 pub enum SwitchClientTarget<'a> {

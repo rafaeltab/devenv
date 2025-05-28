@@ -1,6 +1,6 @@
 use crate::{
     domain::tmux_workspaces::aggregates::tmux::pane::TmuxPane,
-    infrastructure::tmux::tmux_format::TmuxFilterNode,
+    infrastructure::tmux_workspaces::tmux::tmux_format::TmuxFilterNode,
 };
 
 #[allow(dead_code)]

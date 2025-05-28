@@ -161,7 +161,7 @@ impl TmuxFilterAstBuilder {
 
 #[cfg(test)]
 mod test {
-    use crate::infrastructure::tmux::tmux_format::*;
+    use crate::infrastructure::tmux_workspaces::tmux::tmux_format::*;
 
     #[test]
     fn basic() {

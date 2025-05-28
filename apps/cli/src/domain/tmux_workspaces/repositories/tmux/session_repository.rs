@@ -3,7 +3,7 @@ use crate::{
         description::session::SessionDescription,
         session::{SessionIncludeFields, TmuxSession},
     },
-    infrastructure::tmux::tmux_format::TmuxFilterNode,
+    infrastructure::tmux_workspaces::tmux::tmux_format::TmuxFilterNode,
 };
 
 pub trait TmuxSessionRepository {
