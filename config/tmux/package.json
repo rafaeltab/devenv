@@ -4,6 +4,6 @@
   "scripts": {
     "stow": "stow -t ~ -S -d ./src .",
     "perms": "chmod +x ~/.config/tmux/pwd_fromhome.sh",
-    "activate": "pnpm run perms && pnpm run stow"
+    "activate": "pnpm run stow && pnpm run perms"
   }
 }

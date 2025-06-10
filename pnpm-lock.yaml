@@ -131,11 +131,22 @@ importers:
       tsx:
         specifier: ^4.19.3
         version: 4.19.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
       vitest:
         specifier: ^3.0.6
         version: 3.1.2(@types/debug@4.1.12)(@types/node@22.14.1)(jiti@2.4.2)(jsdom@26.1.0)(lightningcss@1.29.2)(tsx@4.19.3)
 
+  config/ideavim: {}
+
   config/neovim: {}
+
+  config/tmux: {}
+
+  config/vale: {}
+
+  config/zsh: {}
 
   docs:
     dependencies:
