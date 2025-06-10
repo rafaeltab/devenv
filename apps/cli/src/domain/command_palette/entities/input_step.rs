@@ -37,7 +37,7 @@ pub struct ValidationOutcome {
 /// Represents the base properties of a step in a command that requires user input.
 pub trait BaseInputStep: Send + Sync {
     fn get_id(&self) -> &InputStepId;
-    fn get_script_placeholder_name(&self) -> BashScriptPlaceholderName;
+    fn get_script_placeholder_name(&self) -> &BashScriptPlaceholderName;
     fn get_details(&self) -> &InputStepDetails;
     /// Gets the order of this input step within the command.
     fn get_order(&self) -> u32;
@@ -53,7 +53,7 @@ pub enum InputStep {
 
 pub trait TextInputStep: BaseInputStep {
     /// Validates a given answer for this input step.
-    fn validate_answer(&self, answer: &str) -> ValidationOutcome;
+    fn validate_answer(&self, answer: String) -> ValidationOutcome;
 }
 
 pub trait SelectInputStep: BaseInputStep {
@@ -82,7 +82,7 @@ impl BaseInputStep for InputStep {
         }
     }
 
-    fn get_script_placeholder_name(&self) -> BashScriptPlaceholderName {
+    fn get_script_placeholder_name(&self) -> &BashScriptPlaceholderName {
         match &self {
             InputStep::Select(select_input_step) => select_input_step.get_script_placeholder_name(),
             InputStep::Text(text_input_step) => text_input_step.get_script_placeholder_name(),

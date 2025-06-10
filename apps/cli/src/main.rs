@@ -1,8 +1,11 @@
+#![feature(coroutines, coroutine_trait)]
+#![feature(stmt_expr_attributes)]
 use std::io;
 
 use clap::{Args, CommandFactory, Parser, Subcommand};
 use commands::{
     command::RafaeltabCommand,
+    command_palette::show::{CommandPaletteShowCommand, CommandPaletteShowOptions},
     tmux::{
         list::{TmuxListCommand, TmuxListOptions},
         start::{TmuxStartCommand, TmuxStartOptions},
@@ -23,6 +26,8 @@ use infrastructure::tmux_workspaces::repositories::{
 use storage::kinds::json_storage::JsonStorageProvider;
 use utils::display::{JsonDisplay, JsonPrettyDisplay, PrettyDisplay, RafaeltabDisplay};
 
+#[allow(dead_code)]
+mod command_palette;
 #[allow(dead_code)]
 mod commands;
 #[allow(dead_code)]
@@ -50,6 +55,19 @@ enum Commands {
     Tmux(TmuxArgs),
     /// Manage workspaces
     Workspace(WorkspaceArgs),
+    /// Manage command palette
+    CommandPalette(CommandPaletteArgs),
+}
+
+#[derive(Debug, Args)]
+struct CommandPaletteArgs {
+    #[command(subcommand)]
+    pub command: CommandPaletteCommands,
+}
+
+#[derive(Debug, Subcommand)]
+enum CommandPaletteCommands {
+    Show,
 }
 
 #[derive(Debug, Args)]
@@ -214,6 +232,12 @@ fn main() -> Result<(), io::Error> {
                     tags: args.tags.clone(),
                     path: args.path.clone(),
                 })
+            }
+        },
+        Some(Commands::CommandPalette(command_palette_args)) => match &command_palette_args.command
+        {
+            CommandPaletteCommands::Show => {
+                CommandPaletteShowCommand.execute(CommandPaletteShowOptions {})
             }
         },
         None => {

@@ -38,7 +38,7 @@ pub trait Command {
         answers: &HashMap<InputStepId, String>,
     ) -> Result<String, Vec<PrepareExecutableScriptError>> {
         let placeholder_values_result: Vec<(
-            Result<BashScriptPlaceholderName, PrepareExecutableScriptError>,
+            Result<&BashScriptPlaceholderName, PrepareExecutableScriptError>,
             &String,
         )> = answers
             .iter()
@@ -61,7 +61,7 @@ pub trait Command {
             match placeholder.0 {
                 Err(error) => errors.push(error),
                 Ok(placeholder_name) => {
-                    placeholder_values.insert(placeholder_name, placeholder.1.clone());
+                    placeholder_values.insert(placeholder_name.clone(), placeholder.1.clone());
                 }
             }
         }
