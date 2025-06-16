@@ -132,3 +132,4 @@ bindkey -M vicmd ';' vi-forward-char
 
 export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 export PATH=$PATH:$HOME/scripts/
+export TMUX_PLUGIN_MANAGER_PATH="$HOME/.tmux/plugins"
