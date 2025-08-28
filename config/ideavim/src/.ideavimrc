@@ -41,6 +41,8 @@ nnoremap <leader>ca :action ShowIntentionActions<CR>
 inoremap <C-E> :action CodeCompletion<CR>
 nnoremap <C-E> :action ShowErrorDescription<CR>
 nnoremap <leader>rn :action RenameElement<CR>
+nnoremap ]d :action GotoNextError<CR>
+nnoremap [d :action GotoPreviousError<CR>
 
 " [[ Setting options ]]
 

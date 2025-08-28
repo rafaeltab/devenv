@@ -5,7 +5,7 @@ Plugins:add({
             "nvim-lua/plenary.nvim",
             "nvim-treesitter/nvim-treesitter",
             "antoinemadec/FixCursorHold.nvim",
-            'sidlatau/neotest-dart',
+            'rafaeltab/neotest-dart-with-monorepo',
             'rouge8/neotest-rust',
             'nvim-neotest/neotest-go',
             'nvim-neotest/nvim-nio',
@@ -16,9 +16,9 @@ Plugins:add({
             require("neotest").setup({
                 adapters = {
                     require("neotest-dart") {
-                        command = "flutter",
-                        use_lsp = true,
-                        custom_test_method_names = { "blocTest" }
+                        command = "fvm flutter",
+                        use_lsp = false,
+                        custom_test_method_names = { "blocTest" },
                     },
                     require("neotest-rust"),
                     require("neotest-go"),

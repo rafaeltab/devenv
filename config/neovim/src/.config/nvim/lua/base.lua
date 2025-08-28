@@ -6,6 +6,7 @@ require "utils.utils"
 require "utils.types"
 
 require 'keybinds'
+require 'filetypes'
 require 'plugins.appearance'
 require 'plugins.completion'
 require 'plugins.file_exploring'
@@ -17,7 +18,7 @@ require 'plugins.telescope'
 require 'plugins.testing'
 require 'plugins.treesitter'
 require 'plugins.utilities'
-require 'filetypes'
+require 'plugins.ai'
 
 require 'languages.dart'
 -- require 'languages.java'

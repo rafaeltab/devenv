@@ -1,4 +1,5 @@
 require "utils.on_load"
+require "utils.casing"
 
 OnLoad:add(function()
     -- Make sure space does nothing as it is our leader
@@ -27,4 +28,6 @@ OnLoad:add(function()
 
     -- exit terminal mode
     vim.keymap.set({ 't' }, '<Esc>', '<C-\\><C-n>')
+
+    setupCaseBindings()
 end)

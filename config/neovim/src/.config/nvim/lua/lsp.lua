@@ -136,6 +136,7 @@ OnLoad:add(function()
 
   mason_lspconfig.setup {
     ensure_installed = language_config.mason,
+    automatic_installation = language_config.mason,
   }
 
   local function setup_server(server_name)
