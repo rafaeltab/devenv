@@ -131,7 +131,9 @@ export PATH=$PATH:$HOME/scripts/
 export TMUX_PLUGIN_MANAGER_PATH="$HOME/.tmux/plugins"
 
 alias rts="rafaeltab tmux start"
+alias rtsw="rafaeltab tmux switch"
 alias ta="tmux a"
+alias t="tmux"
 alias k="kubectl"
 alias sc="source ~/.zshrc"
 alias td="tmux detach-client"
