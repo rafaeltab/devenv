@@ -2,15 +2,11 @@ use std::cmp::min;
 use std::io;
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
-use crossterm::execute;
-use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 use ratatui::{prelude::*, Terminal};
-use std::io::Stdout;
 use sublime_fuzzy::best_match;
 use unicode_width::UnicodeWidthChar;
 
@@ -294,14 +290,4 @@ fn rebuild_filtered(items: &[impl AsRef<str>], query: &str) -> Vec<(i64, usize)>
     // Sort by descending score, then by index for stability
     scored.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
     scored
-}
-
-fn enter_tui(stdout: &mut Stdout) -> io::Result<()> {
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    Ok(())
-}
-
-fn leave_tui(stdout: &mut CrosstermBackend<Stdout>) -> io::Result<()> {
-    execute!(stdout, LeaveAlternateScreen, DisableMouseCapture)?;
-    Ok(())
 }
