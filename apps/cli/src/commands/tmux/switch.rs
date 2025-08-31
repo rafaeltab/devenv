@@ -4,12 +4,12 @@ use std::io;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::execute;
-use crossterm::terminal::{disable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
+use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
-use ratatui::{crossterm::terminal::enable_raw_mode, prelude::*, Terminal};
+use ratatui::{prelude::*, Terminal};
 use std::io::Stdout;
 use sublime_fuzzy::best_match;
 use unicode_width::UnicodeWidthChar;
@@ -18,6 +18,7 @@ use crate::domain::tmux_workspaces::aggregates::tmux::description::session::Sess
 use crate::domain::tmux_workspaces::repositories::tmux::client_repository::{
     SwitchClientTarget, TmuxClientRepository,
 };
+use crate::utils::with_terminal;
 use crate::{
     commands::command::RafaeltabCommand,
     domain::tmux_workspaces::repositories::tmux::{
@@ -78,14 +79,10 @@ where
     search_text_fun: TFn,
 }
 
-/// A simple fuzzy-search picker:
-/// - Arrow Up/Down or Ctrl-K/Ctrl-J to move selection
-/// - Enter to confirm
-/// - Esc, q, or Ctrl-C to cancel
-/// - Typing filters; Backspace deletes
-///
-/// Returns the chosen item, or None if canceled.
-fn fuzzy_pick<T, TFn>(args: FuzzySearchArgs<'_, T, TFn>) -> io::Result<Option<&'_ T>>
+fn fuzzy_pick_base<'a, T, TFn>(
+    args: FuzzySearchArgs<'a, T, TFn>,
+    terminal: &'_ mut Terminal<CrosstermBackend<io::Stdout>>,
+) -> io::Result<Option<&'a T>>
 where
     TFn: Fn(&T) -> &str,
 {
@@ -96,13 +93,6 @@ where
         .iter()
         .map(|s| search_text_fun(s).to_string())
         .collect();
-
-    // Terminal setup
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    enter_tui(&mut stdout)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
 
     let mut query = String::new();
     let mut selected_idx: usize = 0;
@@ -265,11 +255,21 @@ where
         }
     };
 
-    // Restore terminal
-    leave_tui(terminal.backend_mut())?;
-    disable_raw_mode()?;
-
     Ok(res)
+}
+
+/// A simple fuzzy-search picker:
+/// - Arrow Up/Down or Ctrl-K/Ctrl-J to move selection
+/// - Enter to confirm
+/// - Esc, q, or Ctrl-C to cancel
+/// - Typing filters; Backspace deletes
+///
+/// Returns the chosen item, or None if canceled.
+fn fuzzy_pick<T, TFn>(args: FuzzySearchArgs<'_, T, TFn>) -> io::Result<Option<&'_ T>>
+where
+    TFn: Fn(&T) -> &str,
+{
+    with_terminal::with_terminal(|terminal| fuzzy_pick_base(args, terminal))
 }
 
 fn rebuild_filtered(items: &[impl AsRef<str>], query: &str) -> Vec<(i64, usize)> {
