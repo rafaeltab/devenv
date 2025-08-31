@@ -366,7 +366,9 @@ mod tests {
 
         fn get_sessions(
             &self,
-            _filter: Option<crate::infrastructure::tmux_workspaces::tmux::tmux_format::TmuxFilterNode>,
+            _filter: Option<
+                crate::infrastructure::tmux_workspaces::tmux::tmux_format::TmuxFilterNode,
+            >,
             _include: crate::domain::tmux_workspaces::aggregates::tmux::session::SessionIncludeFields,
         ) -> Vec<crate::domain::tmux_workspaces::aggregates::tmux::session::TmuxSession> {
             vec![]

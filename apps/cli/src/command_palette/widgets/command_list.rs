@@ -3,7 +3,7 @@ use fuzzy_matcher::FuzzyMatcher;
 use ratatui::layout::Spacing;
 use ratatui::prelude::*;
 use ratatui::widgets::{
-    Block, BorderType, Borders, List, ListItem, ListState, Paragraph, WidgetRef,
+    Block, BorderType, Borders, ListItem, ListState, Paragraph, WidgetRef,
 };
 
 use crate::command_palette::CommandPaletteCommand;
@@ -18,7 +18,7 @@ pub struct CommandListWidget<'a> {
 impl<'a> StatefulWidget for CommandListWidget<'a> {
     type State = ListState;
 
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State)
+    fn render(self, area: Rect, buf: &mut Buffer, _state: &mut Self::State)
     where
         Self: Sized,
     {
@@ -38,7 +38,7 @@ impl<'a> StatefulWidget for CommandListWidget<'a> {
                     x,
                     matcher
                         .fuzzy_match(
-                            &get_full_text_for_command(x).to_lowercase(),
+                            &get_full_text_for_command(x.as_ref()).to_lowercase(),
                             &self.search_text.to_lowercase(),
                         )
                         .unwrap_or(0),
@@ -51,7 +51,7 @@ impl<'a> StatefulWidget for CommandListWidget<'a> {
 
         let widgets: Vec<CommandListItemWidget> = scored_items
             .into_iter()
-            .map(|x| CommandListItemWidget { command: x.0 })
+            .map(|x| CommandListItemWidget { command: x.0.as_ref() })
             .collect();
         let items: Vec<&dyn MyListItem> = widgets
             .iter()
@@ -79,7 +79,7 @@ impl<'a> StatefulWidget for CommandListWidget<'a> {
 }
 
 pub struct CommandListItemWidget<'a> {
-    command: &'a Box<dyn CommandPaletteCommand>,
+    command: &'a dyn CommandPaletteCommand,
 }
 
 impl<'a> MyListItem for CommandListItemWidget<'a> {
@@ -124,6 +124,6 @@ impl<'a> From<CommandListItemWidget<'a>> for ListItem<'a> {
     }
 }
 
-fn get_full_text_for_command(command: &Box<dyn CommandPaletteCommand>) -> String {
+fn get_full_text_for_command(command: &dyn CommandPaletteCommand) -> String {
     format!("{} {}", command.get_title(), command.get_description())
 }

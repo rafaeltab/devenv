@@ -6,14 +6,18 @@ use crate::domain::tmux_workspaces::aggregates::tmux::client::ClientIncludeField
 use crate::domain::tmux_workspaces::repositories::tmux::client_repository::{
     SwitchClientTarget, TmuxClientRepository,
 };
-use crate::infrastructure::tmux_workspaces::tmux::tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode};
+use crate::infrastructure::tmux_workspaces::tmux::tmux_format::{
+    TmuxFilterAstBuilder, TmuxFilterNode,
+};
 use crate::storage::tmux::TmuxStorage;
 use crate::{
     domain::tmux_workspaces::{
         aggregates::tmux::client::TmuxClient,
         repositories::tmux::session_repository::TmuxSessionRepository,
     },
-    infrastructure::tmux_workspaces::tmux::tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
+    infrastructure::tmux_workspaces::tmux::tmux_format_variables::{
+        TmuxFormatField, TmuxFormatVariable,
+    },
 };
 
 use super::tmux_client::TmuxRepository;
@@ -73,31 +77,18 @@ impl<TTmuxStorage: TmuxStorage> TmuxClientRepository for TmuxRepository<'_, TTmu
         }
     }
 
-    fn switch_client(
-        &self,
-        client: &crate::domain::tmux_workspaces::aggregates::tmux::client::TmuxClient,
-        target: crate::domain::tmux_workspaces::repositories::tmux::client_repository::SwitchClientTarget,
-    ) -> TmuxClient {
+    fn switch_client(&self, client: Option<&TmuxClient>, target: SwitchClientTarget) {
         let target_id = match target {
             SwitchClientTarget::Session(session) => &session.id,
             SwitchClientTarget::Window(window) => &window.id,
             SwitchClientTarget::Pane(pane) => &pane.id,
         };
-        cmd!(
-            "tmux",
-            "switch-client",
-            "-c",
-            client.clone().name,
-            "-t",
-            target_id
-        )
-        .run()
-        .expect("Unable to switch client");
-        self.get_clients(None, client.include_fields.clone())
-            .iter()
-            .find(|x| x.name == client.name)
-            .unwrap()
-            .clone()
+        let mut args = vec!["switch-client".to_string()];
+        if let Some(c) = client {
+            args.extend(["-c".to_string(), c.name.clone()]);
+        }
+        args.extend(["-t".to_string(), target_id.to_string()]);
+        cmd("tmux", &args).run().expect("Unable to switch client");
     }
 }
 

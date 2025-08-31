@@ -47,7 +47,7 @@ pub fn list_tmux_workspaces<TWorkspaceStorage: WorkspaceStorage>(
                 workspace: None,
             },
             Some(line) => {
-                let workspace_id = line.split('=').last().unwrap();
+                let workspace_id = line.split('=').next_back().unwrap();
                 SessionResult {
                     session_name: session.name.clone(),
                     session_path: session.path.clone(),

@@ -77,7 +77,7 @@ impl StatefulWidget for TextInput {
     }
 }
 
-fn split_string_at_cursor(input_str: &str, cursor_pos: usize) -> Vec<Span> {
+fn split_string_at_cursor(input_str: &'_ str, cursor_pos: usize) -> Vec<Span<'_>> {
     let len = input_str.len();
 
     // Clamp cursor_pos to be at most len.

@@ -26,6 +26,10 @@ use infrastructure::tmux_workspaces::repositories::{
 use storage::kinds::json_storage::JsonStorageProvider;
 use utils::display::{JsonDisplay, JsonPrettyDisplay, PrettyDisplay, RafaeltabDisplay};
 
+use crate::{
+    commands::tmux::switch::{TmuxSwitchCommand, TmuxSwitchOptions},
+};
+
 #[allow(dead_code)]
 mod command_palette;
 #[allow(dead_code)]
@@ -80,6 +84,7 @@ struct TmuxArgs {
 enum TmuxCommands {
     List(DisplayCommand),
     Start,
+    Switch,
 }
 
 #[derive(Debug, Args)]
@@ -184,6 +189,22 @@ fn main() -> Result<(), io::Error> {
                         tmux_storage: &storage,
                     },
                     session_repository,
+                })
+            }
+            TmuxCommands::Switch => {
+                let tmux_repository = &TmuxRepository {
+                    tmux_storage: &storage,
+                };
+                TmuxSwitchCommand.execute(TmuxSwitchOptions {
+                    session_description_repository: &ImplDescriptionRepository {
+                        workspace_repository: &ImplWorkspaceRepository {
+                            workspace_storage: &storage,
+                        },
+                        session_repository: tmux_repository,
+                        tmux_storage: &storage,
+                    },
+                    session_repository: tmux_repository,
+                    client_repository: tmux_repository,
                 })
             }
         },
