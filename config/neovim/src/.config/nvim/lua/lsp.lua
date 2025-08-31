@@ -67,9 +67,10 @@ Plugins:add({
         formatters_by_ft = {
           javascript = { "prettierd" },
           typescript = { "prettierd" },
+          typescriptreact = {"prettierd"},
         },
         default_format_opts = {
-          lsp_format = "last"
+          lsp_format = "first"
         }
       })
     end

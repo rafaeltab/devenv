@@ -7,7 +7,7 @@ LanguagesV2:configure_language(function()
             ['ts_ls'] = {},
             ['angularls'] = {},
         },
-        mason = { 'eslint', 'tailwindcss', 'ts_ls' },
+        mason = { 'eslint', 'tailwindcss', 'ts_ls', 'prettierd' },
         treesitter = { 'tsx', 'typescript' }
     }
 end)
