@@ -3,6 +3,7 @@ packages:
   - scripts
   - apps/cli
   - apps/previ
+  - apps/banner
   - config/neovim
   - config/tmux
   - config/vale

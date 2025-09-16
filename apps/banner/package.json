@@ -1,0 +1,12 @@
+{
+  "name": "@rafaeltab-devenv/banner",
+  "version": "0.0.0",
+  "scripts": {
+    "build": "cargo build",
+    "build:release": "cargo build --release",
+    "dev": "cargo dev",
+    "activate": "sudo cp target/release/banner /usr/local/bin/",
+    "format": "cargo fmt",
+    "lint": "cargo build --all-features && cargo clippy --all-features -- -Dwarnings"
+  }
+}
