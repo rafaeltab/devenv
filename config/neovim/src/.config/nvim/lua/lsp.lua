@@ -40,10 +40,10 @@ Plugins:add({
       },
 
       -- Additional lua configuration, makes nvim stuff amazing!
-      'folke/neodev.nvim',
+      'folke/lazydev.nvim',
     },
   },
-  { 'folke/neodev.nvim', opts = {} },
+  { 'folke/lazydev.nvim', opts = {} },
   {
     'dense-analysis/ale',
     config = function()
@@ -67,7 +67,7 @@ Plugins:add({
         formatters_by_ft = {
           javascript = { "prettierd" },
           typescript = { "prettierd" },
-          typescriptreact = {"prettierd"},
+          typescriptreact = { "prettierd" },
         },
         default_format_opts = {
           lsp_format = "first"
@@ -137,7 +137,9 @@ OnLoad:add(function()
 
   mason_lspconfig.setup {
     ensure_installed = language_config.mason,
-    automatic_installation = language_config.mason,
+    automatic_installation = true,
+    -- Manually enabled a bit later
+    automatic_enable = false,
   }
 
   local function setup_server(server_name)
@@ -156,7 +158,8 @@ OnLoad:add(function()
 
     local config = vim.tbl_deep_extend("force", default_config, server_config)
 
-    require("lspconfig")[server_name].setup(config)
+    vim.lsp.config(server_name, config)
+    vim.lsp.enable(server_name, true)
   end
 
   for k in pairs(language_config.lspconfig) do
