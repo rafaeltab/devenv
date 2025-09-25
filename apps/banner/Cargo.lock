@@ -53,17 +53,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "banner"
-version = "0.1.0"
-dependencies = [
- "clap",
- "colorchoice",
- "colored",
- "figlet-rs",
- "terminal_size",
-]
-
-[[package]]
 name = "bitflags"
 version = "2.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -186,6 +175,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "rbanner"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "colorchoice",
+ "colored",
+ "figlet-rs",
+ "terminal_size",
 ]
 
 [[package]]

@@ -5,7 +5,7 @@
     "build": "cargo build",
     "build:release": "cargo build --release",
     "dev": "cargo dev",
-    "activate": "sudo cp target/release/banner /usr/local/bin/",
+    "activate": "sudo cp target/release/rbanner /usr/local/bin/",
     "format": "cargo fmt",
     "lint": "cargo build --all-features && cargo clippy --all-features -- -Dwarnings"
   }
