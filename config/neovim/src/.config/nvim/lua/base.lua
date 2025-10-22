@@ -35,6 +35,7 @@ require 'languages.go'
 require 'languages.powershell'
 require 'languages.bicep'
 require 'languages.rust'
+require 'languages.nix'
 
 require 'lsp';
 

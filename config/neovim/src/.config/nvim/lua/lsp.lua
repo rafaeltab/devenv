@@ -24,6 +24,9 @@ Plugins:add({
     end
   },
   {
+    'WhoIsSethDaniel/mason-tool-installer.nvim',
+  },
+  {
     -- LSP Configuration & Plugins
     'neovim/nvim-lspconfig',
     dependencies = {
@@ -122,24 +125,15 @@ OnLoad:add(function()
     PATH = "prepend"
   })
 
-  -- local lsp_util = require 'lspconfig.util'
-  -- vim.lsp.start({
-  --     cmd = { 'terramate-ls' },
-  --     filetypes = { 'terramate' },
-  --     name = 'terramate-ls',
-  --     root_dir = lsp_util.root_pattern('terramate.tm.hcl', '.git'),
-  -- })
-
-  -- Ensure the servers above are installed
-  local mason_lspconfig = require 'mason-lspconfig'
+  require('mason-lspconfig').setup {
+    -- Manually enabled a bit later
+    automatic_enable = false,
+  }
 
   local language_config = LanguagesV2:build()
 
-  mason_lspconfig.setup {
+  require('mason-tool-installer').setup {
     ensure_installed = language_config.mason,
-    automatic_installation = true,
-    -- Manually enabled a bit later
-    automatic_enable = false,
   }
 
   local function setup_server(server_name)
