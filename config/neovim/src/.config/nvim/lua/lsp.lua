@@ -68,9 +68,9 @@ Plugins:add({
     config = function()
       require("conform").setup({
         formatters_by_ft = {
-          javascript = { "prettierd" },
-          typescript = { "prettierd" },
-          typescriptreact = { "prettierd" },
+          javascript = { "prettierd", "biome" },
+          typescript = { "prettierd", "biome" },
+          typescriptreact = { "prettierd", "biome" },
         },
         default_format_opts = {
           lsp_format = "first"

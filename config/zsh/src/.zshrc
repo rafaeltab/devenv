@@ -140,3 +140,12 @@ alias k="kubectl"
 alias sc="source ~/.zshrc"
 alias td="tmux detach-client"
 alias rew="nvim ~/.rafaeltab.json"
+
+# pnpm
+export PNPM_HOME="/Users/rafaelbieze/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end
+export PATH="$HOME/.local/bin:$PATH"
