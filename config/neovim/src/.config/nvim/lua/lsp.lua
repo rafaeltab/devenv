@@ -66,11 +66,22 @@ Plugins:add({
   {
     'stevearc/conform.nvim',
     config = function()
+      local formatter_selector = require("utils.formatter_selector")
+
       require("conform").setup({
         formatters_by_ft = {
-          javascript = { "prettierd", "biome" },
-          typescript = { "prettierd", "biome" },
-          typescriptreact = { "prettierd", "biome" },
+          javascript = function(bufnr)
+            local filepath = vim.api.nvim_buf_get_name(bufnr)
+            return formatter_selector.select_formatter(filepath)
+          end,
+          typescript = function(bufnr)
+            local filepath = vim.api.nvim_buf_get_name(bufnr)
+            return formatter_selector.select_formatter(filepath)
+          end,
+          typescriptreact = function(bufnr)
+            local filepath = vim.api.nvim_buf_get_name(bufnr)
+            return formatter_selector.select_formatter(filepath)
+          end,
         },
         default_format_opts = {
           lsp_format = "first"

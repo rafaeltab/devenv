@@ -12,7 +12,13 @@ LanguagesV2:configure_language(function()
           return root
         end,
       },
-      ['biome'] = {},
+      ['biome'] = {
+        root_dir = function(fname)
+          local util = require 'lspconfig.util'
+          local root = util.root_pattern('biome.json')(fname)
+          return root
+        end,
+      },
     },
     mason = { 'eslint', 'tailwindcss', 'ts_ls', 'prettierd', 'biome' },
     treesitter = { 'tsx', 'typescript' }

@@ -1,10 +1,6 @@
 local format = function()
-  -- vim.cmd("ALEFix")
-  -- vim.lsp.buf.format({
-  --   async = true,
-  -- })
   require("conform").format({
-    async = true
+    async = true,
   })
 end
 
