@@ -82,6 +82,7 @@ Plugins:add({
             local filepath = vim.api.nvim_buf_get_name(bufnr)
             return formatter_selector.select_formatter(filepath)
           end,
+          cs = { "csharpier" }
         },
         default_format_opts = {
           lsp_format = "first"
