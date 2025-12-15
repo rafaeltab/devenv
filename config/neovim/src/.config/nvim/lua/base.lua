@@ -5,40 +5,6 @@ require "utils.languages_v2"
 require "utils.utils"
 require "utils.types"
 
-require 'keybinds'
-require 'filetypes'
-require 'plugins.appearance'
-require 'plugins.completion'
-require 'plugins.file_exploring'
-require 'plugins.formatting'
-require 'plugins.git'
-require 'plugins.harpoon'
-require 'plugins.notetaking'
-require 'plugins.telescope'
-require 'plugins.testing'
-require 'plugins.treesitter'
-require 'plugins.utilities'
-require 'plugins.ai'
-
-require 'languages.dart'
--- require 'languages.java'
-require 'languages.json'
-require 'languages.markdown'
-require 'languages.terraform'
-require 'languages.typescript'
-require 'languages.yaml'
-require 'languages.csharp'
-require 'languages.powershell'
-require 'languages.bicep'
-require 'languages.swift'
-require 'languages.go'
-require 'languages.powershell'
-require 'languages.bicep'
-require 'languages.rust'
-require 'languages.nix'
-
-require 'lsp';
-
 -- Fix later
 function setup()
   -- The base configuration for `nvim` and `vscode-nvim`
