@@ -45,5 +45,5 @@ OnLoad:add(function()
   add_alias("Gpfn", "Git push --force --no-verify")
   add_alias("Gpf", "Git push --force")
 
-  setupCaseBindings()
+  SetupCaseBindings()
 end)

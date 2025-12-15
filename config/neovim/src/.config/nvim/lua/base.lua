@@ -6,7 +6,7 @@ require "utils.utils"
 require "utils.types"
 
 -- Fix later
-function setup()
+function Setup()
   -- The base configuration for `nvim` and `vscode-nvim`
   -- Set <space> as the leader key
   -- See `:help mapleader`

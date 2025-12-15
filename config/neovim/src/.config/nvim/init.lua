@@ -75,7 +75,7 @@ Plugins:add({
     config = true,
   }
 })
-setup()
+Setup()
 
 
 vim.cmd.colorscheme 'onedark'

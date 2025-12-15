@@ -6,5 +6,5 @@ require 'keybinds'
 require 'filetypes'
 
 
-setup()
+Setup()
 -- vim: ts=2 sts=2 sw=2 et

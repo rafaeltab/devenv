@@ -58,7 +58,7 @@ function PascalToSnakeCase()
   print("Converted '" .. selected_word .. "' to '" .. snake_case_word .. "'")
 end
 
-function setupCaseBindings()
+function SetupCaseBindings()
   -- Map it to a key (example: <leader>ps)
   vim.api.nvim_set_keymap("n", "<leader>ps", ":lua PascalToSnakeCase()<CR>",
     { noremap = true, silent = true, desc = "Switch PascalCase to snake_case" })
