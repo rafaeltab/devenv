@@ -18,6 +18,10 @@ use commands::{
         list::{ListWorkspacesCommand, ListWorkspacesCommandArgs},
         tmux::{list_tmux_workspaces, ListTmuxWorkspaceOptions},
     },
+    worktree::{
+        start::{WorktreeStartCommand, WorktreeStartOptions},
+        complete::{WorktreeCompleteCommand, WorktreeCompleteOptions},
+    },
 };
 use infrastructure::tmux_workspaces::repositories::{
     tmux::{description_repository::ImplDescriptionRepository, tmux_client::TmuxRepository},
@@ -61,6 +65,8 @@ enum Commands {
     Workspace(WorkspaceArgs),
     /// Manage command palette
     CommandPalette(CommandPaletteArgs),
+    /// Manage git worktrees
+    Worktree(WorktreeArgs),
 }
 
 #[derive(Debug, Args)]
@@ -154,6 +160,46 @@ struct FindTagCommand {
 
     #[arg()]
     tag: String,
+}
+
+#[derive(Debug, Args)]
+struct WorktreeArgs {
+    #[command(subcommand)]
+    pub command: WorktreeCommands,
+}
+
+#[derive(Debug, Subcommand)]
+enum WorktreeCommands {
+    /// Start a new worktree for a branch
+    Start(WorktreeStartArgs),
+    /// Complete (remove) a worktree
+    Complete(WorktreeCompleteArgs),
+}
+
+#[derive(Debug, Args)]
+struct WorktreeStartArgs {
+    /// The branch name for the new worktree
+    #[arg()]
+    branch_name: String,
+
+    /// Force creation even without worktree config
+    #[arg(long)]
+    force: bool,
+
+    /// Skip confirmation prompt
+    #[arg(short = 'y', long)]
+    yes: bool,
+}
+
+#[derive(Debug, Args)]
+struct WorktreeCompleteArgs {
+    /// The branch name of the worktree to complete (defaults to current directory)
+    #[arg()]
+    branch_name: Option<String>,
+
+    /// Force removal even with uncommitted/unpushed changes
+    #[arg(long)]
+    force: bool,
 }
 
 fn main() -> Result<(), io::Error> {
@@ -259,6 +305,37 @@ fn main() -> Result<(), io::Error> {
         {
             CommandPaletteCommands::Show => {
                 CommandPaletteShowCommand.execute(CommandPaletteShowOptions {})
+            }
+        },
+        Some(Commands::Worktree(worktree_args)) => {
+            let tmux_repository = &TmuxRepository {
+                tmux_storage: &storage,
+            };
+            let workspace_repository = &ImplWorkspaceRepository {
+                workspace_storage: &storage,
+            };
+            
+            match &worktree_args.command {
+                WorktreeCommands::Start(args) => {
+                    WorktreeStartCommand.execute(WorktreeStartOptions {
+                        branch_name: args.branch_name.clone(),
+                        force: args.force,
+                        yes: args.yes,
+                        workspace_repository,
+                        worktree_storage: &storage,
+                        session_repository: tmux_repository,
+                        client_repository: tmux_repository,
+                    })
+                }
+                WorktreeCommands::Complete(args) => {
+                    WorktreeCompleteCommand.execute(WorktreeCompleteOptions {
+                        branch_name: args.branch_name.clone(),
+                        force: args.force,
+                        workspace_repository,
+                        session_repository: tmux_repository,
+                        client_repository: tmux_repository,
+                    })
+                }
             }
         },
         None => {

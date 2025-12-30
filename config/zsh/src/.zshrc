@@ -134,6 +134,8 @@ export TMUX_PLUGIN_MANAGER_PATH="$HOME/.tmux/plugins"
 
 alias rts="rafaeltab tmux start"
 alias rtsw="rafaeltab tmux switch"
+alias rwts="rafaeltab worktree start"
+alias rwtc="rafaeltab worktree complete"
 alias ta="tmux a"
 alias t="tmux"
 alias k="kubectl"

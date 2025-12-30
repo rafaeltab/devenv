@@ -1,124 +1,153 @@
 {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "type": "object",
-    "properties": {
-        "workspaces": {
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "workspaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "root": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 20,
+            "pattern": "^[a-z_]{3,20}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 20,
+            "pattern": "^[a-zA-Z ]{3,20}$"
+          },
+          "tags": {
             "type": "array",
             "items": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 20,
+              "pattern": "^[a-z_]{3,20}$"
+            }
+          },
+          "worktree": {
+            "$ref": "#/definitions/WorkspaceWorktreeConfig"
+          }
+        },
+        "required": ["id", "name", "root"]
+      }
+    },
+    "tmux": {
+      "type": "object",
+      "properties": {
+        "sessions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "windows": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/Window"
+                }
+              }
+            },
+            "required": ["windows"],
+            "oneOf": [
+              {
                 "type": "object",
                 "properties": {
-                    "root": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string",
-                        "minLength": 3,
-                        "maxLength": 20,
-                        "pattern": "^[a-z_]{3,20}$"
-                    },
-                    "name": {
-                        "type": "string",
-                        "minLength": 3,
-                        "maxLength": 20,
-                        "pattern": "^[a-zA-Z ]{3,20}$"
-                    },
-                    "tags": {
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "minLength": 3,
-                            "maxLength": 20,
-                            "pattern": "^[a-z_]{3,20}$"
-                        }
-                    }
+                  "workspace": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
                 },
-                "required": [
-                    "id",
-                    "name",
-                    "root"
-                ]
-            }
+                "required": ["workspace"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["path", "name"]
+              }
+            ]
+          }
         },
-        "tmux": {
-            "type": "object",
-            "properties": {
-                "sessions": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "windows": {
-                                "type": "array",
-                                "items": {
-                                    "$ref": "#/definitions/Window"
-                                }
-                            }
-                        },
-                        "required": [
-                            "windows"
-                        ],
-                        "oneOf": [
-                            {
-                                "type": "object",
-                                "properties": {
-                                    "workspace": {
-                                        "type": "string"
-                                    },
-                                    "name": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "workspace"
-                                ]
-                            },
-                            {
-                                "type": "object",
-                                "properties": {
-                                    "path": {
-                                        "type": "string"
-                                    },
-                                    "name": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "path",
-                                    "name"
-                                ]
-                            }
-                        ]
-                    }
-                },
-                "defaultWindows": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/Window"
-                    }
-                }
-            },
-            "required": [
-                "defaultWindows"
-            ]
+        "defaultWindows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Window"
+          }
         }
+      },
+      "required": ["defaultWindows"]
     },
-    "required": [
-        "workspaces"
-    ],
-    "definitions": {
-        "Window": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "command": {
-                    "type": "string"
-                }
-            },
-            "required": [
-                "name"
-            ]
-        }
+    "worktree": {
+      "$ref": "#/definitions/WorktreeConfig"
     }
+  },
+  "required": ["workspaces"],
+  "definitions": {
+    "Window": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "command": {
+          "type": "string"
+        }
+      },
+      "required": ["name"]
+    },
+    "WorktreeConfig": {
+      "type": "object",
+      "description": "Global worktree configuration that applies to all workspaces",
+      "properties": {
+        "symlinkFiles": {
+          "type": "array",
+          "description": "Glob patterns for files to symlink from main worktree to new worktrees",
+          "items": {
+            "type": "string"
+          }
+        },
+        "onCreate": {
+          "type": "array",
+          "description": "Commands to run when creating a new worktree",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "WorkspaceWorktreeConfig": {
+      "type": "object",
+      "description": "Per-workspace worktree configuration (merged with global config)",
+      "properties": {
+        "symlinkFiles": {
+          "type": "array",
+          "description": "Glob patterns for files to symlink from main worktree to new worktrees",
+          "items": {
+            "type": "string"
+          }
+        },
+        "onCreate": {
+          "type": "array",
+          "description": "Commands to run when creating a new worktree",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
 }

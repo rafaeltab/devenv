@@ -50,6 +50,7 @@ where
             name,
             tags: Some(tags),
             root,
+            worktree: None,
         };
 
         let mut workspaces = self.workspace_storage.read().clone();
@@ -96,12 +97,14 @@ mod test {
                     root: "~".to_string(),
                     name: "Workspace 1".to_string(),
                     tags: None,
+                    worktree: None,
                 },
                 Workspace {
                     id: "workspace-2".to_string(),
                     root: "~/home".to_string(),
                     name: "Workspace 2".to_string(),
                     tags: Some(vec!["tag-1".to_string(), "tag-2".to_string()]),
+                    worktree: None,
                 },
             ],
         }

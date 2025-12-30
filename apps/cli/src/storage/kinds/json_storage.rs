@@ -7,6 +7,7 @@ use crate::{
         storage_interface::Storage,
         tmux::{Tmux, TmuxStorage},
         workspace::{Workspace, WorkspaceStorage},
+        worktree::{WorktreeConfig, WorktreeStorage},
     },
     utils::path::expand_path,
 };
@@ -46,6 +47,7 @@ impl Storage<Vec<Workspace>> for JsonStorage {
         let new_value = JsonData {
             workspaces: value.clone(),
             tmux: self.data.borrow().tmux.clone(),
+            worktree: self.data.borrow().worktree.clone(),
         };
         let _ = write_json_data(self.path.clone(), &new_value);
         self.data.replace(load_json_data(self.path.clone())?);
@@ -63,6 +65,25 @@ impl Storage<Tmux> for JsonStorage {
         let new_value = JsonData {
             workspaces: self.data.borrow().workspaces.clone(),
             tmux: value.clone(),
+            worktree: self.data.borrow().worktree.clone(),
+        };
+        let _ = write_json_data(self.path.clone(), &new_value);
+        self.data.replace(load_json_data(self.path.clone())?);
+        Ok(())
+    }
+}
+
+impl WorktreeStorage for JsonStorage {}
+impl Storage<Option<WorktreeConfig>> for JsonStorage {
+    fn read(&self) -> Option<WorktreeConfig> {
+        self.data.borrow().worktree.clone()
+    }
+
+    fn write(&self, value: &Option<WorktreeConfig>) -> Result<(), io::Error> {
+        let new_value = JsonData {
+            workspaces: self.data.borrow().workspaces.clone(),
+            tmux: self.data.borrow().tmux.clone(),
+            worktree: value.clone(),
         };
         let _ = write_json_data(self.path.clone(), &new_value);
         self.data.replace(load_json_data(self.path.clone())?);
@@ -75,6 +96,8 @@ impl Storage<Tmux> for JsonStorage {
 pub struct JsonData {
     pub workspaces: Vec<Workspace>,
     pub tmux: Tmux,
+    /// Global worktree configuration (optional)
+    pub worktree: Option<WorktreeConfig>,
 }
 
 fn load_json_data(path: String) -> Result<JsonData, io::Error> {

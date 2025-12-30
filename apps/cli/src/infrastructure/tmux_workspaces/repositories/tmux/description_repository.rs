@@ -192,12 +192,14 @@ mod tests {
                     id: "home".to_string(),
                     root: "~".to_string(),
                     tags: Some(vec![]),
+                    worktree: None,
                 },
                 Workspace {
                     name: "Source".to_string(),
                     id: "source".to_string(),
                     root: "~/source".to_string(),
                     tags: Some(vec![]),
+                    worktree: None,
                 },
             ],
         }

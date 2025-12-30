@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::storage_interface::Storage;
+use super::{storage_interface::Storage, worktree::WorkspaceWorktreeConfig};
 
 pub trait WorkspaceStorage: Storage<Vec<Workspace>> {}
 
@@ -11,4 +11,6 @@ pub struct Workspace {
     pub id: String,
     pub name: String,
     pub tags: Option<Vec<String>>,
+    /// Optional worktree configuration for this workspace
+    pub worktree: Option<WorkspaceWorktreeConfig>,
 }
