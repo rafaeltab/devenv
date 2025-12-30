@@ -200,6 +200,10 @@ struct WorktreeCompleteArgs {
     /// Force removal even with uncommitted/unpushed changes
     #[arg(long)]
     force: bool,
+
+    /// Skip confirmation prompt
+    #[arg(short = 'y', long)]
+    yes: bool,
 }
 
 fn main() -> Result<(), io::Error> {
@@ -328,12 +332,22 @@ fn main() -> Result<(), io::Error> {
                     })
                 }
                 WorktreeCommands::Complete(args) => {
+                    let description_repository = &ImplDescriptionRepository {
+                        workspace_repository,
+                        session_repository: tmux_repository,
+                        tmux_storage: &storage,
+                    };
+                    let popup_repository = &infrastructure::tmux_workspaces::repositories::tmux::popup_repository::ImplPopupRepository;
+                    
                     WorktreeCompleteCommand.execute(WorktreeCompleteOptions {
                         branch_name: args.branch_name.clone(),
                         force: args.force,
+                        yes: args.yes,
                         workspace_repository,
                         session_repository: tmux_repository,
                         client_repository: tmux_repository,
+                        popup_repository,
+                        description_repository,
                     })
                 }
             }
