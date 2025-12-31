@@ -67,15 +67,17 @@ pub fn test_cli_integration() {
 }
         "#;
 
-    let expected = r#"Dotfiles (dotfiles): /root/dotfiles ["dotfiles", "lua"]
-Notes (coding_knowledge): /root/home/notes/coding_knowledge ["notes", "markdown"]
-Rafaeltab cli (rafaeltab_cli): /root/home/source/rafaeltab ["rafaeltab", "rust"]
-Code analyzer (code_analyzer): /root/home/source/code_analyzer ["rust"]
+    let expected = r#"Dotfiles (dotfiles): /home/rafaeltab/dotfiles ["dotfiles", "lua"]
+Notes (coding_knowledge): /home/rafaeltab/home/notes/coding_knowledge ["notes", "markdown"]
+Rafaeltab cli (rafaeltab_cli): /home/rafaeltab/home/source/rafaeltab ["rafaeltab", "rust"]
+Code analyzer (code_analyzer): /home/rafaeltab/home/source/code_analyzer ["rust"]
 "#;
 
-    helpers::setup_test_file(input);
-    let (stdout, _stderr) = helpers::run_cli_with_stdin(&["workspace", "list"], "");
+    let test_ctx = helpers::TestContext::new(input).expect("Failed to create test config");
+    let (stdout, _stderr) = helpers::run_cli_with_stdin(
+        &["workspace", "list"],
+        "",
+        test_ctx.config_path(),
+    );
     helpers::verify_output(expected, &stdout);
-
-    // helpers::cleanup();
 }
