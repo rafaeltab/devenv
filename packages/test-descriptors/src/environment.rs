@@ -1,4 +1,6 @@
+use crate::builders::RootBuilder;
 use crate::descriptor::{CreateContext, Descriptor, TmuxSocket};
+use crate::queries::DirRef;
 use std::path::Path;
 use tempfile::TempDir;
 
@@ -33,17 +35,23 @@ impl TestEnvironment {
         self.descriptors.push(Box::new(descriptor));
     }
 
-    pub fn create(&mut self) -> Result<(), crate::descriptor::CreateError> {
+    pub(crate) fn add_boxed_descriptor(&mut self, descriptor: Box<dyn Descriptor>) {
+        self.descriptors.push(descriptor);
+    }
+
+    pub fn create(mut self) -> Self {
         if self.created {
-            return Ok(());
+            return self;
         }
 
         for descriptor in &self.descriptors {
-            descriptor.create(&self.context)?;
+            descriptor
+                .create(&self.context)
+                .expect("Failed to create descriptor");
         }
 
         self.created = true;
-        Ok(())
+        self
     }
 
     pub fn root_path(&self) -> &Path {
@@ -60,6 +68,31 @@ impl TestEnvironment {
 
     pub fn context(&self) -> &CreateContext {
         &self.context
+    }
+
+    /// Create a test environment using the hierarchical builder API
+    pub fn describe<F>(f: F) -> Self
+    where
+        F: FnOnce(&mut RootBuilder),
+    {
+        let mut env = Self::new();
+        {
+            let mut root = RootBuilder::new(&mut env);
+            f(&mut root);
+        }
+        env
+    }
+
+    /// Find a directory by name (query API)
+    pub fn find_dir(&self, name: &str) -> Option<DirRef<'_>> {
+        self.context
+            .registry()
+            .borrow()
+            .get_dir(name)
+            .map(|path| DirRef {
+                path: path.clone(),
+                env: self,
+            })
     }
 }
 

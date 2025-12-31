@@ -1,86 +1,95 @@
-use std::fs;
-use tempfile::TempDir;
-use test_descriptors::descriptor::{
-    CreateContext, Descriptor, DirectoryDescriptor, PathDescriptor,
-};
+use test_descriptors::TestEnvironment;
 
 #[test]
 fn test_directory_descriptor_creates_directory() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("test-dir", |_d| {
+                // Empty directory
+            });
+        });
+    })
+    .create();
 
-    let dir = DirectoryDescriptor::new("test-dir");
-    dir.create(&context).unwrap();
-
-    let expected_path = temp.path().join("test-dir");
+    let expected_path = env.root_path().join("test-dir");
     assert!(expected_path.exists());
     assert!(expected_path.is_dir());
 }
 
 #[test]
 fn test_directory_descriptor_path_resolution() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("my-directory", |_d| {});
+        });
+    })
+    .create();
 
-    let dir = DirectoryDescriptor::new("my-directory");
-    let path = dir.path(&context);
-
-    assert_eq!(path, temp.path().join("my-directory"));
+    // Use query API to check path
+    let dir = env
+        .find_dir("my-directory")
+        .expect("directory should exist");
+    assert_eq!(dir.path(), env.root_path().join("my-directory"));
 }
 
 #[test]
 fn test_directory_descriptor_registered_in_context() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("registered-dir", |_d| {});
+        });
+    })
+    .create();
 
-    let dir = DirectoryDescriptor::new("registered-dir");
-    dir.create(&context).unwrap();
-
-    let retrieved = context.get_resource("registered-dir");
-    assert!(retrieved.is_some());
-    assert_eq!(retrieved.unwrap(), temp.path().join("registered-dir"));
+    let dir = env.find_dir("registered-dir");
+    assert!(dir.is_some());
+    assert_eq!(dir.unwrap().path(), env.root_path().join("registered-dir"));
 }
 
 #[test]
 fn test_directory_descriptor_already_exists_no_error() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("existing-dir", |_d| {});
+            // Creating again should not error
+            td.dir("existing-dir", |_d| {});
+        });
+    })
+    .create();
 
-    let dir_path = temp.path().join("existing-dir");
-    fs::create_dir(&dir_path).unwrap();
-
-    let dir = DirectoryDescriptor::new("existing-dir");
-    let result = dir.create(&context);
-
-    assert!(result.is_ok());
-    assert!(dir_path.exists());
+    assert!(env.root_path().join("existing-dir").exists());
 }
 
 #[test]
-fn test_directory_descriptor_nested_path() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+fn test_directory_descriptor_nested() {
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("parent", |d| {
+                d.dir("child", |_d| {});
+            });
+        });
+    })
+    .create();
 
-    // Create parent directory first
-    fs::create_dir(temp.path().join("parent")).unwrap();
-
-    let dir = DirectoryDescriptor::new("parent/child");
-    dir.create(&context).unwrap();
-
-    let expected_path = temp.path().join("parent/child");
+    let expected_path = env.root_path().join("parent/child");
     assert!(expected_path.exists());
     assert!(expected_path.is_dir());
 }
 
 #[test]
-fn test_directory_descriptor_creates_parent_directories() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+fn test_directory_descriptor_deeply_nested() {
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("parent", |d| {
+                d.dir("child", |d| {
+                    d.dir("grandchild", |_d| {});
+                });
+            });
+        });
+    })
+    .create();
 
-    let dir = DirectoryDescriptor::new("parent/child/grandchild");
-    dir.create(&context).unwrap();
-
-    let expected_path = temp.path().join("parent/child/grandchild");
+    let expected_path = env.root_path().join("parent/child/grandchild");
     assert!(expected_path.exists());
     assert!(expected_path.is_dir());
 }
