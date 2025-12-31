@@ -1,32 +1,36 @@
-use std::fs::File;
-use std::io::Write;
+use std::io::{self, Write};
 use std::process::Command;
 
-use shellexpand::{full, tilde};
+use tempfile::NamedTempFile;
 
-pub fn expand_path(path: &str) -> String {
-    let res = match full(path) {
-        Ok(val) => val,
-        Err(err) => {
-            eprintln!(
-                "Encountered error while expanding path, defaulting to only tilde replacement: {}",
-                err
-            );
-            tilde(path)
-        }
-    };
-    res.to_string()
+/// Test context that manages a temporary config file for isolated testing.
+/// The temp file is automatically cleaned up when TestContext is dropped.
+pub struct TestContext {
+    config_file: NamedTempFile,
 }
 
-pub fn setup_test_file(content: &str) {
-    let mut file = File::create(get_path()).expect("Unable to create file");
-    file.write_all(content.as_bytes())
-        .expect("Unable to write data");
+impl TestContext {
+    /// Creates a new test context with the given JSON config content.
+    pub fn new(content: &str) -> io::Result<Self> {
+        let mut file = NamedTempFile::new()?;
+        file.write_all(content.as_bytes())?;
+        file.flush()?;
+        Ok(TestContext { config_file: file })
+    }
+
+    /// Returns the path to the temporary config file.
+    pub fn config_path(&self) -> &str {
+        self.config_file.path().to_str().unwrap()
+    }
 }
 
-pub fn run_cli_with_stdin(args: &[&str], input: &str) -> (String, String) {
+pub fn run_cli_with_stdin(args: &[&str], input: &str, config_path: &str) -> (String, String) {
+    // Build args with --config flag prepended
+    let mut full_args = vec!["--config", config_path];
+    full_args.extend_from_slice(args);
+
     let mut command = Command::new("target/debug/rafaeltab")
-        .args(args)
+        .args(&full_args)
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -50,8 +54,4 @@ pub fn run_cli_with_stdin(args: &[&str], input: &str) -> (String, String) {
 
 pub fn verify_output(expected: &str, actual: &str) {
     assert_eq!(expected, actual, "Output did not match");
-}
-
-fn get_path() -> String {
-    expand_path("~/.rafaeltab.json")
 }
