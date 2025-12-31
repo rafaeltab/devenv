@@ -1,7 +1,10 @@
 use std::fs;
 use std::process::Command;
 use tempfile::TempDir;
-use test_descriptors::descriptor::{CreateContext, Descriptor, GitRepoDescriptor, PathDescriptor};
+use test_descriptors::descriptor::{
+    BranchDescriptor, CommitDescriptor, CreateContext, Descriptor, GitRepoDescriptor,
+    PathDescriptor, RemoteDescriptor,
+};
 
 #[test]
 fn test_git_repo_descriptor_creates_repo() {
@@ -138,4 +141,81 @@ fn test_git_repo_descriptor_creates_parent_directories() {
     let repo_path = temp.path().join("parent/child/my-repo");
     assert!(repo_path.exists());
     assert!(repo_path.join(".git").exists());
+}
+
+#[test]
+fn test_git_repo_descriptor_with_branch() {
+    let temp = TempDir::new().unwrap();
+    let context = CreateContext::new(temp.path().to_path_buf());
+
+    let branch = BranchDescriptor::new("feature")
+        .with_commit(CommitDescriptor::new("Feature commit").with_file("feature.txt", "content"));
+
+    let repo = GitRepoDescriptor::new("test-repo").with_branch(branch);
+    repo.create(&context).unwrap();
+
+    let repo_path = temp.path().join("test-repo");
+
+    // Check that feature branch exists
+    let output = Command::new("git")
+        .args(&["branch", "--list", "feature"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let branches = String::from_utf8_lossy(&output.stdout);
+    assert!(branches.contains("feature"));
+
+    // Check that feature.txt exists on feature branch
+    Command::new("git")
+        .args(&["checkout", "feature"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+
+    assert!(repo_path.join("feature.txt").exists());
+}
+
+#[test]
+fn test_git_repo_descriptor_with_remote() {
+    let temp = TempDir::new().unwrap();
+    let context = CreateContext::new(temp.path().to_path_buf());
+
+    let remote = RemoteDescriptor::new("origin");
+    let repo = GitRepoDescriptor::new("test-repo").with_remote(remote);
+    repo.create(&context).unwrap();
+
+    let repo_path = temp.path().join("test-repo");
+
+    // Check that remote exists
+    let output = Command::new("git")
+        .args(&["remote", "-v"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let remotes = String::from_utf8_lossy(&output.stdout);
+    assert!(remotes.contains("origin"));
+}
+
+#[test]
+fn test_git_repo_descriptor_custom_initial_branch() {
+    let temp = TempDir::new().unwrap();
+    let context = CreateContext::new(temp.path().to_path_buf());
+
+    let repo = GitRepoDescriptor::new("test-repo").with_initial_branch("master");
+    repo.create(&context).unwrap();
+
+    let repo_path = temp.path().join("test-repo");
+    let output = Command::new("git")
+        .args(&["branch", "--show-current"])
+        .current_dir(&repo_path)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    assert_eq!(branch, "master");
 }
