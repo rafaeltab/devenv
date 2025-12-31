@@ -6,6 +6,9 @@ pub mod error;
 pub mod git_repo;
 pub mod registry;
 pub mod remote;
+pub mod tmux_session;
+pub mod tmux_socket;
+pub mod tmux_window;
 pub mod traits;
 
 pub use branch::BranchDescriptor;
@@ -16,4 +19,7 @@ pub use error::CreateError;
 pub use git_repo::GitRepoDescriptor;
 pub use registry::{ResourceRegistry, TmuxSessionInfo};
 pub use remote::RemoteDescriptor;
+pub use tmux_session::TmuxSessionDescriptor;
+pub use tmux_socket::TmuxSocket;
+pub use tmux_window::WindowDescriptor;
 pub use traits::{Descriptor, PathDescriptor};

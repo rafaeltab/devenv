@@ -4,5 +4,5 @@ pub mod descriptor;
 pub use descriptor::{
     BranchDescriptor, CommitDescriptor, CreateContext, CreateError, Descriptor,
     DirectoryDescriptor, FileChange, GitRepoDescriptor, PathDescriptor, RemoteDescriptor,
-    ResourceRegistry, TmuxSessionInfo,
+    ResourceRegistry, TmuxSessionDescriptor, TmuxSessionInfo, TmuxSocket, WindowDescriptor,
 };
