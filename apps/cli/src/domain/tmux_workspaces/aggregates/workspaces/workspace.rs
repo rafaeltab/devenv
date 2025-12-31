@@ -1,7 +1,7 @@
 use serde::Serialize;
 use serde_json::json;
 
-use crate::utils::display::RafaeltabDisplayItem;
+use crate::{storage::worktree::WorkspaceWorktreeConfig, utils::display::RafaeltabDisplayItem};
 
 #[derive(Clone, Serialize)]
 pub struct Workspace {
@@ -15,6 +15,8 @@ pub struct Workspace {
     pub tags: Vec<WorkspaceTag>,
     /// How important this workspace is, a higher value means this workspace is more important
     pub importance: i32,
+    /// Optional worktree configuration for this workspace
+    pub worktree: Option<WorkspaceWorktreeConfig>,
 }
 
 #[derive(Clone, Serialize)]

@@ -34,6 +34,7 @@ where
                 name: workspace.name.clone(),
                 path: workspace.root.clone(),
                 importance: 0,
+                worktree: workspace.worktree.clone(),
             })
             .collect()
     }
@@ -73,6 +74,7 @@ where
             name: workspace.name.clone(),
             path: workspace.root.clone(),
             importance: 0,
+            worktree: workspace.worktree.clone(),
         }
     }
 }
@@ -84,6 +86,7 @@ mod test {
         storage::{
             test::mocks::MockWorkspaceStorage,
             workspace::{Workspace, WorkspaceStorage},
+            worktree::WorkspaceWorktreeConfig,
         },
     };
 
@@ -177,5 +180,52 @@ mod test {
         assert_eq!(tag_result.len(), 2);
         assert_eq!(tag_result.first().unwrap().name, "tag-1");
         assert_eq!(tag_result.last().unwrap().name, "tag-2");
+    }
+
+    #[test]
+    fn should_map_worktree_config_when_present() {
+        let worktree_config = WorkspaceWorktreeConfig {
+            symlink_files: vec![".env".to_string(), "config.json".to_string()],
+            on_create: vec!["npm install".to_string()],
+        };
+
+        let workspace_storage = MockWorkspaceStorage {
+            data: vec![Workspace {
+                id: "workspace-with-config".to_string(),
+                root: "~/test".to_string(),
+                name: "Test Workspace".to_string(),
+                tags: None,
+                worktree: Some(worktree_config.clone()),
+            }],
+        };
+
+        let sut = ImplWorkspaceRepository {
+            workspace_storage: &workspace_storage,
+        };
+
+        let result = sut.get_workspaces();
+        let workspace = result.first().unwrap();
+
+        assert!(workspace.worktree.is_some());
+        let config = workspace.worktree.as_ref().unwrap();
+        assert_eq!(config.symlink_files.len(), 2);
+        assert_eq!(config.symlink_files[0], ".env");
+        assert_eq!(config.symlink_files[1], "config.json");
+        assert_eq!(config.on_create.len(), 1);
+        assert_eq!(config.on_create[0], "npm install");
+    }
+
+    #[test]
+    fn should_map_none_worktree_to_none() {
+        let mut workspace_storage = storage_factory();
+
+        let sut = ImplWorkspaceRepository {
+            workspace_storage: &mut workspace_storage,
+        };
+
+        let result = sut.get_workspaces();
+
+        assert!(result.first().unwrap().worktree.is_none());
+        assert!(result.last().unwrap().worktree.is_none());
     }
 }
