@@ -1,0 +1,12 @@
+[package]
+name = "test-descriptors"
+version = "0.1.0"
+edition = "2021"
+description = "Declarative test environment descriptors for integration testing"
+
+[dependencies]
+tempfile = "3"
+uuid = { version = "1", features = ["v4"] }
+thiserror = "1"
+
+[dev-dependencies]
