@@ -19,13 +19,14 @@ use crate::{
             },
         },
         worktree::{
-            config::{calculate_worktree_path, find_most_specific_workspace, BranchStatus, MergedWorktreeConfig, WorktreeCreationInfo},
+            config::{
+                calculate_worktree_path, find_most_specific_workspace, BranchStatus,
+                MergedWorktreeConfig, WorktreeCreationInfo,
+            },
             error::WorktreeError,
         },
     },
-    infrastructure::git::{
-        self, symlink::create_symlinks, BranchLocation, GitError,
-    },
+    infrastructure::git::{self, symlink::create_symlinks, BranchLocation, GitError},
     storage::worktree::WorktreeStorage,
     utils::path::expand_path,
 };
@@ -95,7 +96,10 @@ impl RafaeltabCommand<WorktreeStartOptions<'_>> for WorktreeStartCommand {
                 println!();
                 println!("The worktree was created but setup is incomplete.");
                 println!("Fix the issue and run the remaining commands manually,");
-                println!("or use 'rafaeltab worktree complete {}' to remove it.", branch_name);
+                println!(
+                    "or use 'rafaeltab worktree complete {}' to remove it.",
+                    branch_name
+                );
             }
             WorktreeStartResult::Cancelled => {
                 println!("Operation cancelled.");
@@ -146,10 +150,11 @@ impl WorktreeStartCommand {
 
         // 5. Check for worktree configuration
         let global_config = options.worktree_storage.read();
-        let workspace_config = find_workspace_worktree_config(&workspace.id, options.workspace_repository);
-        
+        let workspace_config =
+            find_workspace_worktree_config(&workspace.id, options.workspace_repository);
+
         let has_config = global_config.is_some() || workspace_config.is_some();
-        
+
         if !has_config && !options.force {
             return WorktreeStartResult::Failed(WorktreeError::WorktreeConfigMissing {
                 workspace_name: workspace.name.clone(),
@@ -157,10 +162,8 @@ impl WorktreeStartCommand {
         }
 
         // 6. Merge configurations
-        let merged_config = MergedWorktreeConfig::merge(
-            global_config.as_ref(),
-            workspace_config.as_ref(),
-        );
+        let merged_config =
+            MergedWorktreeConfig::merge(global_config.as_ref(), workspace_config.as_ref());
 
         // 7. Get current branch (base branch)
         let base_branch = match git::get_current_branch(&git_root) {
@@ -221,9 +224,7 @@ impl WorktreeStartCommand {
             );
             println!();
 
-            let confirmed = Confirm::new("Continue?")
-                .with_default(true)
-                .prompt();
+            let confirmed = Confirm::new("Continue?").with_default(true).prompt();
 
             match confirmed {
                 Ok(true) => {}
@@ -303,13 +304,10 @@ impl WorktreeStartCommand {
 
         // 16. Create tmux session
         let session_name = format!("{}-{}", workspace.name, options.branch_name);
-        
+
         // Create a session description for the worktree
-        let session = create_tmux_session(
-            options.session_repository,
-            &session_name,
-            &worktree_path,
-        );
+        let session =
+            create_tmux_session(options.session_repository, &session_name, &worktree_path);
 
         // 17. If onCreate failed, don't switch to session
         if let Some((failed_cmd, error)) = on_create_failed {
@@ -339,33 +337,35 @@ impl WorktreeStartCommand {
 /// When workspaces are nested, returns the most specific (longest path) match.
 fn find_workspace_for_path<'a>(path: &Path, workspaces: &'a [Workspace]) -> Option<&'a Workspace> {
     let path_str = path.to_string_lossy();
-    
+
     // Build a list of (workspace_id, expanded_path) for lookup
     let workspace_paths: Vec<(&str, String)> = workspaces
         .iter()
         .map(|ws| (ws.id.as_str(), expand_path(&ws.path)))
         .collect();
-    
+
     // Find the most specific workspace ID
     let found_id = find_most_specific_workspace(
         &path_str,
-        workspace_paths.iter().map(|(id, path)| (*id, path.as_str())),
+        workspace_paths
+            .iter()
+            .map(|(id, path)| (*id, path.as_str())),
     )?;
-    
+
     // Return the workspace with that ID
     workspaces.iter().find(|ws| ws.id == found_id)
 }
 
 /// Find the worktree config for a workspace by ID
 fn find_workspace_worktree_config(
-    _workspace_id: &str,
-    _workspace_repository: &dyn WorkspaceRepository,
+    workspace_id: &str,
+    workspace_repository: &dyn WorkspaceRepository,
 ) -> Option<crate::storage::worktree::WorkspaceWorktreeConfig> {
-    // We need to get the raw workspace from storage to access the worktree config
-    // For now, we'll return None and rely on the global config
-    // This needs to be enhanced when we have proper access to the storage workspace
-    // TODO: Add method to WorkspaceRepository to get worktree config
-    None
+    workspace_repository
+        .get_workspaces()
+        .iter()
+        .find(|ws| ws.id == workspace_id)
+        .and_then(|ws| ws.worktree.clone())
 }
 
 /// Create a tmux session for the worktree
@@ -403,4 +403,141 @@ fn create_tmux_session(
     };
 
     Some(session_repository.new_session(&description))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::worktree::config::MergedWorktreeConfig;
+    use crate::infrastructure::tmux_workspaces::repositories::workspace::workspace_repository::ImplWorkspaceRepository;
+    use crate::storage::{
+        test::mocks::MockWorkspaceStorage,
+        workspace::Workspace,
+        worktree::{WorkspaceWorktreeConfig, WorktreeConfig},
+    };
+
+    #[test]
+    fn test_find_workspace_worktree_config_returns_config() {
+        let worktree_config = WorkspaceWorktreeConfig {
+            symlink_files: vec![".env.local".to_string()],
+            on_create: vec!["pnpm install".to_string()],
+        };
+
+        let workspace_storage = MockWorkspaceStorage {
+            data: vec![
+                Workspace {
+                    id: "workspace-1".to_string(),
+                    root: "~/test1".to_string(),
+                    name: "Test 1".to_string(),
+                    tags: None,
+                    worktree: None,
+                },
+                Workspace {
+                    id: "workspace-with-config".to_string(),
+                    root: "~/test2".to_string(),
+                    name: "Test 2".to_string(),
+                    tags: None,
+                    worktree: Some(worktree_config.clone()),
+                },
+            ],
+        };
+
+        let workspace_repository = ImplWorkspaceRepository {
+            workspace_storage: &workspace_storage,
+        };
+
+        let result = find_workspace_worktree_config("workspace-with-config", &workspace_repository);
+
+        assert!(result.is_some());
+        let config = result.unwrap();
+        assert_eq!(config.symlink_files.len(), 1);
+        assert_eq!(config.symlink_files[0], ".env.local");
+        assert_eq!(config.on_create.len(), 1);
+        assert_eq!(config.on_create[0], "pnpm install");
+    }
+
+    #[test]
+    fn test_find_workspace_worktree_config_returns_none_when_missing() {
+        let workspace_storage = MockWorkspaceStorage {
+            data: vec![Workspace {
+                id: "workspace-no-config".to_string(),
+                root: "~/test".to_string(),
+                name: "Test".to_string(),
+                tags: None,
+                worktree: None,
+            }],
+        };
+
+        let workspace_repository = ImplWorkspaceRepository {
+            workspace_storage: &workspace_storage,
+        };
+
+        let result = find_workspace_worktree_config("workspace-no-config", &workspace_repository);
+
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_find_workspace_worktree_config_returns_none_for_nonexistent_workspace() {
+        let workspace_storage = MockWorkspaceStorage {
+            data: vec![Workspace {
+                id: "workspace-1".to_string(),
+                root: "~/test".to_string(),
+                name: "Test".to_string(),
+                tags: None,
+                worktree: None,
+            }],
+        };
+
+        let workspace_repository = ImplWorkspaceRepository {
+            workspace_storage: &workspace_storage,
+        };
+
+        let result = find_workspace_worktree_config("nonexistent-workspace", &workspace_repository);
+
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_workspace_config_merges_correctly_with_global_config() {
+        // Setup workspace with specific config
+        let workspace_config = WorkspaceWorktreeConfig {
+            symlink_files: vec![".env.local".to_string()],
+            on_create: vec!["pnpm install".to_string()],
+        };
+
+        let workspace_storage = MockWorkspaceStorage {
+            data: vec![Workspace {
+                id: "test-workspace".to_string(),
+                root: "~/test".to_string(),
+                name: "Test Workspace".to_string(),
+                tags: None,
+                worktree: Some(workspace_config),
+            }],
+        };
+
+        let workspace_repository = ImplWorkspaceRepository {
+            workspace_storage: &workspace_storage,
+        };
+
+        // Setup global config
+        let global_config = WorktreeConfig {
+            symlink_files: vec![".env".to_string(), "config.json".to_string()],
+            on_create: vec!["npm ci".to_string()],
+        };
+
+        // Get workspace config and merge with global
+        let ws_config = find_workspace_worktree_config("test-workspace", &workspace_repository);
+        let merged = MergedWorktreeConfig::merge(Some(&global_config), ws_config.as_ref());
+
+        // Verify merged config has both global and workspace items
+        assert_eq!(merged.symlink_files.len(), 3);
+        assert!(merged.symlink_files.contains(&".env".to_string()));
+        assert!(merged.symlink_files.contains(&"config.json".to_string()));
+        assert!(merged.symlink_files.contains(&".env.local".to_string()));
+
+        assert_eq!(merged.on_create.len(), 2);
+        assert!(merged.on_create.contains(&"npm ci".to_string()));
+        assert!(merged.on_create.contains(&"pnpm install".to_string()));
+    }
 }
