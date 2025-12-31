@@ -931,6 +931,7 @@ dependencies = [
  "shellexpand",
  "sublime_fuzzy",
  "tempfile",
+ "test-descriptors",
  "unicode-width 0.1.13",
  "uuid",
 ]
@@ -1196,6 +1197,15 @@ dependencies = [
  "once_cell",
  "rustix 1.0.7",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "test-descriptors"
+version = "0.1.0"
+dependencies = [
+ "tempfile",
+ "thiserror",
+ "uuid",
 ]
 
 [[package]]
