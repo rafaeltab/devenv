@@ -1,0 +1,79 @@
+use crate::descriptor::{CreateContext, Descriptor, TmuxSocket};
+use std::path::Path;
+use tempfile::TempDir;
+
+pub struct TestEnvironment {
+    temp_dir: TempDir,
+    context: CreateContext,
+    tmux_socket: TmuxSocket,
+    descriptors: Vec<Box<dyn Descriptor>>,
+    created: bool,
+}
+
+impl TestEnvironment {
+    pub fn new() -> Self {
+        let temp_dir = TempDir::new().expect("Failed to create temp directory");
+        let root_path = temp_dir.path().to_path_buf();
+        let context = CreateContext::new(root_path);
+        let tmux_socket = TmuxSocket::new();
+
+        // Set the tmux socket in the context
+        context.set_tmux_socket(tmux_socket.name().to_string());
+
+        Self {
+            temp_dir,
+            context,
+            tmux_socket,
+            descriptors: Vec::new(),
+            created: false,
+        }
+    }
+
+    pub fn add_descriptor<D: Descriptor + 'static>(&mut self, descriptor: D) {
+        self.descriptors.push(Box::new(descriptor));
+    }
+
+    pub fn create(&mut self) -> Result<(), crate::descriptor::CreateError> {
+        if self.created {
+            return Ok(());
+        }
+
+        for descriptor in &self.descriptors {
+            descriptor.create(&self.context)?;
+        }
+
+        self.created = true;
+        Ok(())
+    }
+
+    pub fn root_path(&self) -> &Path {
+        self.temp_dir.path()
+    }
+
+    pub fn tmux_socket(&self) -> &str {
+        self.tmux_socket.name()
+    }
+
+    pub fn tmux(&self) -> &TmuxSocket {
+        &self.tmux_socket
+    }
+
+    pub fn context(&self) -> &CreateContext {
+        &self.context
+    }
+}
+
+impl Default for TestEnvironment {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Drop for TestEnvironment {
+    fn drop(&mut self) {
+        // Kill tmux server to clean up all sessions
+        let _ = self.tmux_socket.kill_server();
+
+        // TempDir will automatically clean up when dropped
+    }
+}
