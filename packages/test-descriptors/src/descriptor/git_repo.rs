@@ -1,5 +1,7 @@
+use super::branch::BranchDescriptor;
 use super::context::CreateContext;
 use super::error::CreateError;
+use super::remote::RemoteDescriptor;
 use super::traits::{Descriptor, PathDescriptor};
 use std::fs;
 use std::path::PathBuf;
@@ -8,13 +10,34 @@ use std::process::Command;
 #[derive(Debug)]
 pub struct GitRepoDescriptor {
     name: String,
+    branches: Vec<BranchDescriptor>,
+    remotes: Vec<RemoteDescriptor>,
+    initial_branch: String,
 }
 
 impl GitRepoDescriptor {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
+            branches: Vec::new(),
+            remotes: Vec::new(),
+            initial_branch: "main".to_string(),
         }
+    }
+
+    pub fn with_branch(mut self, branch: BranchDescriptor) -> Self {
+        self.branches.push(branch);
+        self
+    }
+
+    pub fn with_remote(mut self, remote: RemoteDescriptor) -> Self {
+        self.remotes.push(remote);
+        self
+    }
+
+    pub fn with_initial_branch(mut self, branch: &str) -> Self {
+        self.initial_branch = branch.to_string();
+        self
     }
 
     fn run_git(&self, repo_path: &PathBuf, args: &[&str]) -> Result<(), CreateError> {
@@ -68,7 +91,7 @@ impl Descriptor for GitRepoDescriptor {
         self.run_git(&path, &["add", "README.md"])?;
         self.run_git(&path, &["commit", "-m", "Initial commit"])?;
 
-        // Rename branch to main if needed (for older git versions that default to master)
+        // Rename branch to desired initial branch if needed
         let output = Command::new("git")
             .args(&["branch", "--show-current"])
             .current_dir(&path)
@@ -76,10 +99,25 @@ impl Descriptor for GitRepoDescriptor {
 
         if output.status.success() {
             let current_branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if current_branch != "main" {
-                self.run_git(&path, &["branch", "-M", "main"])?;
+            if current_branch != self.initial_branch {
+                self.run_git(&path, &["branch", "-M", &self.initial_branch])?;
             }
         }
+
+        // Setup remotes
+        for remote in &self.remotes {
+            let bare_path = remote.create_bare_repo(context)?;
+            let bare_url = bare_path.to_string_lossy();
+            self.run_git(&path, &["remote", "add", remote.name(), &bare_url])?;
+        }
+
+        // Create additional branches
+        for branch in &self.branches {
+            branch.apply(&path, context)?;
+        }
+
+        // Return to initial branch
+        self.run_git(&path, &["checkout", &self.initial_branch])?;
 
         // Register the repository in context
         context
