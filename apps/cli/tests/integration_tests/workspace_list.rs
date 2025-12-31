@@ -74,10 +74,7 @@ Code analyzer (code_analyzer): /home/rafaeltab/home/source/code_analyzer ["rust"
 "#;
 
     let test_ctx = helpers::TestContext::new(input).expect("Failed to create test config");
-    let (stdout, _stderr) = helpers::run_cli_with_stdin(
-        &["workspace", "list"],
-        "",
-        test_ctx.config_path(),
-    );
+    let (stdout, _stderr) =
+        helpers::run_cli_with_stdin(&["workspace", "list"], "", test_ctx.config_path());
     helpers::verify_output(expected, &stdout);
 }

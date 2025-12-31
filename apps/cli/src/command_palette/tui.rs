@@ -74,20 +74,20 @@ impl CommandPalette {
                 commands: vec![
                     Box::new(ExampleCommand {
                         title: "Open workspace".to_string(),
-                        description: "Search through the workspaces, and open it".to_string()
+                        description: "Search through the workspaces, and open it".to_string(),
                     }),
                     Box::new(ExampleCommand {
                         title: "Add workspace".to_string(),
-                        description: "Create a workspace in the current directory".to_string()
+                        description: "Create a workspace in the current directory".to_string(),
                     }),
                     Box::new(ExampleCommand {
                         title: "Open link".to_string(),
-                        description: "Search through links, and open them".to_string()
+                        description: "Search through links, and open them".to_string(),
                     }),
                     Box::new(ExampleCommand {
                         title: "Github".to_string(),
-                        description: "Open a github repository".to_string()
-                    })
+                        description: "Open a github repository".to_string(),
+                    }),
                 ],
             }),
         }

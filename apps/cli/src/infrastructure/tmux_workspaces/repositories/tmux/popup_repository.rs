@@ -1,40 +1,44 @@
 use crate::domain::tmux_workspaces::repositories::tmux::popup_repository::{
     PopupOptions, TmuxPopupRepository,
 };
+use crate::infrastructure::tmux_workspaces::tmux::connection::TmuxConnection;
 
-pub struct ImplPopupRepository;
+pub struct ImplPopupRepository<'a> {
+    pub connection: &'a TmuxConnection,
+}
 
-impl TmuxPopupRepository for ImplPopupRepository {
+impl TmuxPopupRepository for ImplPopupRepository<'_> {
     fn display_popup(&self, options: &PopupOptions) -> Result<(), String> {
-        let mut args = vec!["display-popup".to_string()];
+        let mut cmd = self.connection.std_command();
+
+        cmd.arg("display-popup");
 
         // Target session
-        args.push("-t".to_string());
-        args.push(format!("{}:", options.target_session));
+        cmd.arg("-t");
+        cmd.arg(format!("{}:", options.target_session));
 
         // Width
         if let Some(ref width) = options.width {
-            args.push("-w".to_string());
-            args.push(width.clone());
+            cmd.arg("-w");
+            cmd.arg(width);
         }
 
         // Height
         if let Some(ref height) = options.height {
-            args.push("-h".to_string());
-            args.push(height.clone());
+            cmd.arg("-h");
+            cmd.arg(height);
         }
 
         // Title
         if let Some(ref title) = options.title {
-            args.push("-T".to_string());
-            args.push(title.clone());
+            cmd.arg("-T");
+            cmd.arg(title);
         }
 
         // Command to execute
-        args.push(options.command.clone());
+        cmd.arg(&options.command);
 
-        let output = std::process::Command::new("tmux")
-            .args(&args)
+        let output = cmd
             .output()
             .map_err(|e| format!("Failed to execute tmux: {}", e))?;
 

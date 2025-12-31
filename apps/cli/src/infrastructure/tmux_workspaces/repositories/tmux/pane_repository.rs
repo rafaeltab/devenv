@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use duct::cmd;
 use serde::Deserialize;
 use serde_json::json;
 
@@ -51,7 +50,9 @@ where
 
         args.extend(target_args);
 
-        let res = cmd("tmux", args)
+        let res = self
+            .connection
+            .cmd(args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to get panes");
@@ -71,7 +72,8 @@ where
         if let Some(pane_value) = pane {
             args.extend(["-t", &pane_value.id])
         }
-        cmd("tmux", args)
+        self.connection
+            .cmd(args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to kill pane");
@@ -104,7 +106,9 @@ where
             .map(|x| x.id.clone())
             .collect();
 
-        let _ = cmd("tmux", args)
+        let _ = self
+            .connection
+            .cmd(args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to get panes");

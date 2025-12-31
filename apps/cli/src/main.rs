@@ -19,20 +19,21 @@ use commands::{
         tmux::{list_tmux_workspaces, ListTmuxWorkspaceOptions},
     },
     worktree::{
-        start::{WorktreeStartCommand, WorktreeStartOptions},
         complete::{WorktreeCompleteCommand, WorktreeCompleteOptions},
+        start::{WorktreeStartCommand, WorktreeStartOptions},
     },
 };
-use infrastructure::tmux_workspaces::repositories::{
-    tmux::{description_repository::ImplDescriptionRepository, tmux_client::TmuxRepository},
-    workspace::workspace_repository::ImplWorkspaceRepository,
+use infrastructure::tmux_workspaces::{
+    repositories::{
+        tmux::{description_repository::ImplDescriptionRepository, tmux_client::TmuxRepository},
+        workspace::workspace_repository::ImplWorkspaceRepository,
+    },
+    tmux::connection::TmuxConnection,
 };
 use storage::kinds::json_storage::JsonStorageProvider;
 use utils::display::{JsonDisplay, JsonPrettyDisplay, PrettyDisplay, RafaeltabDisplay};
 
-use crate::{
-    commands::tmux::switch::{TmuxSwitchCommand, TmuxSwitchOptions},
-};
+use crate::commands::tmux::switch::{TmuxSwitchCommand, TmuxSwitchOptions};
 
 #[allow(dead_code)]
 mod command_palette;
@@ -212,6 +213,12 @@ fn main() -> Result<(), io::Error> {
     let storage_provider = JsonStorageProvider::new(cli.config)?;
     let storage = storage_provider.load()?;
 
+    // Support test isolation via environment variable
+    let tmux_connection = match std::env::var("RAFAELTAB_TMUX_SOCKET") {
+        Ok(socket) => TmuxConnection::with_socket(socket),
+        Err(_) => TmuxConnection::default(),
+    };
+
     match &cli.command {
         Some(Commands::Tmux(tmux_args)) => match &tmux_args.command {
             TmuxCommands::List(args) => TmuxListCommand.execute(TmuxListOptions {
@@ -222,6 +229,7 @@ fn main() -> Result<(), io::Error> {
                     },
                     session_repository: &TmuxRepository {
                         tmux_storage: &storage,
+                        connection: &tmux_connection,
                     },
                     tmux_storage: &storage,
                 },
@@ -229,6 +237,7 @@ fn main() -> Result<(), io::Error> {
             TmuxCommands::Start => {
                 let session_repository = &TmuxRepository {
                     tmux_storage: &storage,
+                    connection: &tmux_connection,
                 };
                 TmuxStartCommand.execute(TmuxStartOptions {
                     session_description_repository: &ImplDescriptionRepository {
@@ -244,6 +253,7 @@ fn main() -> Result<(), io::Error> {
             TmuxCommands::Switch => {
                 let tmux_repository = &TmuxRepository {
                     tmux_storage: &storage,
+                    connection: &tmux_connection,
                 };
                 TmuxSwitchCommand.execute(TmuxSwitchOptions {
                     session_description_repository: &ImplDescriptionRepository {
@@ -314,11 +324,12 @@ fn main() -> Result<(), io::Error> {
         Some(Commands::Worktree(worktree_args)) => {
             let tmux_repository = &TmuxRepository {
                 tmux_storage: &storage,
+                connection: &tmux_connection,
             };
             let workspace_repository = &ImplWorkspaceRepository {
                 workspace_storage: &storage,
             };
-            
+
             match &worktree_args.command {
                 WorktreeCommands::Start(args) => {
                     WorktreeStartCommand.execute(WorktreeStartOptions {
@@ -337,8 +348,10 @@ fn main() -> Result<(), io::Error> {
                         session_repository: tmux_repository,
                         tmux_storage: &storage,
                     };
-                    let popup_repository = &infrastructure::tmux_workspaces::repositories::tmux::popup_repository::ImplPopupRepository;
-                    
+                    let popup_repository = &infrastructure::tmux_workspaces::repositories::tmux::popup_repository::ImplPopupRepository {
+                        connection: &tmux_connection,
+                    };
+
                     WorktreeCompleteCommand.execute(WorktreeCompleteOptions {
                         branch_name: args.branch_name.clone(),
                         force: args.force,
@@ -351,7 +364,7 @@ fn main() -> Result<(), io::Error> {
                     })
                 }
             }
-        },
+        }
         None => {
             let _ = Cli::command().print_help();
         }

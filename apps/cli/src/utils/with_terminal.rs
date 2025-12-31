@@ -7,7 +7,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::prelude::CrosstermBackend;
-use ratatui::{Terminal};
+use ratatui::Terminal;
 
 /// Run `f` with a ratatui Terminal set up, always restoring the terminal
 /// even if `f` returns an error or panics.

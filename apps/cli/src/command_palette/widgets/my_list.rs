@@ -1,8 +1,12 @@
-use ratatui::{layout::{Constraint, Direction, Layout}, prelude::{BlockExt, Buffer, Rect}, widgets::{Block, Widget, WidgetRef}};
+use ratatui::{
+    layout::{Constraint, Direction, Layout},
+    prelude::{BlockExt, Buffer, Rect},
+    widgets::{Block, Widget, WidgetRef},
+};
 
 pub struct MyList<'a> {
     pub block: Option<Block<'a>>,
-    pub items: Vec<&'a dyn MyListItem>
+    pub items: Vec<&'a dyn MyListItem>,
 }
 
 pub trait MyListItem: WidgetRef {
@@ -14,7 +18,8 @@ pub trait MyListItem: WidgetRef {
 impl<'a> Widget for MyList<'a> {
     fn render(self, area: Rect, buf: &mut Buffer)
     where
-        Self: Sized {
+        Self: Sized,
+    {
         let mut constraints = vec![];
         for item in &self.items {
             constraints.push(item.get_constraint())

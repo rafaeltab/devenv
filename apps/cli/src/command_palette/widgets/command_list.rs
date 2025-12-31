@@ -2,9 +2,7 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use ratatui::layout::Spacing;
 use ratatui::prelude::*;
-use ratatui::widgets::{
-    Block, BorderType, Borders, ListItem, ListState, Paragraph, WidgetRef,
-};
+use ratatui::widgets::{Block, BorderType, Borders, ListItem, ListState, Paragraph, WidgetRef};
 
 use crate::command_palette::CommandPaletteCommand;
 
@@ -51,7 +49,9 @@ impl<'a> StatefulWidget for CommandListWidget<'a> {
 
         let widgets: Vec<CommandListItemWidget> = scored_items
             .into_iter()
-            .map(|x| CommandListItemWidget { command: x.0.as_ref() })
+            .map(|x| CommandListItemWidget {
+                command: x.0.as_ref(),
+            })
             .collect();
         let items: Vec<&dyn MyListItem> = widgets
             .iter()

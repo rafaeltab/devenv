@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use duct::cmd;
 use serde::Deserialize;
 use serde_json::json;
 
@@ -62,7 +61,9 @@ where
         })
         .to_string();
         args.extend(["-P", "-F", &list_format]);
-        let out = cmd("tmux", args)
+        let out = self
+            .connection
+            .cmd(args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to create window");
@@ -93,7 +94,8 @@ where
         if let Some(wind) = window {
             args.extend(["-t", &wind.id]);
         }
-        cmd("tmux", args)
+        self.connection
+            .cmd(args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to kill window");
@@ -129,7 +131,9 @@ where
             args.extend(["-f", &filter_string]);
         }
 
-        let res = cmd("tmux", args)
+        let res = self
+            .connection
+            .cmd(args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to get windows");

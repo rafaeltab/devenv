@@ -1,8 +1,9 @@
 use crate::{
-    storage::workspace::WorkspaceStorage, utils::{
+    storage::workspace::WorkspaceStorage,
+    utils::{
         data_with_path::DataWithPath, display::RafaeltabDisplay, path::expand_path,
         workspace::find_workspace,
-    }
+    },
 };
 
 pub struct FindWorkspaceOptions<'a> {

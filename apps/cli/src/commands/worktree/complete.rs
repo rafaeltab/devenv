@@ -49,9 +49,15 @@ pub struct WorktreeCompleteOptions<'a> {
 /// Result of the worktree complete command
 pub enum WorktreeCompleteResult {
     /// Worktree was removed successfully
-    Success { branch_name: String, worktree_path: String },
+    Success {
+        branch_name: String,
+        worktree_path: String,
+    },
     /// Worktree removal was delegated to a popup
-    Delegated { branch_name: String, target_session: String },
+    Delegated {
+        branch_name: String,
+        target_session: String,
+    },
     /// Operation failed with error
     Failed(WorktreeError),
 }
@@ -421,12 +427,15 @@ fn ensure_workspace_session_exists(
 
     // Create the session using description repository
     let descriptions = description_repository.get_session_descriptions();
-    let workspace_description = descriptions.iter().find(|d| d.name == workspace.name).ok_or_else(|| {
-        WorktreeError::GitError(format!(
-            "Could not find session description for workspace '{}'",
-            workspace.name
-        ))
-    })?;
+    let workspace_description = descriptions
+        .iter()
+        .find(|d| d.name == workspace.name)
+        .ok_or_else(|| {
+            WorktreeError::GitError(format!(
+                "Could not find session description for workspace '{}'",
+                workspace.name
+            ))
+        })?;
 
     session_repository.new_session(workspace_description);
 
@@ -439,8 +448,8 @@ fn find_worktree_by_branch(
     branch_name: &str,
 ) -> Result<(PathBuf, String), WorktreeError> {
     // First, get the root worktree to find all worktrees
-    let root =
-        git::get_root_worktree_path(current_dir).map_err(|e| WorktreeError::GitError(e.to_string()))?;
+    let root = git::get_root_worktree_path(current_dir)
+        .map_err(|e| WorktreeError::GitError(e.to_string()))?;
 
     // List all worktrees
     let worktrees =
@@ -470,7 +479,9 @@ fn find_workspace_for_path<'a>(path: &Path, workspaces: &'a [Workspace]) -> Opti
     // Find the most specific workspace ID
     let found_id = find_most_specific_workspace(
         &path_str,
-        workspace_paths.iter().map(|(id, path)| (*id, path.as_str())),
+        workspace_paths
+            .iter()
+            .map(|(id, path)| (*id, path.as_str())),
     )?;
 
     // Return the workspace with that ID

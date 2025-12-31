@@ -8,9 +8,7 @@ pub enum WorktreeError {
     /// The current directory is not within a known workspace
     NotInWorkspace,
     /// The workspace does not have worktree configuration
-    WorktreeConfigMissing {
-        workspace_name: String,
-    },
+    WorktreeConfigMissing { workspace_name: String },
     /// The current directory is not inside a git repository
     NotInGitRepo(PathBuf),
     /// The worktree has uncommitted changes
@@ -24,15 +22,9 @@ pub enum WorktreeError {
     /// Cannot perform operation on the main repository (not a worktree)
     IsMainRepo(PathBuf),
     /// An onCreate command failed during worktree setup
-    OnCreateCommandFailed {
-        command: String,
-        error: String,
-    },
+    OnCreateCommandFailed { command: String, error: String },
     /// Symlink creation failed
-    SymlinkFailed {
-        path: PathBuf,
-        error: String,
-    },
+    SymlinkFailed { path: PathBuf, error: String },
     /// Git operation failed
     GitError(String),
     /// User cancelled the operation

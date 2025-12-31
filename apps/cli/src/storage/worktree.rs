@@ -58,7 +58,10 @@ mod tests {
         let config: WorkspaceWorktreeConfig = serde_json::from_str(json).unwrap();
 
         assert_eq!(config.symlink_files, vec![".env.local", "credentials/*"]);
-        assert_eq!(config.on_create, vec!["pnpm install", "cp .env.example .env"]);
+        assert_eq!(
+            config.on_create,
+            vec!["pnpm install", "cp .env.example .env"]
+        );
     }
 
     #[test]

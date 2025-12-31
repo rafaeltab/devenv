@@ -1,7 +1,9 @@
 use serde_json::{json, Value};
 
 use crate::{
-    domain::tmux_workspaces::aggregates::{tmux::session::TmuxSession, workspaces::workspace::Workspace},
+    domain::tmux_workspaces::aggregates::{
+        tmux::session::TmuxSession, workspaces::workspace::Workspace,
+    },
     utils::display::RafaeltabDisplayItem,
 };
 

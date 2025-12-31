@@ -1,3 +1,1 @@
-pub struct CommandRepositoryImpl {
-}
-
+pub struct CommandRepositoryImpl {}

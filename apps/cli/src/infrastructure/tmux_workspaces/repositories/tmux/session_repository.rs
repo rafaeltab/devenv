@@ -1,4 +1,3 @@
-use duct::cmd;
 use serde::Deserialize;
 use serde_json::json;
 
@@ -79,7 +78,9 @@ where
             args.push(command);
         }
 
-        let session_id = cmd("tmux", args)
+        let session_id = self
+            .connection
+            .cmd(args)
             .stderr_to_stdout()
             .read()
             .expect("Expected to succeed creating session");
@@ -108,14 +109,16 @@ where
         if let Some(sess) = session {
             args.extend(["-t", &sess.id]);
         }
-        cmd("tmux", args)
+        self.connection
+            .cmd(args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to get sessions");
     }
 
     fn get_environment(&self, session_id: &str) -> String {
-        cmd!("tmux", "show-environment", "-t", session_id)
+        self.connection
+            .cmd(["show-environment", "-t", session_id])
             .stderr_to_stdout()
             .read()
             .expect("Failed to get sessions")
@@ -140,7 +143,7 @@ where
         if !filter_string.is_empty() {
             args.extend(["-f", &filter_string]);
         }
-        let result = cmd("tmux", args).stderr_to_stdout().read();
+        let result = self.connection.cmd(args).stderr_to_stdout().read();
 
         match result {
             Ok(res) => {
