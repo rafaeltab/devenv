@@ -51,7 +51,7 @@ impl CommandBuilder {
 
 struct ExampleCommand {
     title: String,
-    description: String
+    description: String,
 }
 
 impl CommandPaletteCommand for ExampleCommand {

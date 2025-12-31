@@ -16,9 +16,7 @@ pub fn get_current_tmux_session() -> Option<String> {
         return None;
     }
 
-    let session_name = String::from_utf8_lossy(&output.stdout)
-        .trim()
-        .to_string();
+    let session_name = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
     if session_name.is_empty() {
         return None;

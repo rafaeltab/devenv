@@ -1,4 +1,3 @@
-use duct::cmd;
 use serde::Deserialize;
 use serde_json::json;
 
@@ -44,7 +43,9 @@ impl<TTmuxStorage: TmuxStorage> TmuxClientRepository for TmuxRepository<'_, TTmu
             None => vec![],
         });
 
-        let res = cmd("tmux", &args)
+        let res = self
+            .connection
+            .cmd(&args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to get clients");
@@ -88,7 +89,10 @@ impl<TTmuxStorage: TmuxStorage> TmuxClientRepository for TmuxRepository<'_, TTmu
             args.extend(["-c".to_string(), c.name.clone()]);
         }
         args.extend(["-t".to_string(), target_id.to_string()]);
-        cmd("tmux", &args).run().expect("Unable to switch client");
+        self.connection
+            .cmd(&args)
+            .run()
+            .expect("Unable to switch client");
     }
 }
 

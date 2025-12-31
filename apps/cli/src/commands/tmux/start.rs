@@ -27,7 +27,6 @@ impl RafaeltabCommand<TmuxStartOptions<'_>> for TmuxStartCommand {
         for description in descriptions {
             if description.session.is_none() {
                 session_repository.new_session(&description);
-
             }
         }
     }

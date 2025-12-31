@@ -119,7 +119,7 @@ pub fn create_symlinks(
                         } else {
                             std::os::windows::fs::symlink_file(&source_file, &target_file)
                         };
-                        
+
                         if let Err(e) = result {
                             return Err(GitError::IoError(format!(
                                 "Failed to create symlink {:?} -> {:?}: {}",
@@ -154,11 +154,7 @@ mod tests {
         // Create source file
         fs::write(source_dir.path().join(".env"), "SECRET=value").unwrap();
 
-        let result = create_symlinks(
-            source_dir.path(),
-            target_dir.path(),
-            &[".env".to_string()],
-        );
+        let result = create_symlinks(source_dir.path(), target_dir.path(), &[".env".to_string()]);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -224,11 +220,7 @@ mod tests {
 
         // Don't create any files
 
-        let result = create_symlinks(
-            source_dir.path(),
-            target_dir.path(),
-            &[".env".to_string()],
-        );
+        let result = create_symlinks(source_dir.path(), target_dir.path(), &[".env".to_string()]);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -246,11 +238,7 @@ mod tests {
         // Create existing target file
         fs::write(target_dir.path().join(".env"), "EXISTING=true").unwrap();
 
-        let result = create_symlinks(
-            source_dir.path(),
-            target_dir.path(),
-            &[".env".to_string()],
-        );
+        let result = create_symlinks(source_dir.path(), target_dir.path(), &[".env".to_string()]);
 
         assert!(result.is_ok());
         let result = result.unwrap();
@@ -303,11 +291,7 @@ mod tests {
 
         fs::write(source_dir.path().join(".env"), "SECRET=value").unwrap();
 
-        let result = create_symlinks(
-            source_dir.path(),
-            target_dir.path(),
-            &[".env".to_string()],
-        );
+        let result = create_symlinks(source_dir.path(), target_dir.path(), &[".env".to_string()]);
 
         assert!(result.is_ok());
 

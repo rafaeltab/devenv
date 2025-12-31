@@ -70,9 +70,7 @@ impl MergedWorktreeConfig {
 /// The absolute path where the worktree should be created
 pub fn calculate_worktree_path(workspace_root: &Path, branch_name: &str) -> PathBuf {
     // Get the parent directory of the workspace root
-    let parent = workspace_root
-        .parent()
-        .unwrap_or(workspace_root);
+    let parent = workspace_root.parent().unwrap_or(workspace_root);
 
     // Join with the branch name (slashes in branch name create nested directories)
     parent.join(branch_name)
@@ -127,7 +125,10 @@ impl std::fmt::Display for BranchStatus {
 ///
 /// # Returns
 /// The workspace with the longest matching path, or None if no match
-pub fn find_most_specific_workspace<'a, I>(current_path: &str, workspace_paths: I) -> Option<&'a str>
+pub fn find_most_specific_workspace<'a, I>(
+    current_path: &str,
+    workspace_paths: I,
+) -> Option<&'a str>
 where
     I: Iterator<Item = (&'a str, &'a str)>,
 {
@@ -242,10 +243,7 @@ mod tests {
 
         let result = calculate_worktree_path(&workspace_root, "feat/user/login");
 
-        assert_eq!(
-            result,
-            PathBuf::from("/home/user/source/feat/user/login")
-        );
+        assert_eq!(result, PathBuf::from("/home/user/source/feat/user/login"));
     }
 
     #[test]
@@ -304,15 +302,13 @@ mod tests {
 
     #[test]
     fn test_find_most_specific_workspace_simple_match() {
-        let workspaces = vec![
-            ("devenv", "/home/user/source/devenv"),
-        ];
-        
+        let workspaces = vec![("devenv", "/home/user/source/devenv")];
+
         let result = find_most_specific_workspace(
             "/home/user/source/devenv/apps/cli",
             workspaces.iter().map(|(id, path)| (*id, *path)),
         );
-        
+
         assert_eq!(result, Some("devenv"));
     }
 
@@ -322,12 +318,12 @@ mod tests {
             ("home", "/home/user"),
             ("devenv", "/home/user/source/devenv"),
         ];
-        
+
         let result = find_most_specific_workspace(
             "/home/user/source/devenv/apps/cli",
             workspaces.iter().map(|(id, path)| (*id, *path)),
         );
-        
+
         assert_eq!(result, Some("devenv"));
     }
 
@@ -338,12 +334,12 @@ mod tests {
             ("devenv", "/home/user/source/devenv"),
             ("home", "/home/user"),
         ];
-        
+
         let result = find_most_specific_workspace(
             "/home/user/source/devenv/apps/cli",
             workspaces.iter().map(|(id, path)| (*id, *path)),
         );
-        
+
         assert_eq!(result, Some("devenv"));
     }
 
@@ -353,26 +349,24 @@ mod tests {
             ("home", "/home/user"),
             ("devenv", "/home/user/source/devenv"),
         ];
-        
+
         let result = find_most_specific_workspace(
             "/home/user/documents",
             workspaces.iter().map(|(id, path)| (*id, *path)),
         );
-        
+
         assert_eq!(result, Some("home"));
     }
 
     #[test]
     fn test_find_most_specific_workspace_no_match() {
-        let workspaces = vec![
-            ("devenv", "/home/user/source/devenv"),
-        ];
-        
+        let workspaces = vec![("devenv", "/home/user/source/devenv")];
+
         let result = find_most_specific_workspace(
             "/tmp/other",
             workspaces.iter().map(|(id, path)| (*id, *path)),
         );
-        
+
         assert_eq!(result, None);
     }
 
@@ -383,12 +377,12 @@ mod tests {
             ("source", "/home/user/source"),
             ("devenv", "/home/user/source/devenv"),
         ];
-        
+
         let result = find_most_specific_workspace(
             "/home/user/source/devenv/apps/cli/src",
             workspaces.iter().map(|(id, path)| (*id, *path)),
         );
-        
+
         assert_eq!(result, Some("devenv"));
     }
 }

@@ -46,10 +46,15 @@ pub struct WorktreeInfo {
 /// The absolute path to the main worktree, or an error if not in a git repository
 pub fn get_root_worktree_path(current_path: &Path) -> Result<PathBuf, GitError> {
     // First, get the git common dir which points to the main .git directory
-    let output = cmd!("git", "rev-parse", "--path-format=absolute", "--git-common-dir")
-        .dir(current_path)
-        .stderr_to_stdout()
-        .read();
+    let output = cmd!(
+        "git",
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-common-dir"
+    )
+    .dir(current_path)
+    .stderr_to_stdout()
+    .read();
 
     match output {
         Ok(git_common_dir) => {
@@ -57,10 +62,11 @@ pub fn get_root_worktree_path(current_path: &Path) -> Result<PathBuf, GitError> 
             // The git common dir is the .git directory of the main worktree
             // We need to get its parent
             let git_path = PathBuf::from(git_common_dir);
-            
+
             // If it ends with .git, get parent. Otherwise it might be a bare repo
             if git_path.ends_with(".git") {
-                git_path.parent()
+                git_path
+                    .parent()
                     .map(|p| p.to_path_buf())
                     .ok_or_else(|| GitError::NotInGitRepo(current_path.to_path_buf()))
             } else {
@@ -70,7 +76,7 @@ pub fn get_root_worktree_path(current_path: &Path) -> Result<PathBuf, GitError> 
                     .stderr_to_stdout()
                     .read()
                     .map_err(|_| GitError::NotInGitRepo(current_path.to_path_buf()))?;
-                
+
                 // Parse the first worktree (main worktree) from the porcelain output
                 parse_main_worktree_from_porcelain(&worktree_output)
                     .ok_or_else(|| GitError::NotInGitRepo(current_path.to_path_buf()))
@@ -115,10 +121,16 @@ pub fn get_current_branch(path: &Path) -> Result<String, GitError> {
 /// # Returns
 /// `true` if the branch exists locally, `false` otherwise
 pub fn check_branch_exists_locally(repo_path: &Path, branch_name: &str) -> bool {
-    cmd!("git", "show-ref", "--verify", "--quiet", format!("refs/heads/{}", branch_name))
-        .dir(repo_path)
-        .run()
-        .is_ok()
+    cmd!(
+        "git",
+        "show-ref",
+        "--verify",
+        "--quiet",
+        format!("refs/heads/{}", branch_name)
+    )
+    .dir(repo_path)
+    .run()
+    .is_ok()
 }
 
 /// Check if a branch exists on a remote.
@@ -131,10 +143,16 @@ pub fn check_branch_exists_locally(repo_path: &Path, branch_name: &str) -> bool 
 /// # Returns
 /// `true` if the branch exists on the remote, `false` otherwise
 pub fn check_branch_exists_remotely(repo_path: &Path, branch_name: &str, remote: &str) -> bool {
-    cmd!("git", "show-ref", "--verify", "--quiet", format!("refs/remotes/{}/{}", remote, branch_name))
-        .dir(repo_path)
-        .run()
-        .is_ok()
+    cmd!(
+        "git",
+        "show-ref",
+        "--verify",
+        "--quiet",
+        format!("refs/remotes/{}/{}", remote, branch_name)
+    )
+    .dir(repo_path)
+    .run()
+    .is_ok()
 }
 
 /// Get the location of a branch (local, remote, or none).
@@ -182,8 +200,7 @@ pub fn create_worktree(
 
     // Create parent directories if needed
     if let Some(parent) = worktree_path.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|e| GitError::IoError(e.to_string()))?;
+        std::fs::create_dir_all(parent).map_err(|e| GitError::IoError(e.to_string()))?;
     }
 
     let result = match branch_location {
@@ -196,18 +213,35 @@ pub fn create_worktree(
         }
         BranchLocation::Remote(remote) => {
             // Track remote branch
-            cmd!("git", "worktree", "add", "--track", "-b", branch_name, worktree_path, format!("{}/{}", remote, branch_name))
-                .dir(repo_path)
-                .stderr_to_stdout()
-                .read()
+            cmd!(
+                "git",
+                "worktree",
+                "add",
+                "--track",
+                "-b",
+                branch_name,
+                worktree_path,
+                format!("{}/{}", remote, branch_name)
+            )
+            .dir(repo_path)
+            .stderr_to_stdout()
+            .read()
         }
         BranchLocation::None => {
             // Create new branch from base
             let base = base_branch.unwrap_or("HEAD");
-            cmd!("git", "worktree", "add", "-b", branch_name, worktree_path, base)
-                .dir(repo_path)
-                .stderr_to_stdout()
-                .read()
+            cmd!(
+                "git",
+                "worktree",
+                "add",
+                "-b",
+                branch_name,
+                worktree_path,
+                base
+            )
+            .dir(repo_path)
+            .stderr_to_stdout()
+            .read()
         }
     };
 
@@ -295,12 +329,17 @@ pub fn check_clean_status(path: &Path) -> Result<bool, GitError> {
 pub fn check_unpushed_commits(path: &Path) -> Result<bool, GitError> {
     // Get the current branch
     let branch = get_current_branch(path)?;
-    
+
     // Check if there's an upstream branch
-    let upstream_result = cmd!("git", "rev-parse", "--abbrev-ref", format!("{}@{{upstream}}", branch))
-        .dir(path)
-        .stderr_null()
-        .read();
+    let upstream_result = cmd!(
+        "git",
+        "rev-parse",
+        "--abbrev-ref",
+        format!("{}@{{upstream}}", branch)
+    )
+    .dir(path)
+    .stderr_null()
+    .read();
 
     match upstream_result {
         Ok(_) => {
@@ -347,9 +386,11 @@ pub fn list_worktrees(repo_path: &Path) -> Result<Vec<WorktreeInfo>, GitError> {
 ///
 /// # Returns
 /// A vector of `WorktreeInfo` for worktrees belonging to this workspace
-pub fn discover_worktrees_for_workspace(workspace_root: &Path) -> Result<Vec<WorktreeInfo>, GitError> {
+pub fn discover_worktrees_for_workspace(
+    workspace_root: &Path,
+) -> Result<Vec<WorktreeInfo>, GitError> {
     let worktrees = list_worktrees(workspace_root)?;
-    
+
     // Filter to only include non-main worktrees
     // All worktrees for this workspace share the same git directory
     Ok(worktrees.into_iter().filter(|wt| !wt.is_main).collect())
@@ -365,14 +406,14 @@ pub fn discover_worktrees_for_workspace(workspace_root: &Path) -> Result<Vec<Wor
 pub fn is_worktree(path: &Path) -> bool {
     // A worktree has a .git file (not directory) that points to the main repo's worktree directory
     let git_path = path.join(".git");
-    
+
     if git_path.is_file() {
         // Read the .git file to verify it points to a worktree
         if let Ok(contents) = std::fs::read_to_string(&git_path) {
             return contents.starts_with("gitdir:");
         }
     }
-    
+
     false
 }
 
@@ -386,22 +427,25 @@ pub fn is_worktree(path: &Path) -> bool {
 /// `Ok(())` on success, or an error if removal fails
 pub fn remove_empty_parent_directories(path: &Path, stop_at: &Path) -> Result<(), GitError> {
     let mut current = path.parent();
-    
+
     while let Some(parent) = current {
         // Stop if we've reached the stop path
         if parent == stop_at || parent.starts_with(stop_at) == false {
             break;
         }
-        
+
         // Check if directory is empty
         let is_empty = match std::fs::read_dir(parent) {
             Ok(mut entries) => entries.next().is_none(),
             Err(_) => break,
         };
-        
+
         if is_empty {
             if let Err(e) = std::fs::remove_dir(parent) {
-                return Err(GitError::IoError(format!("Failed to remove directory {:?}: {}", parent, e)));
+                return Err(GitError::IoError(format!(
+                    "Failed to remove directory {:?}: {}",
+                    parent, e
+                )));
             }
             current = parent.parent();
         } else {
@@ -409,7 +453,7 @@ pub fn remove_empty_parent_directories(path: &Path, stop_at: &Path) -> Result<()
             break;
         }
     }
-    
+
     Ok(())
 }
 
@@ -433,9 +477,9 @@ fn parse_worktrees_from_porcelain(output: &str) -> Vec<WorktreeInfo> {
             }
             current_path = Some(PathBuf::from(line.strip_prefix("worktree ").unwrap()));
         } else if line.starts_with("branch ") {
-            let branch = line.strip_prefix("branch refs/heads/").unwrap_or(
-                line.strip_prefix("branch ").unwrap_or("")
-            );
+            let branch = line
+                .strip_prefix("branch refs/heads/")
+                .unwrap_or(line.strip_prefix("branch ").unwrap_or(""));
             current_branch = Some(branch.to_string());
         } else if line == "detached" {
             current_branch = Some("HEAD".to_string());
@@ -473,49 +517,49 @@ mod tests {
     /// Helper to create a temporary git repository for testing
     fn create_temp_git_repo() -> tempfile::TempDir {
         let temp_dir = tempfile::tempdir().unwrap();
-        
+
         Command::new("git")
             .args(["init"])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to init git repo");
-        
+
         Command::new("git")
             .args(["config", "user.email", "test@test.com"])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to set git email");
-        
+
         Command::new("git")
             .args(["config", "user.name", "Test User"])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to set git name");
-        
+
         // Create initial commit
         fs::write(temp_dir.path().join("README.md"), "# Test").unwrap();
-        
+
         Command::new("git")
             .args(["add", "."])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to add files");
-        
+
         Command::new("git")
             .args(["commit", "-m", "Initial commit"])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to commit");
-        
+
         temp_dir
     }
 
     #[test]
     fn test_get_root_worktree_path_from_main_worktree() {
         let temp_dir = create_temp_git_repo();
-        
+
         let result = get_root_worktree_path(temp_dir.path());
-        
+
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), temp_dir.path());
     }
@@ -524,22 +568,33 @@ mod tests {
     fn test_get_root_worktree_path_from_nested_worktree() {
         let temp_dir = create_temp_git_repo();
         let worktree_path = temp_dir.path().parent().unwrap().join("test-worktree");
-        
+
         // Create a worktree
         Command::new("git")
-            .args(["worktree", "add", "-b", "test-branch", worktree_path.to_str().unwrap()])
+            .args([
+                "worktree",
+                "add",
+                "-b",
+                "test-branch",
+                worktree_path.to_str().unwrap(),
+            ])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to create worktree");
-        
+
         let result = get_root_worktree_path(&worktree_path);
-        
+
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), temp_dir.path());
-        
+
         // Cleanup worktree
         Command::new("git")
-            .args(["worktree", "remove", "--force", worktree_path.to_str().unwrap()])
+            .args([
+                "worktree",
+                "remove",
+                "--force",
+                worktree_path.to_str().unwrap(),
+            ])
             .current_dir(temp_dir.path())
             .output()
             .ok();
@@ -548,9 +603,9 @@ mod tests {
     #[test]
     fn test_get_root_worktree_path_fails_when_not_in_git_repo() {
         let temp_dir = tempfile::tempdir().unwrap();
-        
+
         let result = get_root_worktree_path(temp_dir.path());
-        
+
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), GitError::NotInGitRepo(_)));
     }
@@ -558,16 +613,16 @@ mod tests {
     #[test]
     fn test_get_current_branch_returns_branch_name() {
         let temp_dir = create_temp_git_repo();
-        
+
         // Create and switch to a new branch
         Command::new("git")
             .args(["checkout", "-b", "feature-branch"])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to create branch");
-        
+
         let result = get_current_branch(temp_dir.path());
-        
+
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "feature-branch");
     }
@@ -575,48 +630,48 @@ mod tests {
     #[test]
     fn test_check_branch_exists_locally_returns_true() {
         let temp_dir = create_temp_git_repo();
-        
+
         Command::new("git")
             .args(["branch", "test-branch"])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to create branch");
-        
+
         let result = check_branch_exists_locally(temp_dir.path(), "test-branch");
-        
+
         assert!(result);
     }
 
     #[test]
     fn test_check_branch_exists_locally_returns_false() {
         let temp_dir = create_temp_git_repo();
-        
+
         let result = check_branch_exists_locally(temp_dir.path(), "nonexistent-branch");
-        
+
         assert!(!result);
     }
 
     #[test]
     fn test_get_branch_location_returns_local_when_exists_locally() {
         let temp_dir = create_temp_git_repo();
-        
+
         Command::new("git")
             .args(["branch", "local-branch"])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to create branch");
-        
+
         let result = get_branch_location(temp_dir.path(), "local-branch");
-        
+
         assert_eq!(result, BranchLocation::Local);
     }
 
     #[test]
     fn test_get_branch_location_returns_none_when_branch_not_found() {
         let temp_dir = create_temp_git_repo();
-        
+
         let result = get_branch_location(temp_dir.path(), "nonexistent-branch");
-        
+
         assert_eq!(result, BranchLocation::None);
     }
 
@@ -624,7 +679,7 @@ mod tests {
     fn test_create_worktree_creates_directory_and_branch() {
         let temp_dir = create_temp_git_repo();
         let worktree_path = temp_dir.path().parent().unwrap().join("new-worktree");
-        
+
         let result = create_worktree(
             temp_dir.path(),
             "new-feature",
@@ -632,14 +687,19 @@ mod tests {
             &BranchLocation::None,
             None,
         );
-        
+
         assert!(result.is_ok());
         assert!(worktree_path.exists());
         assert!(check_branch_exists_locally(temp_dir.path(), "new-feature"));
-        
+
         // Cleanup
         Command::new("git")
-            .args(["worktree", "remove", "--force", worktree_path.to_str().unwrap()])
+            .args([
+                "worktree",
+                "remove",
+                "--force",
+                worktree_path.to_str().unwrap(),
+            ])
             .current_dir(temp_dir.path())
             .output()
             .ok();
@@ -648,11 +708,14 @@ mod tests {
     #[test]
     fn test_create_worktree_with_nested_path_creates_parent_dirs() {
         let temp_dir = create_temp_git_repo();
-        let worktree_path = temp_dir.path().parent().unwrap()
+        let worktree_path = temp_dir
+            .path()
+            .parent()
+            .unwrap()
             .join("feat")
             .join("user")
             .join("login");
-        
+
         let result = create_worktree(
             temp_dir.path(),
             "feat/user/login",
@@ -660,13 +723,18 @@ mod tests {
             &BranchLocation::None,
             None,
         );
-        
+
         assert!(result.is_ok());
         assert!(worktree_path.exists());
-        
+
         // Cleanup
         Command::new("git")
-            .args(["worktree", "remove", "--force", worktree_path.to_str().unwrap()])
+            .args([
+                "worktree",
+                "remove",
+                "--force",
+                worktree_path.to_str().unwrap(),
+            ])
             .current_dir(temp_dir.path())
             .output()
             .ok();
@@ -676,9 +744,9 @@ mod tests {
     fn test_create_worktree_fails_when_path_exists() {
         let temp_dir = create_temp_git_repo();
         let worktree_path = temp_dir.path().parent().unwrap().join("existing-dir");
-        
+
         fs::create_dir_all(&worktree_path).unwrap();
-        
+
         let result = create_worktree(
             temp_dir.path(),
             "new-branch",
@@ -686,10 +754,13 @@ mod tests {
             &BranchLocation::None,
             None,
         );
-        
+
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), GitError::WorktreePathExists(_)));
-        
+        assert!(matches!(
+            result.unwrap_err(),
+            GitError::WorktreePathExists(_)
+        ));
+
         // Cleanup
         fs::remove_dir_all(&worktree_path).ok();
     }
@@ -698,14 +769,14 @@ mod tests {
     fn test_create_worktree_uses_existing_local_branch() {
         let temp_dir = create_temp_git_repo();
         let worktree_path = temp_dir.path().parent().unwrap().join("existing-branch-wt");
-        
+
         // Create branch first
         Command::new("git")
             .args(["branch", "existing-branch"])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to create branch");
-        
+
         let result = create_worktree(
             temp_dir.path(),
             "existing-branch",
@@ -713,13 +784,18 @@ mod tests {
             &BranchLocation::Local,
             None,
         );
-        
+
         assert!(result.is_ok());
         assert!(worktree_path.exists());
-        
+
         // Cleanup
         Command::new("git")
-            .args(["worktree", "remove", "--force", worktree_path.to_str().unwrap()])
+            .args([
+                "worktree",
+                "remove",
+                "--force",
+                worktree_path.to_str().unwrap(),
+            ])
             .current_dir(temp_dir.path())
             .output()
             .ok();
@@ -728,9 +804,9 @@ mod tests {
     #[test]
     fn test_check_clean_status_returns_true_when_clean() {
         let temp_dir = create_temp_git_repo();
-        
+
         let result = check_clean_status(temp_dir.path());
-        
+
         assert!(result.is_ok());
         assert!(result.unwrap());
     }
@@ -738,12 +814,12 @@ mod tests {
     #[test]
     fn test_check_clean_status_returns_false_with_uncommitted_changes() {
         let temp_dir = create_temp_git_repo();
-        
+
         // Create uncommitted changes
         fs::write(temp_dir.path().join("new-file.txt"), "content").unwrap();
-        
+
         let result = check_clean_status(temp_dir.path());
-        
+
         assert!(result.is_ok());
         assert!(!result.unwrap());
     }
@@ -751,7 +827,7 @@ mod tests {
     #[test]
     fn test_check_clean_status_returns_false_with_staged_changes() {
         let temp_dir = create_temp_git_repo();
-        
+
         // Create and stage changes
         fs::write(temp_dir.path().join("staged-file.txt"), "content").unwrap();
         Command::new("git")
@@ -759,9 +835,9 @@ mod tests {
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to stage file");
-        
+
         let result = check_clean_status(temp_dir.path());
-        
+
         assert!(result.is_ok());
         assert!(!result.unwrap());
     }
@@ -769,14 +845,14 @@ mod tests {
     #[test]
     fn test_check_unpushed_commits_handles_branch_with_no_upstream() {
         let temp_dir = create_temp_git_repo();
-        
+
         // Create a new branch with no upstream
         Command::new("git")
             .args(["checkout", "-b", "local-only-branch"])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to create branch");
-        
+
         // Add a commit
         fs::write(temp_dir.path().join("new-file.txt"), "content").unwrap();
         Command::new("git")
@@ -789,9 +865,9 @@ mod tests {
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to commit");
-        
+
         let result = check_unpushed_commits(temp_dir.path());
-        
+
         assert!(result.is_ok());
         // Branch with no upstream should be considered as having unpushed commits
         assert!(result.unwrap());
@@ -801,29 +877,40 @@ mod tests {
     fn test_list_worktrees_returns_all_worktrees() {
         let temp_dir = create_temp_git_repo();
         let worktree_path = temp_dir.path().parent().unwrap().join("test-wt");
-        
+
         // Create a worktree
         Command::new("git")
-            .args(["worktree", "add", "-b", "test-branch", worktree_path.to_str().unwrap()])
+            .args([
+                "worktree",
+                "add",
+                "-b",
+                "test-branch",
+                worktree_path.to_str().unwrap(),
+            ])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to create worktree");
-        
+
         let result = list_worktrees(temp_dir.path());
-        
+
         assert!(result.is_ok());
         let worktrees = result.unwrap();
         assert_eq!(worktrees.len(), 2);
-        
+
         // First should be main
         assert!(worktrees[0].is_main);
         // Second should not be main
         assert!(!worktrees[1].is_main);
         assert_eq!(worktrees[1].branch, "test-branch");
-        
+
         // Cleanup
         Command::new("git")
-            .args(["worktree", "remove", "--force", worktree_path.to_str().unwrap()])
+            .args([
+                "worktree",
+                "remove",
+                "--force",
+                worktree_path.to_str().unwrap(),
+            ])
             .current_dir(temp_dir.path())
             .output()
             .ok();
@@ -832,9 +919,9 @@ mod tests {
     #[test]
     fn test_list_worktrees_returns_single_for_no_worktrees() {
         let temp_dir = create_temp_git_repo();
-        
+
         let result = list_worktrees(temp_dir.path());
-        
+
         assert!(result.is_ok());
         let worktrees = result.unwrap();
         // Should only have the main worktree
@@ -846,20 +933,31 @@ mod tests {
     fn test_is_worktree_returns_true_for_worktree() {
         let temp_dir = create_temp_git_repo();
         let worktree_path = temp_dir.path().parent().unwrap().join("is-wt-test");
-        
+
         Command::new("git")
-            .args(["worktree", "add", "-b", "wt-test", worktree_path.to_str().unwrap()])
+            .args([
+                "worktree",
+                "add",
+                "-b",
+                "wt-test",
+                worktree_path.to_str().unwrap(),
+            ])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to create worktree");
-        
+
         let result = is_worktree(&worktree_path);
-        
+
         assert!(result);
-        
+
         // Cleanup
         Command::new("git")
-            .args(["worktree", "remove", "--force", worktree_path.to_str().unwrap()])
+            .args([
+                "worktree",
+                "remove",
+                "--force",
+                worktree_path.to_str().unwrap(),
+            ])
             .current_dir(temp_dir.path())
             .output()
             .ok();
@@ -868,18 +966,18 @@ mod tests {
     #[test]
     fn test_is_worktree_returns_false_for_main_repo() {
         let temp_dir = create_temp_git_repo();
-        
+
         let result = is_worktree(temp_dir.path());
-        
+
         assert!(!result);
     }
 
     #[test]
     fn test_is_worktree_returns_false_for_non_git_directory() {
         let temp_dir = tempfile::tempdir().unwrap();
-        
+
         let result = is_worktree(temp_dir.path());
-        
+
         assert!(!result);
     }
 
@@ -888,28 +986,44 @@ mod tests {
         let temp_dir = create_temp_git_repo();
         // Use a unique suffix based on temp_dir name to avoid collisions
         let unique_suffix = temp_dir.path().file_name().unwrap().to_str().unwrap();
-        let worktree_path = temp_dir.path().parent().unwrap().join(format!("remove-test-{}", unique_suffix));
-        
+        let worktree_path = temp_dir
+            .path()
+            .parent()
+            .unwrap()
+            .join(format!("remove-test-{}", unique_suffix));
+
         Command::new("git")
-            .args(["worktree", "add", "-b", "remove-branch", worktree_path.to_str().unwrap()])
+            .args([
+                "worktree",
+                "add",
+                "-b",
+                "remove-branch",
+                worktree_path.to_str().unwrap(),
+            ])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to create worktree");
-        
-        assert!(worktree_path.exists(), "Worktree should exist after creation");
-        
+
+        assert!(
+            worktree_path.exists(),
+            "Worktree should exist after creation"
+        );
+
         let result = remove_worktree(&worktree_path);
-        
+
         assert!(result.is_ok(), "Expected Ok but got: {:?}", result.err());
-        assert!(!worktree_path.exists(), "Worktree should not exist after removal");
+        assert!(
+            !worktree_path.exists(),
+            "Worktree should not exist after removal"
+        );
     }
 
     #[test]
     fn test_remove_worktree_fails_when_not_a_worktree() {
         let temp_dir = tempfile::tempdir().unwrap();
-        
+
         let result = remove_worktree(temp_dir.path());
-        
+
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), GitError::NotAWorktree(_)));
     }
@@ -918,24 +1032,35 @@ mod tests {
     fn test_discover_worktrees_filters_main() {
         let temp_dir = create_temp_git_repo();
         let worktree_path = temp_dir.path().parent().unwrap().join("discover-test");
-        
+
         Command::new("git")
-            .args(["worktree", "add", "-b", "discover-branch", worktree_path.to_str().unwrap()])
+            .args([
+                "worktree",
+                "add",
+                "-b",
+                "discover-branch",
+                worktree_path.to_str().unwrap(),
+            ])
             .current_dir(temp_dir.path())
             .output()
             .expect("Failed to create worktree");
-        
+
         let result = discover_worktrees_for_workspace(temp_dir.path());
-        
+
         assert!(result.is_ok());
         let worktrees = result.unwrap();
         // Should only include non-main worktrees
         assert_eq!(worktrees.len(), 1);
         assert!(!worktrees[0].is_main);
-        
+
         // Cleanup
         Command::new("git")
-            .args(["worktree", "remove", "--force", worktree_path.to_str().unwrap()])
+            .args([
+                "worktree",
+                "remove",
+                "--force",
+                worktree_path.to_str().unwrap(),
+            ])
             .current_dir(temp_dir.path())
             .output()
             .ok();
@@ -946,12 +1071,12 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let parent = temp_dir.path().join("parent");
         let child = parent.join("child");
-        
+
         fs::create_dir_all(&child).unwrap();
         fs::remove_dir(&child).unwrap(); // Remove child, parent is now empty
-        
+
         let result = remove_empty_parent_directories(&child, temp_dir.path());
-        
+
         assert!(result.is_ok());
         assert!(!parent.exists());
     }
@@ -962,13 +1087,13 @@ mod tests {
         let parent = temp_dir.path().join("parent");
         let sibling = parent.join("sibling");
         let child = parent.join("child");
-        
+
         fs::create_dir_all(&child).unwrap();
         fs::create_dir_all(&sibling).unwrap();
         fs::remove_dir(&child).unwrap(); // Remove child, but sibling still exists
-        
+
         let result = remove_empty_parent_directories(&child, temp_dir.path());
-        
+
         assert!(result.is_ok());
         // Parent should still exist because sibling is there
         assert!(parent.exists());
@@ -980,12 +1105,12 @@ mod tests {
         let level1 = temp_dir.path().join("level1");
         let level2 = level1.join("level2");
         let level3 = level2.join("level3");
-        
+
         fs::create_dir_all(&level3).unwrap();
         fs::remove_dir(&level3).unwrap();
-        
+
         let result = remove_empty_parent_directories(&level3, temp_dir.path());
-        
+
         assert!(result.is_ok());
         assert!(!level2.exists());
         assert!(!level1.exists());
