@@ -241,8 +241,25 @@ fn key_to_bytes(key: Key) -> Vec<u8> {
 }
 
 fn build_key_sequence(key: Key, modifiers: &[&Key]) -> Vec<u8> {
-    // Handle Ctrl combinations specially
-    if modifiers.iter().any(|k| matches!(k, Key::Ctrl)) {
+    // Calculate the xterm modifier code
+    // Shift = 2, Alt = 3, Shift+Alt = 4, Ctrl = 5, Ctrl+Shift = 6, Ctrl+Alt = 7, Ctrl+Shift+Alt = 8
+    let has_shift = modifiers.iter().any(|k| matches!(k, Key::Shift));
+    let has_alt = modifiers.iter().any(|k| matches!(k, Key::Alt));
+    let has_ctrl = modifiers.iter().any(|k| matches!(k, Key::Ctrl));
+    let has_super = modifiers.iter().any(|k| matches!(k, Key::Super));
+
+    // Handle simple Alt+character combinations (traditional ESC prefix method)
+    if modifiers.len() == 1 && has_alt {
+        if let Key::Char(c) = key {
+            // Alt+char is sent as ESC followed by the character
+            let mut bytes = vec![0x1b]; // ESC
+            bytes.extend_from_slice(c.to_string().as_bytes());
+            return bytes;
+        }
+    }
+
+    // Handle Ctrl+character combinations (without other modifiers)
+    if modifiers.len() == 1 && has_ctrl {
         if let Key::Char(c) = key {
             // Ctrl+letter produces the control code
             let ctrl_code = match c.to_ascii_lowercase() {
@@ -259,7 +276,51 @@ fn build_key_sequence(key: Key, modifiers: &[&Key]) -> Vec<u8> {
         }
     }
 
-    // For other combinations, just send the key
-    // TODO: Implement proper modifier encoding for Alt, Shift, Super
+    // For combinations with multiple modifiers or special keys with modifiers,
+    // use xterm-style CSI sequences with modifier parameters
+    if !modifiers.is_empty() {
+        let modifier_code = calculate_modifier_code(has_shift, has_alt, has_ctrl, has_super);
+
+        // Handle special keys (arrows, function keys, etc.) with modifiers
+        match key {
+            Key::Up => return format!("\x1b[1;{}A", modifier_code).into_bytes(),
+            Key::Down => return format!("\x1b[1;{}B", modifier_code).into_bytes(),
+            Key::Right => return format!("\x1b[1;{}C", modifier_code).into_bytes(),
+            Key::Left => return format!("\x1b[1;{}D", modifier_code).into_bytes(),
+            Key::Home => return format!("\x1b[1;{}H", modifier_code).into_bytes(),
+            Key::End => return format!("\x1b[1;{}F", modifier_code).into_bytes(),
+            Key::PageUp => return format!("\x1b[5;{}~", modifier_code).into_bytes(),
+            Key::PageDown => return format!("\x1b[6;{}~", modifier_code).into_bytes(),
+            Key::Char(c) => {
+                // For character keys with multiple modifiers, use CSI u encoding
+                let char_code = c as u32;
+                return format!("\x1b[{};{}u", char_code, modifier_code).into_bytes();
+            }
+            _ => {}
+        }
+    }
+
+    // No modifiers or unsupported combination - just send the key
     key_to_bytes(key)
+}
+
+fn calculate_modifier_code(shift: bool, alt: bool, ctrl: bool, super_: bool) -> u8 {
+    // xterm modifier encoding:
+    // 1 = no modifiers (but we add 1 as base, so shift=2, etc.)
+    let mut code = 1u8;
+
+    if shift {
+        code += 1;
+    }
+    if alt {
+        code += 2;
+    }
+    if ctrl {
+        code += 4;
+    }
+    if super_ {
+        code += 8;
+    }
+
+    code
 }
