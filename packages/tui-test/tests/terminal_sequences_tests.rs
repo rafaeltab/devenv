@@ -229,6 +229,9 @@ fn main() {
     print!("X");
     
     io::stdout().flush().unwrap();
+    
+    // Small delay to ensure output is transmitted
+    std::thread::sleep(std::time::Duration::from_millis(50));
 }
 "#;
 
@@ -245,8 +248,11 @@ fn main() {
     tui.find_text("Line 2").assert_visible();
     tui.find_text("Line 3").assert_visible();
 
-    // The X should have been inserted after "Line 1" due to cursor movement
-    tui.find_text("Line 1 X").assert_visible();
+    // The X should have been inserted after "Line 2" due to cursor movement
+    // After printing 3 lines with \n, cursor is at line 4 column 0
+    // Move up 2 lines -> line 2, column 0
+    // Move forward 7 characters -> line 2, column 7 (after "Line 2 ")
+    tui.find_text("Line 2 X").assert_visible();
 
     tui.expect_completion();
 }
@@ -282,10 +288,19 @@ fn main() {
 
     tui.wait_for_settle();
 
-    // Lines should be visible
-    tui.find_text("Line 1").assert_visible();
-    tui.find_text("Line 5").assert_visible();
-    tui.find_text("Line 10").assert_visible();
+    // Lines should be visible - use find_all_text to avoid ambiguity
+    let line_1_matches = tui.find_all_text("Line 1");
+    assert!(!line_1_matches.is_empty(), "Line 1 should be visible");
+
+    let line_5_matches = tui.find_all_text("Line 5");
+    assert!(!line_5_matches.is_empty(), "Line 5 should be visible");
+
+    let line_10_matches = tui.find_all_text("Line 10");
+    assert_eq!(
+        line_10_matches.len(),
+        1,
+        "Line 10 should appear exactly once"
+    );
 
     tui.expect_completion();
 }

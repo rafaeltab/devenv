@@ -15,4 +15,7 @@ fn main() {
     print!("X");
     
     io::stdout().flush().unwrap();
+    
+    // Small delay to ensure output is transmitted
+    std::thread::sleep(std::time::Duration::from_millis(50));
 }
