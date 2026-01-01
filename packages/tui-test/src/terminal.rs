@@ -148,15 +148,15 @@ impl TerminalBuffer {
             // 216 color cube (16-231)
             16..=231 => {
                 let idx = idx - 16;
-                let r = ((idx / 36) * 51) as u8;
-                let g = (((idx % 36) / 6) * 51) as u8;
-                let b = ((idx % 6) * 51) as u8;
+                let r = (idx / 36) * 51;
+                let g = ((idx % 36) / 6) * 51;
+                let b = (idx % 6) * 51;
                 Some((r, g, b))
             }
 
             // 24 grayscale (232-255)
             232..=255 => {
-                let gray = (8 + (idx - 232) * 10) as u8;
+                let gray = 8 + (idx - 232) * 10;
                 Some((gray, gray, gray))
             }
         }

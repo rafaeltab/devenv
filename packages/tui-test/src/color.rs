@@ -20,15 +20,15 @@ impl ColorMatcher {
 
         match self {
             ColorMatcher::Grayscale => s < 0.1,
-            ColorMatcher::YellowIsh => (h >= 30.0 && h <= 90.0) && s > 0.3,
+            ColorMatcher::YellowIsh => (30.0..=90.0).contains(&h) && s > 0.3,
             ColorMatcher::RedIsh => (h >= 330.0 || h <= 30.0) && s > 0.3,
-            ColorMatcher::GreenIsh => (h >= 90.0 && h <= 150.0) && s > 0.3,
-            ColorMatcher::BlueIsh => (h >= 210.0 && h <= 270.0) && s > 0.3,
-            ColorMatcher::CyanIsh => (h >= 150.0 && h <= 210.0) && s > 0.3,
-            ColorMatcher::MagentaIsh => (h >= 270.0 && h <= 330.0) && s > 0.3,
-            ColorMatcher::Hue { min, max } => h >= *min && h <= *max,
-            ColorMatcher::Saturation { min, max } => s >= *min && s <= *max,
-            ColorMatcher::Lightness { min, max } => l >= *min && l <= *max,
+            ColorMatcher::GreenIsh => (90.0..=150.0).contains(&h) && s > 0.3,
+            ColorMatcher::BlueIsh => (210.0..=270.0).contains(&h) && s > 0.3,
+            ColorMatcher::CyanIsh => (150.0..=210.0).contains(&h) && s > 0.3,
+            ColorMatcher::MagentaIsh => (270.0..=330.0).contains(&h) && s > 0.3,
+            ColorMatcher::Hue { min, max } => (*min..=*max).contains(&h),
+            ColorMatcher::Saturation { min, max } => (*min..=*max).contains(&s),
+            ColorMatcher::Lightness { min, max } => (*min..=*max).contains(&l),
         }
     }
 }

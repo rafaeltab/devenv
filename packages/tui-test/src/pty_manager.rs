@@ -90,12 +90,10 @@ impl PtyManager {
 
     pub fn read_available(&mut self) -> Result<Vec<u8>, TuiError> {
         // Read from the buffer that the background thread is filling
-        let mut buf = self.read_buffer.lock().map_err(|_| {
-            TuiError::PtyRead(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Failed to lock read buffer",
-            ))
-        })?;
+        let mut buf = self
+            .read_buffer
+            .lock()
+            .map_err(|_| TuiError::PtyRead(std::io::Error::other("Failed to lock read buffer")))?;
 
         let data = buf.clone();
         buf.clear();
