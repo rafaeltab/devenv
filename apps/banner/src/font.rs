@@ -722,6 +722,7 @@ $  $@@
 @
 @@";
 
+#[allow(dead_code)]
 pub const ANSI_SHADOW: &str = "flf2a$ 7 7 13 0 7 0 64 0
 Font Author: ?
 
