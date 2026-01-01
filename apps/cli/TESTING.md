@@ -6,17 +6,17 @@ This document describes the testing patterns and infrastructure for the Rafaelta
 
 - [Overview](#overview)
 - [Test Types](#test-types)
-- [Tmux Test Isolation](#tmux-test-isolation)
+- [Test Descriptor Framework](#test-descriptor-framework)
 - [Writing Integration Tests](#writing-integration-tests)
-- [Test Helpers](#test-helpers)
 - [Running Tests](#running-tests)
+- [Best Practices](#best-practices)
 
 ## Overview
 
 The CLI uses a combination of unit tests and integration tests to ensure correctness:
 
 - **Unit Tests**: Located within source files using `#[cfg(test)]` modules
-- **Integration Tests**: Located in `tests/` directory, test the CLI as a black box
+- **Integration Tests**: Located in `tests/` directory, test the CLI as a black box using the test descriptor framework
 
 ## Test Types
 
@@ -56,204 +56,240 @@ mod tests {
 
 ### Integration Tests
 
-Integration tests run the CLI binary as a subprocess and verify end-to-end behavior.
+Integration tests run the CLI binary as a subprocess and verify end-to-end behavior using the **test descriptor framework**.
 
-**Location**: `tests/integration_tests/*.rs`
+**Location**: `tests/integration_tests/*.rs` and `tests/*_tests.rs`
 
 **Key Characteristics**:
 
 - Tests run against the compiled binary (`target/debug/rafaeltab`)
-- Each test gets isolated configuration and state
-- Tests should not interfere with each other or the user's environment
+- Each test gets isolated configuration, directories, and tmux sessions
+- Tests are fully isolated and don't interfere with each other or the user's environment
+- Automatic cleanup of all test resources
 
-## Tmux Test Isolation
+## Test Descriptor Framework
 
-Testing tmux commands requires special care to avoid interfering with the user's running tmux server. We use **socket isolation** via the `-L` flag.
+The test descriptor framework provides a declarative API for setting up complex test environments. It automatically handles:
 
-### How It Works
+- Temporary directory creation and cleanup
+- Isolated tmux server instances
+- Git repository creation with branches and commits
+- Config file generation
+- Test resource cleanup (even on panic)
 
-1. **TmuxConnection Abstraction**: The `TmuxConnection` struct encapsulates tmux server connection configuration
-2. **Environment Variable**: Tests set `RAFAELTAB_TMUX_SOCKET` to specify a unique socket name
-3. **Isolated Servers**: Each test uses a unique tmux server socket (e.g., `rafaeltab_test_uuid`)
-4. **Automatic Cleanup**: Test servers are killed when tests complete
+### Key Components
 
-### Architecture
+#### TestEnvironment
 
+The main entry point for creating test environments:
+
+```rust
+use test_descriptors::TestEnvironment;
+
+let env = TestEnvironment::describe(|root| {
+    // Configure your test environment here
+}).create();
+
+// Environment is automatically cleaned up when `env` is dropped
 ```
-┌─────────────────────────────────────┐
-│         Production Code             │
-│                                     │
-│  TmuxConnection::default()          │
-│    ↓                                │
-│  Uses default tmux socket           │
-│  (connects to user's tmux server)   │
-└─────────────────────────────────────┘
 
-┌─────────────────────────────────────┐
-│            Test Code                │
-│                                     │
-│  TmuxConnection::with_socket("...")  │
-│    ↓                                │
-│  Uses custom socket (-L flag)       │
-│  (isolated test tmux server)        │
-└─────────────────────────────────────┘
-```
+#### Rafaeltab-Specific Descriptors
+
+Located in `tests/common/rafaeltab_descriptors/`, these provide rafaeltab-specific functionality:
+
+- **`RafaeltabRootMixin`**: Adds `rafaeltab_config()` to create config files
+- **`RafaeltabDirMixin`**: Adds `rafaeltab_workspace()` to register workspaces at directories
+- **`RafaeltabGitMixin`**: Adds `rafaeltab_workspace()` to register workspaces at git repos
 
 ## Writing Integration Tests
 
 ### Basic Structure
 
 ```rust
-use crate::common::helpers::TestContext;
-use std::process::Command;
+use crate::common::{rafaeltab_descriptors::RafaeltabRootMixin, run_cli};
+use test_descriptors::TestEnvironment;
 
 #[test]
 fn test_my_feature() {
-    // 1. Create test config
-    let config = r#"{
-        "workspaces": [],
-        "tmux": {
-            "sessions": [],
-            "defaultWindows": []
-        }
-    }"#;
+    // 1. Create test environment with config
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            c.defaults();  // Optional: add default tmux windows
+        });
 
-    let config_ctx = TestContext::new(config)
-        .expect("Failed to create config context");
+        root.test_dir(|td| {
+            td.dir("my-workspace", |d| {
+                d.rafaeltab_workspace("my_ws", "My Workspace", |w| {
+                    w.tag("rust");
+                });
+            });
+        });
+    }).create();
+
+    let config_path = env.context().config_path().unwrap();
 
     // 2. Run CLI
-    let output = Command::new("target/debug/rafaeltab")
-        .args(["--config", config_ctx.config_path()])
-        .args(["workspace", "list"])
-        .output()
-        .expect("Failed to run CLI");
+    let (stdout, stderr, success) = run_cli(
+        &["workspace", "list"],
+        config_path.to_str().unwrap()
+    );
 
     // 3. Assert results
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("expected output"));
+    assert!(success, "Command should succeed.\nSTDOUT: {}\nSTDERR: {}", stdout, stderr);
+    assert!(stdout.contains("my_ws"));
+}
+```
+
+### Testing with Workspaces
+
+```rust
+use crate::common::rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabRootMixin};
+use test_descriptors::TestEnvironment;
+
+#[test]
+fn test_workspace_creation() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
+
+        root.test_dir(|td| {
+            td.dir("projects", |d| {
+                d.dir("project-a", |d| {
+                    d.rafaeltab_workspace("project_a", "Project A", |w| {
+                        w.tag("rust");
+                        w.tag("cli");
+                    });
+                });
+                d.dir("project-b", |d| {
+                    d.rafaeltab_workspace("project_b", "Project B", |w| {
+                        w.tag("javascript");
+                    });
+                });
+            });
+        });
+    }).create();
+
+    // Both workspaces are now registered in the config
+    let config_path = env.context().config_path().unwrap();
+
+    // Test your CLI commands...
+}
+```
+
+### Testing with Git Repositories
+
+```rust
+use crate::common::rafaeltab_descriptors::{RafaeltabGitMixin, RafaeltabRootMixin};
+use test_descriptors::TestEnvironment;
+
+#[test]
+fn test_workspace_with_git() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
+
+        root.test_dir(|td| {
+            td.dir("my-project", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial commit", |c| {
+                            c.file("README.md", "# My Project");
+                        });
+                    });
+                    // Register the git repo as a workspace
+                    g.rafaeltab_workspace("my_project", "My Project", |_w| {});
+                });
+            });
+        });
+    }).create();
+
+    // Verify git repo exists
+    assert!(env.root_path().join("my-project/repo/.git").exists());
 }
 ```
 
 ### Testing Tmux Commands
 
-When testing tmux commands, use `TmuxTestContext` for isolation:
+Tmux tests are automatically isolated using unique socket names:
 
 ```rust
-use crate::common::helpers::TestContext;
-use crate::common::tmux_helpers::TmuxTestContext;
-use std::process::Command;
+use crate::common::{rafaeltab_descriptors::RafaeltabRootMixin, run_cli_with_tmux};
+use test_descriptors::TestEnvironment;
 
 #[test]
-fn test_tmux_start_creates_session() {
-    // 1. Create isolated tmux server context
-    let tmux_ctx = TmuxTestContext::new()
-        .expect("Failed to create tmux test context");
+fn test_tmux_start() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
 
-    // 2. Create config with workspace
+        root.test_dir(|td| {
+            td.dir("ws_1", |_d| {});
+        });
+    }).create();
+
+    let config_path = env.context().config_path().unwrap();
+
+    // Create a config with tmux session
     let config = format!(
         r#"{{
         "workspaces": [{{
-            "id": "test_ws",
-            "name": "test workspace",
+            "id": "ws_1",
+            "name": "test ws",
             "root": "{}",
             "tags": []
         }}],
         "tmux": {{
             "sessions": [{{
-                "workspace": "test_ws",
-                "name": "my-session",
+                "workspace": "ws_1",
+                "name": "test-ws",
                 "windows": [{{ "name": "shell" }}]
             }}],
             "defaultWindows": []
         }}
     }}"#,
-        tmux_ctx.temp_dir_path().display()
+        env.root_path().join("ws_1").display()
     );
 
-    let config_ctx = TestContext::new(&config)
-        .expect("Failed to create config context");
+    std::fs::write(&config_path, config).expect("Failed to write config");
 
-    // 3. Run CLI with isolated tmux socket
-    let output = Command::new("target/debug/rafaeltab")
-        .args(["--config", config_ctx.config_path()])
-        .env("RAFAELTAB_TMUX_SOCKET", tmux_ctx.socket_name())
-        .args(["tmux", "start"])
-        .output()
-        .expect("Failed to run CLI");
-
-    // 4. Assert command succeeded
-    assert!(
-        output.status.success(),
-        "Command failed:\nstdout: {}\nstderr: {}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
+    // Run CLI with isolated tmux socket
+    let (stdout, stderr, success) = run_cli_with_tmux(
+        &["tmux", "start"],
+        config_path.to_str().unwrap(),
+        env.tmux_socket()
     );
 
-    // 5. Verify sessions using tmux helper
-    let sessions = tmux_ctx.list_sessions();
-    assert!(sessions.contains(&"test workspace".to_string()));
+    assert!(success, "Command failed:\nstdout: {}\nstderr: {}", stdout, stderr);
 
-    // Cleanup happens automatically via Drop trait
+    // Verify session exists in isolated tmux server
+    assert!(env.tmux().session_exists("test ws"));
 }
 ```
 
-## Test Helpers
-
-### TestContext (Config Isolation)
-
-**Location**: `tests/common/helpers.rs`
-
-**Purpose**: Creates temporary config files for isolated testing
-
-**Methods**:
-
-- `new(content: &str) -> io::Result<Self>` - Creates temp config with JSON content
-- `config_path() -> &str` - Returns path to temp config file
-
-**Usage**:
+### Testing with Worktree Configuration
 
 ```rust
-let config_ctx = TestContext::new(r#"{"workspaces": []}"#)?;
-// Use config_ctx.config_path() with --config flag
-// Temp file is automatically cleaned up when config_ctx is dropped
+use crate::common::rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabRootMixin};
+use test_descriptors::TestEnvironment;
+
+#[test]
+fn test_workspace_with_worktree() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
+
+        root.test_dir(|td| {
+            td.dir("worktree-project", |d| {
+                d.rafaeltab_workspace("worktree_project", "Worktree Project", |w| {
+                    w.worktree(&["npm install", "npm run build"], &[".env", "node_modules"]);
+                });
+            });
+        });
+    }).create();
+
+    // Verify worktree config is in the config file
+    let config_path = env.context().config_path().unwrap();
+    let config_content = std::fs::read_to_string(&config_path).unwrap();
+    assert!(config_content.contains("onCreate"));
+    assert!(config_content.contains("npm install"));
+}
 ```
-
-### TmuxTestContext (Tmux Isolation)
-
-**Location**: `tests/common/tmux_helpers.rs`
-
-**Purpose**: Creates isolated tmux servers for testing
-
-**Methods**:
-
-- `new() -> io::Result<Self>` - Creates context with unique socket name
-- `socket_name() -> &str` - Returns the unique socket name for this test
-- `temp_dir_path() -> &Path` - Returns path to temp directory for test files
-- `tmux(args: &[&str]) -> String` - Runs tmux command on isolated server
-- `list_sessions() -> Vec<String>` - Lists sessions on isolated server
-- `session_exists(name: &str) -> bool` - Checks if session exists
-- `kill_server()` - Manually kills the test server (auto-called on drop)
-
-**Usage**:
-
-```rust
-let tmux_ctx = TmuxTestContext::new()?;
-
-// Pass socket to CLI
-.env("RAFAELTAB_TMUX_SOCKET", tmux_ctx.socket_name())
-
-// Verify tmux state
-let sessions = tmux_ctx.list_sessions();
-assert!(sessions.contains(&"my-session".to_string()));
-```
-
-### Key Features
-
-1. **Automatic Cleanup**: Both contexts implement `Drop` to clean up resources
-2. **Unique Isolation**: Each test gets a unique socket/config
-3. **No Interference**: Tests don't affect user's tmux or config files
-4. **Parallel Safe**: Tests can run in parallel without conflicts
 
 ## Running Tests
 
@@ -269,16 +305,18 @@ cargo test
 cargo test --test integration_test
 ```
 
-### Run Specific Test File
+### Run Descriptor Tests
 
 ```bash
-cargo test --test integration_test tmux_start
+cargo test --test descriptor_tests
+cargo test --test cli_integration_tests
+cargo test --test rafaeltab_descriptor_tests
 ```
 
 ### Run Specific Test
 
 ```bash
-cargo test --test integration_test test_start_is_idempotent
+cargo test test_start_creates_sessions
 ```
 
 ### Run with Output
@@ -295,9 +333,65 @@ RUST_BACKTRACE=1 cargo test
 
 ## Best Practices
 
-### 1. Config Structure
+### 1. Always Use Descriptors for Integration Tests
 
-Always include required fields in test configs:
+✅ **Good**:
+
+```rust
+let env = TestEnvironment::describe(|root| {
+    root.rafaeltab_config(|_c| {});
+}).create();
+```
+
+❌ **Bad**:
+
+```rust
+let temp_dir = TempDir::new()?;
+let config_file = temp_dir.path().join("config.json");
+// Manual cleanup required, no tmux isolation, etc.
+```
+
+### 2. Use Helper Functions
+
+The `tests/common/mod.rs` provides helper functions:
+
+- `run_cli(args, config_path)` - Run CLI with config
+- `run_cli_with_tmux(args, config_path, tmux_socket)` - Run CLI with tmux isolation
+
+### 3. Descriptive Test Names
+
+Use names that explain what is being tested:
+
+```rust
+#[test]
+fn test_workspace_list_shows_all_configured_workspaces() { ... }
+
+#[test]
+fn test_tmux_start_is_idempotent() { ... }
+```
+
+### 4. Clear Error Messages
+
+Include context in assertions:
+
+```rust
+assert!(
+    success,
+    "Command should succeed.\nSTDOUT: {}\nSTDERR: {}",
+    stdout, stderr
+);
+```
+
+### 5. Test Isolation
+
+- Each test creates its own `TestEnvironment`
+- Never share environments between tests
+- All resources are automatically cleaned up
+- Tmux sessions are completely isolated from user's tmux server
+
+### 6. Config Structure
+
+When manually creating configs, always include required fields:
 
 ```json
 {
@@ -309,92 +403,75 @@ Always include required fields in test configs:
 }
 ```
 
-**Workspace fields**:
-
-- `id` (required): Pattern `^[a-z_]{3,20}$`
-- `name` (required): Pattern `^[a-zA-Z ]{3,20}$`
-- `root` (required): Path to workspace directory
-- `tags` (required): Array of tag strings
-
-**Session fields**:
-
-- `windows` (required): Array of window definitions
-- Either `workspace` (for workspace-based) OR `path` + `name` (for path-based)
-
-### 2. Error Messages
-
-Include helpful diagnostics in assertions:
-
-```rust
-assert!(
-    output.status.success(),
-    "Command failed:\nstdout: {}\nstderr: {}",
-    String::from_utf8_lossy(&output.stdout),
-    String::from_utf8_lossy(&output.stderr)
-);
-```
-
-### 3. Test Isolation
-
-- Never rely on global state
-- Always use `TestContext` for config
-- Always use `TmuxTestContext` for tmux tests
-- Don't hardcode paths - use `temp_dir_path()`
-
-### 4. Test Naming
-
-Use descriptive names that explain what is being tested:
-
-```rust
-#[test]
-fn test_start_creates_sessions_from_workspace_config() { ... }
-
-#[test]
-fn test_start_is_idempotent() { ... }
-```
-
-### 5. Session Names
-
-Be aware that session names come from the workspace `name` field (or session `name` for path-based sessions), which can contain spaces:
-
-```rust
-// Config has workspace.name = "test workspace"
-let sessions = tmux_ctx.list_sessions();
-assert!(sessions.contains(&"test workspace".to_string())); // Correct
-```
-
 ## Troubleshooting
 
-### Tests Hang
+### Tests See User's Workspaces or Tmux Sessions
 
-If tests hang, a tmux server might not have been cleaned up:
+This means the CLI is not using the test config. Make sure you're using the helper functions correctly:
 
-```bash
-# List all tmux servers
-tmux list-sessions -a
+```rust
+// ✅ Correct
+let (stdout, _, _) = run_cli(&["workspace", "list"], config_path.to_str().unwrap());
 
-# Kill test servers
-tmux -L rafaeltab_test_<uuid> kill-server
+// ❌ Wrong - missing --config flag
+Command::new("target/debug/rafaeltab").args(&["workspace", "list"]).output()
 ```
 
 ### Config Validation Errors
 
-Check the schema at `schemas/config-schema.json` for required fields and patterns.
+Check that:
 
-### Socket Permission Issues
+1. The config includes the `tmux` field
+2. All workspace fields match the schema (id, name, root, tags)
+3. Paths use the test environment's root: `env.root_path()`
 
-Ensure `/tmp` is writable. Test sockets are created in `/tmp/tmux-<uid>/`.
+### Tmux Tests Fail
 
-## Future Improvements
+Ensure you're using the isolated socket:
 
-- Add test coverage metrics
-- Add property-based testing for complex scenarios
-- Add performance benchmarks
-- Add tests for error handling and edge cases
-- Consider adding mocks for external dependencies (git, filesystem, etc.)
+```rust
+run_cli_with_tmux(&["tmux", "start"], config_path, env.tmux_socket())
+```
+
+## Architecture
+
+```
+┌─────────────────────────────────────┐
+│      Test Descriptor Framework      │
+│   (packages/test-descriptors)       │
+│                                     │
+│  - TestEnvironment                  │
+│  - Git/Tmux/Directory descriptors   │
+│  - Automatic cleanup                │
+└─────────────────────────────────────┘
+              │
+              │ uses
+              ▼
+┌─────────────────────────────────────┐
+│   Rafaeltab Test Descriptors        │
+│   (tests/common/rafaeltab_descriptors) │
+│                                     │
+│  - RafaeltabRootMixin               │
+│  - RafaeltabDirMixin                │
+│  - RafaeltabGitMixin                │
+│  - ConfigBuilder                    │
+│  - WorkspaceBuilder                 │
+└─────────────────────────────────────┘
+              │
+              │ used by
+              ▼
+┌─────────────────────────────────────┐
+│      Integration Tests              │
+│                                     │
+│  - tests/integration_tests/         │
+│  - tests/cli_integration_tests.rs   │
+│  - tests/descriptor_tests.rs        │
+└─────────────────────────────────────┘
+```
 
 ## References
 
+- [Test Descriptors Package](../../packages/test-descriptors/EXAMPLES.md) - Full examples and API documentation
 - [Tmux Manual](https://man.openbsd.org/OpenBSD-current/man1/tmux.1) - For tmux socket options
 - [Cargo Test Documentation](https://doc.rust-lang.org/cargo/commands/cargo-test.html)
 - [Rust Testing Guide](https://doc.rust-lang.org/book/ch11-00-testing.html)

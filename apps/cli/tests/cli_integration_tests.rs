@@ -1,22 +1,8 @@
 mod common;
 
 use common::rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabGitMixin, RafaeltabRootMixin};
-use std::process::Command;
+use common::run_cli;
 use test_descriptors::TestEnvironment;
-
-fn run_cli(args: &[&str], config_path: &str) -> (String, String, bool) {
-    let output = Command::new(env!("CARGO_BIN_EXE_rafaeltab"))
-        .args(args)
-        .env("RAFAELTAB_CONFIG", config_path)
-        .output()
-        .expect("Failed to execute CLI");
-
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-    let success = output.status.success();
-
-    (stdout, stderr, success)
-}
 
 #[test]
 fn test_workspace_list_command() {
@@ -42,9 +28,14 @@ fn test_workspace_list_command() {
 
     let config_path = env.context().config_path().unwrap();
 
-    // Run workspace list command
-    let (_stdout, _stderr, _success) =
-        run_cli(&["workspace", "list"], config_path.to_str().unwrap());
+    // Run workspace list command to verify it works
+    let (stdout, stderr, success) = run_cli(&["workspace", "list"], config_path.to_str().unwrap());
+
+    assert!(
+        success,
+        "workspace list command should succeed.\nSTDOUT: {}\nSTDERR: {}",
+        stdout, stderr
+    );
 }
 
 #[test]
@@ -82,7 +73,6 @@ fn test_workspace_with_git_repo() {
         eprintln!("STDERR: {}", stderr);
     }
 
-    assert!(success);
     // Just verify the command succeeded - output format may vary
     assert!(success, "workspace list command should succeed");
 }
@@ -215,7 +205,6 @@ fn test_complex_workspace_scenario() {
         eprintln!("STDERR: {}", stderr);
     }
 
-    assert!(success);
     // Just verify the command succeeded - output format may vary
     assert!(success, "workspace list command should succeed");
 }

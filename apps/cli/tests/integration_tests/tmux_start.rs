@@ -1,9 +1,20 @@
-use super::helpers::{TestContext, TmuxTestContext};
-use std::process::Command;
+use crate::common::{rafaeltab_descriptors::RafaeltabRootMixin, run_cli_with_tmux};
+use test_descriptors::TestEnvironment;
 
 #[test]
 fn test_start_creates_sessions_from_workspace_config() {
-    let tmux_ctx = TmuxTestContext::new().expect("Failed to create tmux test context");
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
+
+        root.test_dir(|td| {
+            td.dir("ws_1", |_d| {});
+        });
+    })
+    .create();
+
+    let config_path = env.context().config_path().unwrap();
+
+    // Manually create a config with a session
     let config = format!(
         r#"{{
         "workspaces": [{{
@@ -21,38 +32,45 @@ fn test_start_creates_sessions_from_workspace_config() {
             "defaultWindows": []
         }}
     }}"#,
-        tmux_ctx.temp_dir_path().display()
+        env.root_path().join("ws_1").display()
     );
 
-    let config_ctx = TestContext::new(&config).expect("Failed to create config context");
+    std::fs::write(&config_path, config).expect("Failed to write config");
 
     // Run CLI with isolated tmux socket
-    let output = Command::new("target/debug/rafaeltab")
-        .args(["--config", config_ctx.config_path()])
-        .env("RAFAELTAB_TMUX_SOCKET", tmux_ctx.socket_name())
-        .args(["tmux", "start"])
-        .output()
-        .expect("Failed to run CLI");
-
-    assert!(
-        output.status.success(),
-        "Command failed:\nstdout: {}\nstderr: {}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
+    let (stdout, stderr, success) = run_cli_with_tmux(
+        &["tmux", "start"],
+        config_path.to_str().unwrap(),
+        env.tmux_socket(),
     );
 
-    let sessions = tmux_ctx.list_sessions();
+    assert!(
+        success,
+        "Command failed:\nstdout: {}\nstderr: {}",
+        stdout, stderr
+    );
+
     // Session name comes from the config, defaults to workspace name if not specified
     assert!(
-        sessions.contains(&"test ws".to_string()),
+        env.tmux().session_exists("test ws"),
         "Expected session 'test ws' to be created. Found sessions: {:?}",
-        sessions
+        env.tmux().list_sessions()
     );
 }
 
 #[test]
 fn test_start_is_idempotent() {
-    let tmux_ctx = TmuxTestContext::new().expect("Failed to create tmux test context");
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
+
+        root.test_dir(|td| {
+            td.dir("ws_2", |_d| {});
+        });
+    })
+    .create();
+
+    let config_path = env.context().config_path().unwrap();
+
     let config = format!(
         r#"{{
         "workspaces": [{{
@@ -70,33 +88,28 @@ fn test_start_is_idempotent() {
             "defaultWindows": []
         }}
     }}"#,
-        tmux_ctx.temp_dir_path().display()
+        env.root_path().join("ws_2").display()
     );
 
-    let config_ctx = TestContext::new(&config).expect("Failed to create config context");
+    std::fs::write(&config_path, config).expect("Failed to write config");
 
     // Run tmux start twice
     for i in 1..=2 {
-        let output = Command::new("target/debug/rafaeltab")
-            .args(["--config", config_ctx.config_path()])
-            .env("RAFAELTAB_TMUX_SOCKET", tmux_ctx.socket_name())
-            .args(["tmux", "start"])
-            .output()
-            .expect("Failed to run CLI");
+        let (stdout, stderr, success) = run_cli_with_tmux(
+            &["tmux", "start"],
+            config_path.to_str().unwrap(),
+            env.tmux_socket(),
+        );
 
         assert!(
-            output.status.success(),
+            success,
             "Command failed on run {i}:\nstdout: {}\nstderr: {}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
+            stdout, stderr
         );
     }
 
-    let sessions = tmux_ctx.list_sessions();
-    let count = sessions
-        .iter()
-        .filter(|s| s.as_str() == "idempotent ws")
-        .count();
+    let sessions = env.tmux().list_sessions().expect("Failed to list sessions");
+    let count = sessions.iter().filter(|s| *s == "idempotent ws").count();
     assert_eq!(
         count, 1,
         "Expected exactly one session, but found {count} sessions named 'idempotent ws'. Sessions: {:?}",
@@ -106,32 +119,24 @@ fn test_start_is_idempotent() {
 
 #[test]
 fn test_start_with_empty_config() {
-    let tmux_ctx = TmuxTestContext::new().expect("Failed to create tmux test context");
-    let config = r#"{
-        "workspaces": [],
-        "tmux": {
-            "sessions": [],
-            "defaultWindows": []
-        }
-    }"#;
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
+    })
+    .create();
 
-    let config_ctx = TestContext::new(config).expect("Failed to create config context");
-
-    let output = Command::new("target/debug/rafaeltab")
-        .args(["--config", config_ctx.config_path()])
-        .env("RAFAELTAB_TMUX_SOCKET", tmux_ctx.socket_name())
-        .args(["tmux", "start"])
-        .output()
-        .expect("Failed to run CLI");
-
-    assert!(
-        output.status.success(),
-        "Command failed:\nstdout: {}\nstderr: {}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
+    let (stdout, stderr, success) = run_cli_with_tmux(
+        &["tmux", "start"],
+        env.context().config_path().unwrap().to_str().unwrap(),
+        env.tmux_socket(),
     );
 
-    let sessions = tmux_ctx.list_sessions();
+    assert!(
+        success,
+        "Command failed:\nstdout: {}\nstderr: {}",
+        stdout, stderr
+    );
+
+    let sessions = env.tmux().list_sessions().expect("Failed to list sessions");
     assert!(
         sessions.is_empty(),
         "Expected no sessions to be created, but found: {:?}",
@@ -141,7 +146,14 @@ fn test_start_with_empty_config() {
 
 #[test]
 fn test_start_creates_path_based_session() {
-    let tmux_ctx = TmuxTestContext::new().expect("Failed to create tmux test context");
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
+        root.test_dir(|_td| {});
+    })
+    .create();
+
+    let config_path = env.context().config_path().unwrap();
+
     let config = format!(
         r#"{{
         "workspaces": [],
@@ -154,26 +166,24 @@ fn test_start_creates_path_based_session() {
             "defaultWindows": []
         }}
     }}"#,
-        tmux_ctx.temp_dir_path().display()
+        env.root_path().display()
     );
 
-    let config_ctx = TestContext::new(&config).expect("Failed to create config context");
+    std::fs::write(&config_path, config).expect("Failed to write config");
 
-    let output = Command::new("target/debug/rafaeltab")
-        .args(["--config", config_ctx.config_path()])
-        .env("RAFAELTAB_TMUX_SOCKET", tmux_ctx.socket_name())
-        .args(["tmux", "start"])
-        .output()
-        .expect("Failed to run CLI");
+    let (stdout, stderr, success) = run_cli_with_tmux(
+        &["tmux", "start"],
+        config_path.to_str().unwrap(),
+        env.tmux_socket(),
+    );
 
     assert!(
-        output.status.success(),
+        success,
         "Command failed:\nstdout: {}\nstderr: {}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
+        stdout, stderr
     );
 
-    let sessions = tmux_ctx.list_sessions();
+    let sessions = env.tmux().list_sessions().expect("Failed to list sessions");
     assert!(
         !sessions.is_empty(),
         "Expected at least one session to be created"
@@ -182,7 +192,18 @@ fn test_start_creates_path_based_session() {
 
 #[test]
 fn test_start_creates_multiple_sessions() {
-    let tmux_ctx = TmuxTestContext::new().expect("Failed to create tmux test context");
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
+
+        root.test_dir(|td| {
+            td.dir("ws_m1", |_d| {});
+            td.dir("ws_m2", |_d| {});
+        });
+    })
+    .create();
+
+    let config_path = env.context().config_path().unwrap();
+
     let config = format!(
         r#"{{
         "workspaces": [
@@ -215,27 +236,25 @@ fn test_start_creates_multiple_sessions() {
             "defaultWindows": []
         }}
     }}"#,
-        tmux_ctx.temp_dir_path().display(),
-        tmux_ctx.temp_dir_path().display()
+        env.root_path().join("ws_m1").display(),
+        env.root_path().join("ws_m2").display()
     );
 
-    let config_ctx = TestContext::new(&config).expect("Failed to create config context");
+    std::fs::write(&config_path, config).expect("Failed to write config");
 
-    let output = Command::new("target/debug/rafaeltab")
-        .args(["--config", config_ctx.config_path()])
-        .env("RAFAELTAB_TMUX_SOCKET", tmux_ctx.socket_name())
-        .args(["tmux", "start"])
-        .output()
-        .expect("Failed to run CLI");
+    let (stdout, stderr, success) = run_cli_with_tmux(
+        &["tmux", "start"],
+        config_path.to_str().unwrap(),
+        env.tmux_socket(),
+    );
 
     assert!(
-        output.status.success(),
+        success,
         "Command failed:\nstdout: {}\nstderr: {}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
+        stdout, stderr
     );
 
-    let sessions = tmux_ctx.list_sessions();
+    let sessions = env.tmux().list_sessions().expect("Failed to list sessions");
     assert!(
         sessions.contains(&"multi ws 1".to_string()),
         "Expected session 'multi ws 1' to be created. Found sessions: {:?}",

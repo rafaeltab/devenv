@@ -1,8 +1,13 @@
-use super::helpers;
+use crate::common::run_cli;
+use test_descriptors::TestEnvironment;
 
 /// Test that the --config flag actually uses the specified config file
 #[test]
 pub fn test_config_flag_uses_specified_file() {
+    let env = TestEnvironment::describe(|_root| {}).create();
+
+    let config_path = env.root_path().join("config.json");
+
     let input = r#"{
   "workspaces": [
     {
@@ -19,9 +24,10 @@ pub fn test_config_flag_uses_specified_file() {
 }
         "#;
 
-    let test_ctx = helpers::TestContext::new(input).expect("Failed to create test config");
-    let (stdout, _stderr) =
-        helpers::run_cli_with_stdin(&["workspace", "list"], "", test_ctx.config_path());
+    std::fs::write(&config_path, input).expect("Failed to write config");
+
+    let (stdout, _stderr, _success) =
+        run_cli(&["workspace", "list"], config_path.to_str().unwrap());
 
     // Verify the output contains the unique workspace ID from our temp config
     assert!(
@@ -39,6 +45,10 @@ pub fn test_config_flag_uses_specified_file() {
 /// Test that --config flag isolates from the home config file
 #[test]
 pub fn test_config_flag_isolates_from_home_config() {
+    let env = TestEnvironment::describe(|_root| {}).create();
+
+    let config_path = env.root_path().join("config.json");
+
     let input = r#"{
   "workspaces": [
     {
@@ -55,9 +65,10 @@ pub fn test_config_flag_isolates_from_home_config() {
 }
         "#;
 
-    let test_ctx = helpers::TestContext::new(input).expect("Failed to create test config");
-    let (stdout, _stderr) =
-        helpers::run_cli_with_stdin(&["workspace", "list"], "", test_ctx.config_path());
+    std::fs::write(&config_path, input).expect("Failed to write config");
+
+    let (stdout, _stderr, _success) =
+        run_cli(&["workspace", "list"], config_path.to_str().unwrap());
 
     // Verify we only see the isolated workspace
     assert!(
@@ -130,9 +141,10 @@ pub fn test_multiple_configs_no_crosstalk() {
         "#;
 
     // Test config A
-    let test_ctx_a = helpers::TestContext::new(config_a).expect("Failed to create test config A");
-    let (stdout_a, _) =
-        helpers::run_cli_with_stdin(&["workspace", "list"], "", test_ctx_a.config_path());
+    let env_a = TestEnvironment::describe(|_root| {}).create();
+    let config_path_a = env_a.root_path().join("config.json");
+    std::fs::write(&config_path_a, config_a).expect("Failed to write config A");
+    let (stdout_a, _, _) = run_cli(&["workspace", "list"], config_path_a.to_str().unwrap());
     assert!(
         stdout_a.contains("config_a"),
         "Config A should show config_a"
@@ -147,9 +159,10 @@ pub fn test_multiple_configs_no_crosstalk() {
     );
 
     // Test config B
-    let test_ctx_b = helpers::TestContext::new(config_b).expect("Failed to create test config B");
-    let (stdout_b, _) =
-        helpers::run_cli_with_stdin(&["workspace", "list"], "", test_ctx_b.config_path());
+    let env_b = TestEnvironment::describe(|_root| {}).create();
+    let config_path_b = env_b.root_path().join("config.json");
+    std::fs::write(&config_path_b, config_b).expect("Failed to write config B");
+    let (stdout_b, _, _) = run_cli(&["workspace", "list"], config_path_b.to_str().unwrap());
     assert!(
         !stdout_b.contains("config_a"),
         "Config B should not show config_a"
@@ -164,9 +177,10 @@ pub fn test_multiple_configs_no_crosstalk() {
     );
 
     // Test config C
-    let test_ctx_c = helpers::TestContext::new(config_c).expect("Failed to create test config C");
-    let (stdout_c, _) =
-        helpers::run_cli_with_stdin(&["workspace", "list"], "", test_ctx_c.config_path());
+    let env_c = TestEnvironment::describe(|_root| {}).create();
+    let config_path_c = env_c.root_path().join("config.json");
+    std::fs::write(&config_path_c, config_c).expect("Failed to write config C");
+    let (stdout_c, _, _) = run_cli(&["workspace", "list"], config_path_c.to_str().unwrap());
     assert!(
         !stdout_c.contains("config_a"),
         "Config C should not show config_a"

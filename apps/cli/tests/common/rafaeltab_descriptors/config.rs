@@ -12,7 +12,24 @@ pub struct WorktreeGlobalConfig {
     pub symlink_files: Vec<String>,
 }
 
-/// Configuration builder for creating rafaeltab config files
+/// Builder for creating rafaeltab configuration files.
+///
+/// This builder collects all registered workspaces and generates a valid
+/// rafaeltab config.json file. It should be added to the test environment
+/// using the `RafaeltabRootMixin::rafaeltab_config()` method.
+///
+/// # Example
+/// ```ignore
+/// use test_descriptors::TestEnvironment;
+///
+/// let env = TestEnvironment::describe(|root| {
+///     root.rafaeltab_config(|c| {
+///         c.defaults();  // Add sensible defaults
+///         c.default_window("editor");
+///     });
+///     // Add workspaces...
+/// }).create();
+/// ```
 pub struct ConfigBuilder {
     use_defaults: bool,
     worktree_global: Option<WorktreeGlobalConfig>,
@@ -101,32 +118,33 @@ impl Descriptor for ConfigDescriptor {
             "workspaces": workspaces,
         });
 
-        // Add tmux configuration if we have defaults or default windows
-        if self.use_defaults || !self.default_windows.is_empty() {
-            let default_windows: Vec<serde_json::Value> = if self.default_windows.is_empty() {
-                // Use sensible defaults
-                vec![
-                    json!({ "name": "editor", "command": "nvim ." }),
-                    json!({ "name": "shell" }),
-                ]
-            } else {
-                self.default_windows
-                    .iter()
-                    .map(|(name, cmd)| {
-                        let mut window = json!({ "name": name });
-                        if let Some(command) = cmd {
-                            window["command"] = json!(command);
-                        }
-                        window
-                    })
-                    .collect()
-            };
+        // Always add tmux configuration (required by rafaeltab CLI)
+        let default_windows: Vec<serde_json::Value> = if self.use_defaults {
+            // Use sensible defaults
+            vec![
+                json!({ "name": "editor", "command": "nvim ." }),
+                json!({ "name": "shell" }),
+            ]
+        } else if !self.default_windows.is_empty() {
+            self.default_windows
+                .iter()
+                .map(|(name, cmd)| {
+                    let mut window = json!({ "name": name });
+                    if let Some(command) = cmd {
+                        window["command"] = json!(command);
+                    }
+                    window
+                })
+                .collect()
+        } else {
+            // Empty default windows
+            vec![]
+        };
 
-            config["tmux"] = json!({
-                "sessions": [],
-                "defaultWindows": default_windows,
-            });
-        }
+        config["tmux"] = json!({
+            "sessions": [],
+            "defaultWindows": default_windows,
+        });
 
         // Add global worktree config if set
         if let Some(worktree) = &self.worktree_global {
@@ -156,7 +174,35 @@ impl Descriptor for ConfigDescriptor {
     }
 }
 
-/// Mixin trait for RootBuilder to add rafaeltab_config support
+/// Mixin trait for `RootBuilder` to add rafaeltab config creation capability.
+///
+/// This trait allows you to create a rafaeltab configuration file that will
+/// include all workspaces registered via `RafaeltabDirMixin` or `RafaeltabGitMixin`.
+///
+/// The config file path will be stored in the test context and can be accessed
+/// via `env.context().config_path()`.
+///
+/// # Example
+/// ```ignore
+/// use test_descriptors::TestEnvironment;
+///
+/// let env = TestEnvironment::describe(|root| {
+///     // Create config with defaults
+///     root.rafaeltab_config(|c| {
+///         c.defaults();
+///     });
+///     
+///     // Add workspaces that will be included in the config
+///     root.test_dir(|td| {
+///         td.dir("workspace-1", |d| {
+///             d.rafaeltab_workspace("ws1", "Workspace 1", |_| {});
+///         });
+///     });
+/// }).create();
+///
+/// let config_path = env.context().config_path().unwrap();
+/// // Use config_path with CLI
+/// ```
 pub trait RafaeltabRootMixin {
     fn rafaeltab_config<F>(&mut self, f: F)
     where
