@@ -6,16 +6,22 @@ pub struct TextMatch {
     position: Option<(u16, u16)>,
     screen_snapshot: TerminalBuffer,
     dump_on_fail: bool,
+    pub fg: ColorAssertion,
+    pub bg: ColorAssertion,
 }
 
 impl TextMatch {
     pub fn new(text: &str, terminal: &TerminalBuffer, dump_on_fail: bool) -> Self {
         let position = terminal.find_text(text);
+        let (fg, bg) = Self::get_colors(position, text, terminal, dump_on_fail);
+
         Self {
             text: text.to_string(),
             position,
             screen_snapshot: terminal.clone(),
             dump_on_fail,
+            fg,
+            bg,
         }
     }
 
@@ -25,12 +31,45 @@ impl TextMatch {
         terminal: &TerminalBuffer,
         dump_on_fail: bool,
     ) -> Self {
+        let (fg, bg) = Self::get_colors(position, text, terminal, dump_on_fail);
+
         Self {
             text: text.to_string(),
             position,
             screen_snapshot: terminal.clone(),
             dump_on_fail,
+            fg,
+            bg,
         }
+    }
+
+    fn get_colors(
+        position: Option<(u16, u16)>,
+        text: &str,
+        terminal: &TerminalBuffer,
+        dump_on_fail: bool,
+    ) -> (ColorAssertion, ColorAssertion) {
+        let fg_color =
+            position.and_then(|(row, col)| terminal.get_cell_color(row, col).and_then(|c| c.fg));
+
+        let bg_color =
+            position.and_then(|(row, col)| terminal.get_cell_color(row, col).and_then(|c| c.bg));
+
+        let fg = ColorAssertion::new(
+            fg_color,
+            format!("foreground color of text {:?}", text),
+            dump_on_fail,
+            terminal,
+        );
+
+        let bg = ColorAssertion::new(
+            bg_color,
+            format!("background color of text {:?}", text),
+            dump_on_fail,
+            terminal,
+        );
+
+        (fg, bg)
     }
 
     pub fn assert_visible(&self) {
@@ -59,35 +98,5 @@ impl TextMatch {
 
     pub fn position(&self) -> Option<(u16, u16)> {
         self.position
-    }
-
-    pub fn fg(&self) -> ColorAssertion {
-        let color = self.position.and_then(|(row, col)| {
-            self.screen_snapshot
-                .get_cell_color(row, col)
-                .and_then(|c| c.fg)
-        });
-
-        ColorAssertion::new(
-            color,
-            format!("foreground color of text {:?}", self.text),
-            self.dump_on_fail,
-            &self.screen_snapshot,
-        )
-    }
-
-    pub fn bg(&self) -> ColorAssertion {
-        let color = self.position.and_then(|(row, col)| {
-            self.screen_snapshot
-                .get_cell_color(row, col)
-                .and_then(|c| c.bg)
-        });
-
-        ColorAssertion::new(
-            color,
-            format!("background color of text {:?}", self.text),
-            self.dump_on_fail,
-            &self.screen_snapshot,
-        )
     }
 }

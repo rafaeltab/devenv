@@ -69,8 +69,7 @@ fn color_assertion_fg_exact() {
     tui.wait_for_settle();
 
     // Should be able to call fg() and exact()
-    // This will fail until we implement color extraction
-    // tui.find_text("Yellow").fg.exact(255, 255, 0);
+    tui.find_text("Yellow").fg.exact(255, 255, 0);
 }
 
 #[test]
@@ -83,6 +82,5 @@ fn color_assertion_bg_matcher() {
     tui.wait_for_settle();
 
     // Should be able to call bg() with matcher
-    // This will fail until we implement color extraction
-    // tui.find_text("Yellow BG").bg.assert(ColorMatcher::YellowIsh);
+    tui.find_text("Yellow BG").bg.assert(ColorMatcher::YellowIsh);
 }
