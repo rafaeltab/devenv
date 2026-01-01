@@ -4,6 +4,7 @@ packages:
   - apps/cli
   - apps/previ
   - apps/banner
+  - packages/test-descriptors
   - config/neovim
   - config/tmux
   - config/vale
