@@ -28,6 +28,11 @@ impl GitBuilder {
         }
     }
 
+    /// Get the full path this git repository will be created at
+    pub fn repo_path(&self) -> PathBuf {
+        self.parent_path.join(&self.name)
+    }
+
     pub fn branch<F>(&mut self, name: &str, f: F)
     where
         F: FnOnce(&mut BranchBuilder),
