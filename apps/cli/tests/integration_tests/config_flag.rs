@@ -1,4 +1,4 @@
-use crate::common::helpers;
+use super::helpers;
 
 /// Test that the --config flag actually uses the specified config file
 #[test]

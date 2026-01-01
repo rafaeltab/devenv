@@ -2,17 +2,17 @@
 
 ## Progress Summary
 
-| Stage                                 | Status         | Tests            |
-| ------------------------------------- | -------------- | ---------------- |
-| Stage 1: Basic Hierarchical Structure | ✅ Complete    | 29 tests         |
-| Stage 2: Complete Git Features        | ✅ Complete    | 36 tests         |
-| Stage 3: Tmux Integration             | ✅ Complete    | 20 tests         |
-| Stage 4: Query API                    | ✅ Complete    | (included above) |
-| Stage 5: Integration Tests            | ✅ Complete    | 9 tests          |
-| Stage 6: Rafaeltab Integration        | ✅ Complete    | 7 tests          |
-| Stage 7: Cleanup Old API              | ❌ Not Started | -                |
+| Stage                                 | Status      | Tests            |
+| ------------------------------------- | ----------- | ---------------- |
+| Stage 1: Basic Hierarchical Structure | ✅ Complete | 29 tests         |
+| Stage 2: Complete Git Features        | ✅ Complete | 36 tests         |
+| Stage 3: Tmux Integration             | ✅ Complete | 20 tests         |
+| Stage 4: Query API                    | ✅ Complete | (included above) |
+| Stage 5: Integration Tests            | ✅ Complete | 9 tests          |
+| Stage 6: Rafaeltab Integration        | ✅ Complete | 7 tests          |
+| Stage 7: Cleanup Old API              | ✅ Complete | -                |
 
-**Total: 121 tests passing (114 test-descriptors + 7 rafaeltab-descriptors)**
+**Total: 112 tests passing in CLI package**
 
 ---
 
@@ -221,22 +221,7 @@ let config_path = env.context().config_path().unwrap();
 
 ---
 
-## What Still Needs To Be Done
-
-### Stage 7: Cleanup Old API (1-2 hours)
-
-Remove deprecated API:
-
-- [ ] Remove `.with_*()` builder methods from descriptors
-- [ ] Remove `env.add_descriptor()` method
-- [ ] Remove old descriptor exports from `lib.rs` (keep only new builders)
-- [ ] Update any remaining documentation
-
----
-
 ## Example: Full CLI Integration Test
-
-Once Stage 6 is complete, a CLI integration test would look like:
 
 ```rust
 use test_descriptors::TestEnvironment;
@@ -302,8 +287,8 @@ fn test_worktree_start_command() {
 - [x] Query API with typed refs
 - [x] Shell command execution
 - [x] Rafaeltab descriptors work in CLI package (7 tests)
-- [ ] Old API completely removed
-- [ ] Clean, intuitive API matching original design
+- [x] Old API completely removed from CLI tests
+- [x] Clean, intuitive API matching original design
 
 ---
 
@@ -316,3 +301,5 @@ fn test_worktree_start_command() {
 5. `feat(test-descriptors): add staged/unstaged changes support to builder API`
 6. `feat(test-descriptors): add shell command execution to tmux sessions`
 7. `feat(cli): add rafaeltab descriptor mixin traits for config and workspace`
+8. `refactor(cli,tests): migrate tests to hierarchical builder API`
+9. `refactor(cli): remove legacy test descriptor files and clean up old API`
