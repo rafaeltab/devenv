@@ -304,7 +304,7 @@ impl Descriptor for ConfigDescriptor {
 ///     root.rafaeltab_config(|c| {
 ///         c.defaults();
 ///     });
-///     
+///
 ///     // Add workspaces that will be included in the config
 ///     root.test_dir(|td| {
 ///         td.dir("workspace-1", |d| {
