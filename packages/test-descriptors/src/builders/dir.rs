@@ -1,4 +1,5 @@
 use super::git::GitBuilder;
+use super::tmux::SessionBuilder;
 use crate::descriptor::{CreateContext, CreateError, Descriptor};
 use std::path::PathBuf;
 
@@ -36,6 +37,16 @@ impl DirBuilder {
         F: FnOnce(&mut GitBuilder),
     {
         let mut builder = GitBuilder::new(name, self.our_path());
+        f(&mut builder);
+        self.children.push(Box::new(builder.build()));
+    }
+
+    pub fn tmux_session<F>(&mut self, name: &str, f: F)
+    where
+        F: FnOnce(&mut SessionBuilder),
+    {
+        // Tmux session's working directory is our path (not a subdirectory)
+        let mut builder = SessionBuilder::new(name, self.our_path());
         f(&mut builder);
         self.children.push(Box::new(builder.build()));
     }
