@@ -1,4 +1,6 @@
 use super::dir::DirBuilder;
+use super::git::GitBuilder;
+use super::tmux::SessionBuilder;
 use crate::descriptor::Descriptor;
 use std::path::PathBuf;
 
@@ -20,6 +22,26 @@ impl TestDirBuilder {
         F: FnOnce(&mut DirBuilder),
     {
         let mut builder = DirBuilder::new(name, self.parent_path.clone());
+        f(&mut builder);
+        self.descriptors.push(Box::new(builder.build()));
+    }
+
+    /// Create a git repository directly at the test directory level
+    pub fn git<F>(&mut self, name: &str, f: F)
+    where
+        F: FnOnce(&mut GitBuilder),
+    {
+        let mut builder = GitBuilder::new(name, self.parent_path.clone());
+        f(&mut builder);
+        self.descriptors.push(Box::new(builder.build()));
+    }
+
+    /// Create a tmux session at the test directory level (working dir will be the test dir)
+    pub fn tmux_session<F>(&mut self, name: &str, f: F)
+    where
+        F: FnOnce(&mut SessionBuilder),
+    {
+        let mut builder = SessionBuilder::new(name, self.parent_path.clone());
         f(&mut builder);
         self.descriptors.push(Box::new(builder.build()));
     }

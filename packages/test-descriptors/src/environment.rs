@@ -1,6 +1,6 @@
 use crate::builders::RootBuilder;
 use crate::descriptor::{CreateContext, Descriptor, TmuxSocket};
-use crate::queries::{DirRef, GitRepoRef};
+use crate::queries::{DirRef, GitRepoRef, TmuxSessionRef};
 use std::path::Path;
 use tempfile::TempDir;
 
@@ -104,6 +104,19 @@ impl TestEnvironment {
             .map(|path| GitRepoRef {
                 name: name.to_string(),
                 path: path.clone(),
+                env: self,
+            })
+    }
+
+    /// Find a tmux session by name (query API)
+    pub fn find_tmux_session(&self, name: &str) -> Option<TmuxSessionRef<'_>> {
+        self.context
+            .registry()
+            .borrow()
+            .get_tmux_session(name)
+            .map(|info| TmuxSessionRef {
+                name: info.name.clone(),
+                working_dir: info.working_dir.clone(),
                 env: self,
             })
     }
