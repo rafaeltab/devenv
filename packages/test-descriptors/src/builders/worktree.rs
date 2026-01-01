@@ -1,8 +1,8 @@
+use super::changes::{StagedBuilder, StagedChanges, UnstagedBuilder, UnstagedChanges};
+use super::git::CommitBuilder;
 use crate::descriptor::{CommitDescriptor, CreateContext, CreateError, Descriptor};
 use std::path::PathBuf;
 use std::process::Command;
-
-use super::git::CommitBuilder;
 
 pub struct WorktreeBuilder {
     repo_name: String,
@@ -10,6 +10,8 @@ pub struct WorktreeBuilder {
     branch: String,
     parent_path: PathBuf,
     commits: Vec<CommitDescriptor>,
+    staged: Option<StagedChanges>,
+    unstaged: Option<UnstagedChanges>,
 }
 
 impl WorktreeBuilder {
@@ -25,6 +27,8 @@ impl WorktreeBuilder {
             branch: branch.to_string(),
             parent_path,
             commits: Vec::new(),
+            staged: None,
+            unstaged: None,
         }
     }
 
@@ -38,6 +42,26 @@ impl WorktreeBuilder {
         self.commits.push(builder.build());
     }
 
+    /// Add staged (but not committed) changes to this worktree
+    pub fn staged<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut StagedBuilder),
+    {
+        let mut builder = StagedBuilder::new();
+        f(&mut builder);
+        self.staged = Some(builder.build());
+    }
+
+    /// Add unstaged changes to this worktree
+    pub fn unstaged<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut UnstagedBuilder),
+    {
+        let mut builder = UnstagedBuilder::new();
+        f(&mut builder);
+        self.unstaged = Some(builder.build());
+    }
+
     pub(crate) fn build(self) -> HierarchicalWorktreeDescriptor {
         HierarchicalWorktreeDescriptor {
             repo_name: self.repo_name,
@@ -45,6 +69,8 @@ impl WorktreeBuilder {
             branch: self.branch,
             parent_path: self.parent_path,
             commits: self.commits,
+            staged: self.staged,
+            unstaged: self.unstaged,
         }
     }
 }
@@ -57,6 +83,8 @@ pub struct HierarchicalWorktreeDescriptor {
     branch: String,
     parent_path: PathBuf,
     commits: Vec<CommitDescriptor>,
+    staged: Option<StagedChanges>,
+    unstaged: Option<UnstagedChanges>,
 }
 
 impl HierarchicalWorktreeDescriptor {
@@ -116,6 +144,16 @@ impl Descriptor for HierarchicalWorktreeDescriptor {
         // Apply commits to the worktree
         for commit in &self.commits {
             commit.apply(&worktree_path, context)?;
+        }
+
+        // Apply staged changes (after all commits)
+        if let Some(staged) = &self.staged {
+            staged.apply(&worktree_path)?;
+        }
+
+        // Apply unstaged changes (after staged, so they remain unstaged)
+        if let Some(unstaged) = &self.unstaged {
+            unstaged.apply(&worktree_path)?;
         }
 
         // Register the worktree in context

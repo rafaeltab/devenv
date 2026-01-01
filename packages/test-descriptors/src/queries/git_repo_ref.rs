@@ -75,6 +75,16 @@ impl<'a> GitRepoRef<'a> {
         !output.stdout.is_empty()
     }
 
+    pub fn has_untracked_files(&self) -> bool {
+        let output = Command::new("git")
+            .args(["ls-files", "--others", "--exclude-standard"])
+            .current_dir(&self.path)
+            .output()
+            .expect("Failed to run git ls-files");
+
+        !output.stdout.is_empty()
+    }
+
     pub fn has_unpushed_commits(&self) -> bool {
         // Check if there's an upstream; if not, all commits are "unpushed"
         let branch = self.current_branch();
