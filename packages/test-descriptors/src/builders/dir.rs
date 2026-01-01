@@ -1,3 +1,4 @@
+use super::git::GitBuilder;
 use crate::descriptor::{CreateContext, CreateError, Descriptor};
 use std::path::PathBuf;
 
@@ -16,13 +17,25 @@ impl DirBuilder {
         }
     }
 
+    /// Get the full path this directory will be created at
+    fn our_path(&self) -> PathBuf {
+        self.parent_path.join(&self.name)
+    }
+
     pub fn dir<F>(&mut self, name: &str, f: F)
     where
         F: FnOnce(&mut DirBuilder),
     {
-        // Child dir's parent is our full path
-        let our_path = self.parent_path.join(&self.name);
-        let mut builder = DirBuilder::new(name, our_path);
+        let mut builder = DirBuilder::new(name, self.our_path());
+        f(&mut builder);
+        self.children.push(Box::new(builder.build()));
+    }
+
+    pub fn git<F>(&mut self, name: &str, f: F)
+    where
+        F: FnOnce(&mut GitBuilder),
+    {
+        let mut builder = GitBuilder::new(name, self.our_path());
         f(&mut builder);
         self.children.push(Box::new(builder.build()));
     }

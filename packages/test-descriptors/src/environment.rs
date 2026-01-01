@@ -1,6 +1,6 @@
 use crate::builders::RootBuilder;
 use crate::descriptor::{CreateContext, Descriptor, TmuxSocket};
-use crate::queries::DirRef;
+use crate::queries::{DirRef, GitRepoRef};
 use std::path::Path;
 use tempfile::TempDir;
 
@@ -90,6 +90,19 @@ impl TestEnvironment {
             .borrow()
             .get_dir(name)
             .map(|path| DirRef {
+                path: path.clone(),
+                env: self,
+            })
+    }
+
+    /// Find a git repository by name (query API)
+    pub fn find_git_repo(&self, name: &str) -> Option<GitRepoRef<'_>> {
+        self.context
+            .registry()
+            .borrow()
+            .get_git_repo(name)
+            .map(|path| GitRepoRef {
+                name: name.to_string(),
                 path: path.clone(),
                 env: self,
             })
