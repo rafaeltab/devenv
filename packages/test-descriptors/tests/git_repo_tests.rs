@@ -1,35 +1,38 @@
-use std::fs;
 use std::process::Command;
-use tempfile::TempDir;
-use test_descriptors::descriptor::{
-    BranchDescriptor, CommitDescriptor, CreateContext, Descriptor, GitRepoDescriptor,
-    PathDescriptor, RemoteDescriptor,
-};
+use test_descriptors::TestEnvironment;
 
 #[test]
 fn test_git_repo_descriptor_creates_repo() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.git("test-repo", |_g| {
+                    // Empty repo with just defaults
+                });
+            });
+        });
+    })
+    .create();
 
-    let repo = GitRepoDescriptor::new("test-repo");
-    repo.create(&context).unwrap();
-
-    let repo_path = temp.path().join("test-repo");
+    let repo_path = env.root_path().join("workspace/test-repo");
     assert!(repo_path.exists());
     assert!(repo_path.join(".git").exists());
 }
 
 #[test]
 fn test_git_repo_descriptor_has_initial_commit() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.git("test-repo", |_g| {});
+            });
+        });
+    })
+    .create();
 
-    let repo = GitRepoDescriptor::new("test-repo");
-    repo.create(&context).unwrap();
-
-    let repo_path = temp.path().join("test-repo");
+    let repo_path = env.root_path().join("workspace/test-repo");
     let output = Command::new("git")
-        .args(&["log", "--oneline"])
+        .args(["log", "--oneline"])
         .current_dir(&repo_path)
         .output()
         .unwrap();
@@ -41,15 +44,18 @@ fn test_git_repo_descriptor_has_initial_commit() {
 
 #[test]
 fn test_git_repo_descriptor_on_main_branch() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.git("test-repo", |_g| {});
+            });
+        });
+    })
+    .create();
 
-    let repo = GitRepoDescriptor::new("test-repo");
-    repo.create(&context).unwrap();
-
-    let repo_path = temp.path().join("test-repo");
+    let repo_path = env.root_path().join("workspace/test-repo");
     let output = Command::new("git")
-        .args(&["branch", "--show-current"])
+        .args(["branch", "--show-current"])
         .current_dir(&repo_path)
         .output()
         .unwrap();
@@ -61,42 +67,54 @@ fn test_git_repo_descriptor_on_main_branch() {
 
 #[test]
 fn test_git_repo_descriptor_path_resolution() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.git("my-repo", |_g| {});
+            });
+        });
+    })
+    .create();
 
-    let repo = GitRepoDescriptor::new("my-repo");
-    let path = repo.path(&context);
-
-    assert_eq!(path, temp.path().join("my-repo"));
+    let repo = env.find_git_repo("my-repo").expect("repo should exist");
+    assert_eq!(repo.path(), env.root_path().join("workspace/my-repo"));
 }
 
 #[test]
 fn test_git_repo_descriptor_registered_in_context() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.git("registered-repo", |_g| {});
+            });
+        });
+    })
+    .create();
 
-    let repo = GitRepoDescriptor::new("registered-repo");
-    repo.create(&context).unwrap();
-
-    let binding = context.registry().borrow();
-    let retrieved = binding.get_git_repo("registered-repo");
-    assert!(retrieved.is_some());
-    assert_eq!(retrieved.unwrap(), &temp.path().join("registered-repo"));
+    let repo = env.find_git_repo("registered-repo");
+    assert!(repo.is_some());
+    assert_eq!(
+        repo.unwrap().path(),
+        env.root_path().join("workspace/registered-repo")
+    );
 }
 
 #[test]
 fn test_git_repo_descriptor_has_git_config() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.git("test-repo", |_g| {});
+            });
+        });
+    })
+    .create();
 
-    let repo = GitRepoDescriptor::new("test-repo");
-    repo.create(&context).unwrap();
-
-    let repo_path = temp.path().join("test-repo");
+    let repo_path = env.root_path().join("workspace/test-repo");
 
     // Check user.name
     let output = Command::new("git")
-        .args(&["config", "user.name"])
+        .args(["config", "user.name"])
         .current_dir(&repo_path)
         .output()
         .unwrap();
@@ -106,7 +124,7 @@ fn test_git_repo_descriptor_has_git_config() {
 
     // Check user.email
     let output = Command::new("git")
-        .args(&["config", "user.email"])
+        .args(["config", "user.email"])
         .current_dir(&repo_path)
         .output()
         .unwrap();
@@ -117,48 +135,62 @@ fn test_git_repo_descriptor_has_git_config() {
 
 #[test]
 fn test_git_repo_descriptor_has_readme() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.git("test-repo", |_g| {});
+            });
+        });
+    })
+    .create();
 
-    let repo = GitRepoDescriptor::new("test-repo");
-    repo.create(&context).unwrap();
-
-    let readme_path = temp.path().join("test-repo/README.md");
+    let readme_path = env.root_path().join("workspace/test-repo/README.md");
     assert!(readme_path.exists());
 
-    let content = fs::read_to_string(&readme_path).unwrap();
+    let content = std::fs::read_to_string(&readme_path).unwrap();
     assert!(content.contains("test-repo"));
 }
 
 #[test]
-fn test_git_repo_descriptor_creates_parent_directories() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+fn test_git_repo_inside_nested_dir() {
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("parent", |d| {
+                d.dir("child", |d| {
+                    d.git("my-repo", |_g| {});
+                });
+            });
+        });
+    })
+    .create();
 
-    let repo = GitRepoDescriptor::new("parent/child/my-repo");
-    repo.create(&context).unwrap();
-
-    let repo_path = temp.path().join("parent/child/my-repo");
+    let repo_path = env.root_path().join("parent/child/my-repo");
     assert!(repo_path.exists());
     assert!(repo_path.join(".git").exists());
 }
 
 #[test]
 fn test_git_repo_descriptor_with_branch() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.git("test-repo", |g| {
+                    g.branch("feature", |b| {
+                        b.commit("Feature commit", |c| {
+                            c.file("feature.txt", "content");
+                        });
+                    });
+                });
+            });
+        });
+    })
+    .create();
 
-    let branch = BranchDescriptor::new("feature")
-        .with_commit(CommitDescriptor::new("Feature commit").with_file("feature.txt", "content"));
-
-    let repo = GitRepoDescriptor::new("test-repo").with_branch(branch);
-    repo.create(&context).unwrap();
-
-    let repo_path = temp.path().join("test-repo");
+    let repo_path = env.root_path().join("workspace/test-repo");
 
     // Check that feature branch exists
     let output = Command::new("git")
-        .args(&["branch", "--list", "feature"])
+        .args(["branch", "--list", "feature"])
         .current_dir(&repo_path)
         .output()
         .unwrap();
@@ -169,7 +201,7 @@ fn test_git_repo_descriptor_with_branch() {
 
     // Check that feature.txt exists on feature branch
     Command::new("git")
-        .args(&["checkout", "feature"])
+        .args(["checkout", "feature"])
         .current_dir(&repo_path)
         .output()
         .unwrap();
@@ -179,18 +211,22 @@ fn test_git_repo_descriptor_with_branch() {
 
 #[test]
 fn test_git_repo_descriptor_with_remote() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.git("test-repo", |g| {
+                    g.remote("origin");
+                });
+            });
+        });
+    })
+    .create();
 
-    let remote = RemoteDescriptor::new("origin");
-    let repo = GitRepoDescriptor::new("test-repo").with_remote(remote);
-    repo.create(&context).unwrap();
-
-    let repo_path = temp.path().join("test-repo");
+    let repo_path = env.root_path().join("workspace/test-repo");
 
     // Check that remote exists
     let output = Command::new("git")
-        .args(&["remote", "-v"])
+        .args(["remote", "-v"])
         .current_dir(&repo_path)
         .output()
         .unwrap();
@@ -202,15 +238,20 @@ fn test_git_repo_descriptor_with_remote() {
 
 #[test]
 fn test_git_repo_descriptor_custom_initial_branch() {
-    let temp = TempDir::new().unwrap();
-    let context = CreateContext::new(temp.path().to_path_buf());
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.git("test-repo", |g| {
+                    g.initial_branch("master");
+                });
+            });
+        });
+    })
+    .create();
 
-    let repo = GitRepoDescriptor::new("test-repo").with_initial_branch("master");
-    repo.create(&context).unwrap();
-
-    let repo_path = temp.path().join("test-repo");
+    let repo_path = env.root_path().join("workspace/test-repo");
     let output = Command::new("git")
-        .args(&["branch", "--show-current"])
+        .args(["branch", "--show-current"])
         .current_dir(&repo_path)
         .output()
         .unwrap();
