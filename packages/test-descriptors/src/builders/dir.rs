@@ -20,7 +20,7 @@ impl DirBuilder {
     }
 
     /// Get the full path this directory will be created at
-    fn our_path(&self) -> PathBuf {
+    pub fn our_path(&self) -> PathBuf {
         self.parent_path.join(&self.name)
     }
 

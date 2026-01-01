@@ -26,14 +26,14 @@ fn test_workspace_list_command() {
 
     // Create workspaces
     let ws1 = WorkspaceDescriptor::new(
-        "project-a",
+        "project_a",
         "Project A",
         env.root_path().join("projects/project-a"),
     )
     .with_tag("rust");
 
     let ws2 = WorkspaceDescriptor::new(
-        "project-b",
+        "project_b",
         "Project B",
         env.root_path().join("projects/project-b"),
     )
@@ -44,12 +44,13 @@ fn test_workspace_list_command() {
     env.add_descriptor(ws1);
     env.add_descriptor(ws2);
     env.add_descriptor(config);
-    env.create().unwrap();
+    let env = env.create();
 
     let config_path = env.context().config_path().unwrap();
 
     // Run workspace list command
-    let (stdout, stderr, success) = run_cli(&["workspace", "list"], config_path.to_str().unwrap());
+    let (_stdout, _stderr, _success) =
+        run_cli(&["workspace", "list"], config_path.to_str().unwrap());
 }
 
 #[test]
@@ -58,7 +59,7 @@ fn test_workspace_with_git_repo() {
 
     // Create a workspace directory
     let workspace_path = env.root_path().join("my-project");
-    let workspace = WorkspaceDescriptor::new("my-project", "My Project", workspace_path.clone());
+    let workspace = WorkspaceDescriptor::new("my_project", "My Project", workspace_path.clone());
 
     // Create a git repo in the workspace
     let repo = GitRepoDescriptor::new("my-project/repo");
@@ -68,7 +69,7 @@ fn test_workspace_with_git_repo() {
     env.add_descriptor(workspace);
     env.add_descriptor(repo);
     env.add_descriptor(config);
-    env.create().unwrap();
+    let env = env.create();
 
     // Verify both workspace and repo exist
     assert!(workspace_path.exists());
@@ -79,7 +80,7 @@ fn test_workspace_with_git_repo() {
     // Verify workspace is in config
     let (stdout, stderr, success) = run_cli(&["workspace", "list"], config_path.to_str().unwrap());
 
-    if !success || (!stdout.contains("my-project") && !stdout.contains("My Project")) {
+    if !success || (!stdout.contains("my_project") && !stdout.contains("My Project")) {
         eprintln!("Workspace list output:");
         eprintln!("STDOUT: {}", stdout);
         eprintln!("STDERR: {}", stderr);
@@ -96,7 +97,7 @@ fn test_tmux_integration_with_workspace() {
 
     // Create workspace
     let workspace = WorkspaceDescriptor::new(
-        "dev-workspace",
+        "dev_workspace",
         "Development Workspace",
         env.root_path().join("dev-workspace"),
     );
@@ -111,7 +112,7 @@ fn test_tmux_integration_with_workspace() {
     env.add_descriptor(workspace);
     env.add_descriptor(session);
     env.add_descriptor(config);
-    env.create().unwrap();
+    let env = env.create();
 
     // Verify tmux session exists
     assert!(env.tmux().session_exists("dev-session"));
@@ -129,7 +130,7 @@ fn test_workspace_with_worktree_config() {
     let mut env = TestEnvironment::new();
 
     let workspace = WorkspaceDescriptor::new(
-        "worktree-project",
+        "worktree_project",
         "Worktree Project",
         env.root_path().join("worktree-project"),
     )
@@ -142,7 +143,7 @@ fn test_workspace_with_worktree_config() {
 
     env.add_descriptor(workspace);
     env.add_descriptor(config);
-    env.create().unwrap();
+    let env = env.create();
 
     // Verify config contains worktree configuration
     let config_path = env.context().config_path().unwrap();
@@ -197,7 +198,7 @@ fn test_complex_workspace_scenario() {
     env.add_descriptor(frontend_session);
     env.add_descriptor(backend_session);
     env.add_descriptor(config);
-    env.create().unwrap();
+    let env = env.create();
 
     // Verify all components exist
     assert!(env.root_path().join("frontend").exists());
@@ -234,19 +235,19 @@ fn test_workspace_tags_filtering() {
     let mut env = TestEnvironment::new();
 
     let ws1 =
-        WorkspaceDescriptor::new("rust-project", "Rust Project", env.root_path().join("rust"))
+        WorkspaceDescriptor::new("rust_project", "Rust Project", env.root_path().join("rust"))
             .with_tag("rust")
             .with_tag("cli");
 
     let ws2 = WorkspaceDescriptor::new(
-        "js-project",
+        "js_project",
         "JavaScript Project",
         env.root_path().join("js"),
     )
     .with_tag("javascript")
     .with_tag("web");
 
-    let ws3 = WorkspaceDescriptor::new("py-project", "Python Project", env.root_path().join("py"))
+    let ws3 = WorkspaceDescriptor::new("py_project", "Python Project", env.root_path().join("py"))
         .with_tag("python")
         .with_tag("cli");
 
@@ -256,7 +257,7 @@ fn test_workspace_tags_filtering() {
     env.add_descriptor(ws2);
     env.add_descriptor(ws3);
     env.add_descriptor(config);
-    env.create().unwrap();
+    let env = env.create();
 
     let config_path = env.context().config_path().unwrap();
     let config_content = std::fs::read_to_string(&config_path).unwrap();
@@ -267,7 +268,7 @@ fn test_workspace_tags_filtering() {
 
     let rust_ws = workspaces
         .iter()
-        .find(|w| w["id"] == "rust-project")
+        .find(|w| w["id"] == "rust_project")
         .unwrap();
     assert_eq!(rust_ws["tags"].as_array().unwrap().len(), 2);
     assert!(rust_ws["tags"]
