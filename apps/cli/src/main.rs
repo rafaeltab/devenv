@@ -51,6 +51,7 @@ mod utils;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None, disable_help_subcommand(true))]
 struct Cli {
+    /// Path to configuration file (defaults to ~/.rafaeltab.json)
     #[arg(short, long, value_name = "FILE", global = true)]
     pub config: Option<String>,
 
@@ -78,6 +79,7 @@ struct CommandPaletteArgs {
 
 #[derive(Debug, Subcommand)]
 enum CommandPaletteCommands {
+    /// Show the command palette UI
     Show,
 }
 
@@ -89,8 +91,11 @@ struct TmuxArgs {
 
 #[derive(Debug, Subcommand)]
 enum TmuxCommands {
+    /// List all tmux sessions with descriptions
     List(DisplayCommand),
+    /// Start a new tmux session interactively
     Start,
+    /// Switch to a different tmux session
     Switch,
 }
 
@@ -132,15 +137,19 @@ struct AddCommand {
     #[command(flatten)]
     display_command: DisplayCommand,
 
+    /// Name of the workspace
     #[arg(long)]
     name: Option<String>,
 
+    /// Tags to associate with the workspace
     #[arg(long)]
     tags: Option<Vec<String>>,
 
+    /// Path to the workspace directory
     #[arg(long)]
     path: Option<String>,
 
+    /// Run in interactive mode
     #[arg(long)]
     interactive: Option<bool>,
 }
@@ -150,6 +159,7 @@ struct FindCommand {
     #[command(flatten)]
     display_command: DisplayCommand,
 
+    /// Workspace identifier to search for
     #[arg()]
     id: String,
 }
@@ -159,6 +169,7 @@ struct FindTagCommand {
     #[command(flatten)]
     display_command: DisplayCommand,
 
+    /// Tag name to search for
     #[arg()]
     tag: String,
 }
