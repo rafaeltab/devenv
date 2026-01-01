@@ -10,3 +10,4 @@ alacritty_terminal = "0.25"
 thiserror = "1"
 
 [dev-dependencies]
+crossterm = "0.28"

@@ -115,3 +115,63 @@ fn send_keys_single_regular_key_only() {
     // Should panic - multiple regular keys
     tui.send_keys(&[Key::Char('a'), Key::Char('b')]);
 }
+
+fn get_key_detector_path() -> std::path::PathBuf {
+    std::env::current_dir()
+        .unwrap()
+        .join("tests/test_programs/key_detector_crate/target/release/key_detector")
+}
+
+#[test]
+fn send_keys_alt_a() {
+    let mut tui = spawn_tui(get_key_detector_path().to_str().unwrap(), &[])
+        .spawn()
+        .expect("Failed to spawn key_detector");
+
+    // Wait for the program to be ready
+    tui.wait_for_settle();
+    tui.find_text("READY").assert_visible();
+
+    // Send Alt+A
+    tui.send_keys(&[Key::Alt, Key::Char('a')]);
+    tui.wait_for_settle();
+
+    // Should detect the Alt+A combination
+    tui.find_text("ALT_A_DETECTED").assert_visible();
+}
+
+#[test]
+fn send_keys_shift_up() {
+    let mut tui = spawn_tui(get_key_detector_path().to_str().unwrap(), &[])
+        .spawn()
+        .expect("Failed to spawn key_detector");
+
+    // Wait for the program to be ready
+    tui.wait_for_settle();
+    tui.find_text("READY").assert_visible();
+
+    // Send Shift+Up
+    tui.send_keys(&[Key::Shift, Key::Up]);
+    tui.wait_for_settle();
+
+    // Should detect the Shift+Up combination
+    tui.find_text("SHIFT_UP_DETECTED").assert_visible();
+}
+
+#[test]
+fn send_keys_ctrl_shift_r() {
+    let mut tui = spawn_tui(get_key_detector_path().to_str().unwrap(), &[])
+        .spawn()
+        .expect("Failed to spawn key_detector");
+
+    // Wait for the program to be ready
+    tui.wait_for_settle();
+    tui.find_text("READY").assert_visible();
+
+    // Send Ctrl+Shift+R
+    tui.send_keys(&[Key::Ctrl, Key::Shift, Key::Char('r')]);
+    tui.wait_for_settle();
+
+    // Should detect the Ctrl+Shift+R combination
+    tui.find_text("CTRL_SHIFT_R_DETECTED").assert_visible();
+}
