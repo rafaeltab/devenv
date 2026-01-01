@@ -45,15 +45,40 @@ impl BranchDescriptor {
         &self.commits
     }
 
+    /// Check if a branch exists in the repository
+    fn branch_exists(repo_path: &PathBuf, branch_name: &str) -> bool {
+        let output = Command::new("git")
+            .args(["rev-parse", "--verify", branch_name])
+            .current_dir(repo_path)
+            .output();
+
+        matches!(output, Ok(o) if o.status.success())
+    }
+
     pub(crate) fn apply(
         &self,
         repo_path: &PathBuf,
         context: &CreateContext,
     ) -> Result<(), CreateError> {
-        // Create branch from base if specified, otherwise from current HEAD
-        if let Some(base) = &self.base {
+        // Check if branch already exists
+        if Self::branch_exists(repo_path, &self.name) {
+            // Branch exists, just checkout to it
             let output = Command::new("git")
-                .args(&["checkout", "-b", &self.name, base])
+                .args(["checkout", &self.name])
+                .current_dir(repo_path)
+                .output()?;
+
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                return Err(CreateError::GitError(format!(
+                    "Failed to checkout existing branch {}: {}",
+                    self.name, stderr
+                )));
+            }
+        } else if let Some(base) = &self.base {
+            // Create branch from base
+            let output = Command::new("git")
+                .args(["checkout", "-b", &self.name, base])
                 .current_dir(repo_path)
                 .output()?;
 
@@ -65,8 +90,9 @@ impl BranchDescriptor {
                 )));
             }
         } else {
+            // Create new branch from current HEAD
             let output = Command::new("git")
-                .args(&["checkout", "-b", &self.name])
+                .args(["checkout", "-b", &self.name])
                 .current_dir(repo_path)
                 .output()?;
 

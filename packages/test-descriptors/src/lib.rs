@@ -5,7 +5,8 @@ pub mod queries;
 
 // Re-export commonly used types
 pub use builders::{
-    BranchBuilder, CommitBuilder, DirBuilder, GitBuilder, RootBuilder, TestDirBuilder,
+    BranchBuilder, CommitBuilder, DirBuilder, GitBuilder, RootBuilder, SessionBuilder,
+    TestDirBuilder, WorktreeBuilder,
 };
 pub use descriptor::{
     BranchDescriptor, CommitDescriptor, CreateContext, CreateError, Descriptor,
@@ -13,4 +14,4 @@ pub use descriptor::{
     ResourceRegistry, TmuxSessionDescriptor, TmuxSessionInfo, TmuxSocket, WindowDescriptor,
 };
 pub use environment::TestEnvironment;
-pub use queries::{DirRef, GitRepoRef};
+pub use queries::{DirRef, GitRepoRef, TmuxSessionRef, WorktreeRef};
