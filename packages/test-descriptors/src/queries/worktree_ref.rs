@@ -6,7 +6,7 @@ pub struct WorktreeRef<'a> {
     pub(crate) repo_name: String,
     pub(crate) branch: String,
     pub(crate) path: PathBuf,
-    pub(crate) env: &'a TestEnvironment,
+    pub(crate) _env: &'a TestEnvironment,
 }
 
 impl<'a> WorktreeRef<'a> {

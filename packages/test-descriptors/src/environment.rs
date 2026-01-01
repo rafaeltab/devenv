@@ -91,7 +91,7 @@ impl TestEnvironment {
             .get_dir(name)
             .map(|path| DirRef {
                 path: path.clone(),
-                env: self,
+                _env: self,
             })
     }
 
@@ -104,7 +104,7 @@ impl TestEnvironment {
             .map(|path| GitRepoRef {
                 name: name.to_string(),
                 path: path.clone(),
-                env: self,
+                _env: self,
             })
     }
 
@@ -131,7 +131,7 @@ impl TestEnvironment {
                 repo_name: repo_name.to_string(),
                 branch: branch.to_string(),
                 path: path.clone(),
-                env: self,
+                _env: self,
             })
     }
 }
