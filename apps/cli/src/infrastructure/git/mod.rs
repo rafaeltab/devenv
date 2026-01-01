@@ -430,7 +430,7 @@ pub fn remove_empty_parent_directories(path: &Path, stop_at: &Path) -> Result<()
 
     while let Some(parent) = current {
         // Stop if we've reached the stop path
-        if parent == stop_at || parent.starts_with(stop_at) == false {
+        if parent == stop_at || !parent.starts_with(stop_at) {
             break;
         }
 
