@@ -1,10 +1,8 @@
 mod common;
 
-use common::descriptors::{ConfigDescriptor, WorkspaceDescriptor};
+use common::rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabGitMixin, RafaeltabRootMixin};
 use std::process::Command;
-use test_descriptors::{
-    GitRepoDescriptor, TestEnvironment, TmuxSessionDescriptor, WindowDescriptor,
-};
+use test_descriptors::TestEnvironment;
 
 fn run_cli(args: &[&str], config_path: &str) -> (String, String, bool) {
     let output = Command::new(env!("CARGO_BIN_EXE_rafaeltab"))
@@ -22,29 +20,25 @@ fn run_cli(args: &[&str], config_path: &str) -> (String, String, bool) {
 
 #[test]
 fn test_workspace_list_command() {
-    let mut env = TestEnvironment::new();
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
 
-    // Create workspaces
-    let ws1 = WorkspaceDescriptor::new(
-        "project_a",
-        "Project A",
-        env.root_path().join("projects/project-a"),
-    )
-    .with_tag("rust");
-
-    let ws2 = WorkspaceDescriptor::new(
-        "project_b",
-        "Project B",
-        env.root_path().join("projects/project-b"),
-    )
-    .with_tag("javascript");
-
-    let config = ConfigDescriptor::new();
-
-    env.add_descriptor(ws1);
-    env.add_descriptor(ws2);
-    env.add_descriptor(config);
-    let env = env.create();
+        root.test_dir(|td| {
+            td.dir("projects", |d| {
+                d.dir("project-a", |d| {
+                    d.rafaeltab_workspace("project_a", "Project A", |w| {
+                        w.tag("rust");
+                    });
+                });
+                d.dir("project-b", |d| {
+                    d.rafaeltab_workspace("project_b", "Project B", |w| {
+                        w.tag("javascript");
+                    });
+                });
+            });
+        });
+    })
+    .create();
 
     let config_path = env.context().config_path().unwrap();
 
@@ -55,24 +49,26 @@ fn test_workspace_list_command() {
 
 #[test]
 fn test_workspace_with_git_repo() {
-    let mut env = TestEnvironment::new();
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
 
-    // Create a workspace directory
-    let workspace_path = env.root_path().join("my-project");
-    let workspace = WorkspaceDescriptor::new("my_project", "My Project", workspace_path.clone());
-
-    // Create a git repo in the workspace
-    let repo = GitRepoDescriptor::new("my-project/repo");
-
-    let config = ConfigDescriptor::new();
-
-    env.add_descriptor(workspace);
-    env.add_descriptor(repo);
-    env.add_descriptor(config);
-    let env = env.create();
+        root.test_dir(|td| {
+            td.dir("my-project", |d| {
+                d.rafaeltab_workspace("my_project", "My Project", |_w| {});
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial commit", |c| {
+                            c.file("README.md", "# Repo");
+                        });
+                    });
+                });
+            });
+        });
+    })
+    .create();
 
     // Verify both workspace and repo exist
-    assert!(workspace_path.exists());
+    assert!(env.root_path().join("my-project").exists());
     assert!(env.root_path().join("my-project/repo/.git").exists());
 
     let config_path = env.context().config_path().unwrap();
@@ -93,26 +89,20 @@ fn test_workspace_with_git_repo() {
 
 #[test]
 fn test_tmux_integration_with_workspace() {
-    let mut env = TestEnvironment::new();
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
 
-    // Create workspace
-    let workspace = WorkspaceDescriptor::new(
-        "dev_workspace",
-        "Development Workspace",
-        env.root_path().join("dev-workspace"),
-    );
-
-    // Create tmux session
-    let session = TmuxSessionDescriptor::new("dev-session")
-        .with_window(WindowDescriptor::new("editor"))
-        .with_window(WindowDescriptor::new("server"));
-
-    let config = ConfigDescriptor::new();
-
-    env.add_descriptor(workspace);
-    env.add_descriptor(session);
-    env.add_descriptor(config);
-    let env = env.create();
+        root.test_dir(|td| {
+            td.dir("dev-workspace", |d| {
+                d.rafaeltab_workspace("dev_workspace", "Development Workspace", |_w| {});
+                d.tmux_session("dev-session", |s| {
+                    s.window("editor");
+                    s.window("server");
+                });
+            });
+        });
+    })
+    .create();
 
     // Verify tmux session exists
     assert!(env.tmux().session_exists("dev-session"));
@@ -127,23 +117,18 @@ fn test_tmux_integration_with_workspace() {
 
 #[test]
 fn test_workspace_with_worktree_config() {
-    let mut env = TestEnvironment::new();
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
 
-    let workspace = WorkspaceDescriptor::new(
-        "worktree_project",
-        "Worktree Project",
-        env.root_path().join("worktree-project"),
-    )
-    .with_worktree_config(
-        vec!["npm install".to_string(), "npm run build".to_string()],
-        vec![".env".to_string(), "node_modules".to_string()],
-    );
-
-    let config = ConfigDescriptor::new();
-
-    env.add_descriptor(workspace);
-    env.add_descriptor(config);
-    let env = env.create();
+        root.test_dir(|td| {
+            td.dir("worktree-project", |d| {
+                d.rafaeltab_workspace("worktree_project", "Worktree Project", |w| {
+                    w.worktree(&["npm install", "npm run build"], &[".env", "node_modules"]);
+                });
+            });
+        });
+    })
+    .create();
 
     // Verify config contains worktree configuration
     let config_path = env.context().config_path().unwrap();
@@ -160,45 +145,50 @@ fn test_workspace_with_worktree_config() {
 
 #[test]
 fn test_complex_workspace_scenario() {
-    let mut env = TestEnvironment::new();
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
 
-    // Create a complex scenario with multiple workspaces, git repos, and tmux sessions
+        root.test_dir(|td| {
+            // Frontend project with git repo
+            td.dir("frontend", |d| {
+                d.git("app", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial commit", |c| {
+                            c.file("README.md", "# Frontend");
+                        });
+                    });
+                    g.rafaeltab_workspace("frontend", "Frontend App", |w| {
+                        w.tag("javascript");
+                        w.tag("react");
+                    });
+                });
+                d.tmux_session("frontend-dev", |s| {
+                    s.window("code");
+                    s.window("server");
+                });
+            });
 
-    // Workspace 1: Frontend project with git repo
-    let frontend_ws =
-        WorkspaceDescriptor::new("frontend", "Frontend App", env.root_path().join("frontend"))
-            .with_tag("javascript")
-            .with_tag("react");
-
-    let frontend_repo = GitRepoDescriptor::new("frontend/app");
-
-    // Workspace 2: Backend project with git repo and worktree config
-    let backend_ws =
-        WorkspaceDescriptor::new("backend", "Backend API", env.root_path().join("backend"))
-            .with_tag("rust")
-            .with_worktree_config(vec!["cargo build".to_string()], vec!["target".to_string()]);
-
-    let backend_repo = GitRepoDescriptor::new("backend/api");
-
-    // Tmux sessions for each project
-    let frontend_session = TmuxSessionDescriptor::new("frontend-dev")
-        .with_window(WindowDescriptor::new("code"))
-        .with_window(WindowDescriptor::new("server"));
-
-    let backend_session = TmuxSessionDescriptor::new("backend-dev")
-        .with_window(WindowDescriptor::new("code"))
-        .with_window(WindowDescriptor::new("tests"));
-
-    let config = ConfigDescriptor::new();
-
-    env.add_descriptor(frontend_ws);
-    env.add_descriptor(frontend_repo);
-    env.add_descriptor(backend_ws);
-    env.add_descriptor(backend_repo);
-    env.add_descriptor(frontend_session);
-    env.add_descriptor(backend_session);
-    env.add_descriptor(config);
-    let env = env.create();
+            // Backend project with git repo and worktree config
+            td.dir("backend", |d| {
+                d.git("api", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial commit", |c| {
+                            c.file("README.md", "# Backend");
+                        });
+                    });
+                    g.rafaeltab_workspace("backend", "Backend API", |w| {
+                        w.tag("rust");
+                        w.worktree(&["cargo build"], &["target"]);
+                    });
+                });
+                d.tmux_session("backend-dev", |s| {
+                    s.window("code");
+                    s.window("tests");
+                });
+            });
+        });
+    })
+    .create();
 
     // Verify all components exist
     assert!(env.root_path().join("frontend").exists());
@@ -232,32 +222,31 @@ fn test_complex_workspace_scenario() {
 
 #[test]
 fn test_workspace_tags_filtering() {
-    let mut env = TestEnvironment::new();
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
 
-    let ws1 =
-        WorkspaceDescriptor::new("rust_project", "Rust Project", env.root_path().join("rust"))
-            .with_tag("rust")
-            .with_tag("cli");
-
-    let ws2 = WorkspaceDescriptor::new(
-        "js_project",
-        "JavaScript Project",
-        env.root_path().join("js"),
-    )
-    .with_tag("javascript")
-    .with_tag("web");
-
-    let ws3 = WorkspaceDescriptor::new("py_project", "Python Project", env.root_path().join("py"))
-        .with_tag("python")
-        .with_tag("cli");
-
-    let config = ConfigDescriptor::new();
-
-    env.add_descriptor(ws1);
-    env.add_descriptor(ws2);
-    env.add_descriptor(ws3);
-    env.add_descriptor(config);
-    let env = env.create();
+        root.test_dir(|td| {
+            td.dir("rust", |d| {
+                d.rafaeltab_workspace("rust_project", "Rust Project", |w| {
+                    w.tag("rust");
+                    w.tag("cli");
+                });
+            });
+            td.dir("js", |d| {
+                d.rafaeltab_workspace("js_project", "JavaScript Project", |w| {
+                    w.tag("javascript");
+                    w.tag("web");
+                });
+            });
+            td.dir("py", |d| {
+                d.rafaeltab_workspace("py_project", "Python Project", |w| {
+                    w.tag("python");
+                    w.tag("cli");
+                });
+            });
+        });
+    })
+    .create();
 
     let config_path = env.context().config_path().unwrap();
     let config_content = std::fs::read_to_string(&config_path).unwrap();

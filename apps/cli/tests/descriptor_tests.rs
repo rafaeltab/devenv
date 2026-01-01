@@ -1,17 +1,21 @@
 mod common;
 
-use common::descriptors::{ConfigDescriptor, WorkspaceDescriptor};
+use common::rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabRootMixin};
 use std::fs;
 use test_descriptors::TestEnvironment;
 
 #[test]
 fn test_workspace_descriptor_creates_directory() {
-    let mut env = TestEnvironment::new();
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
 
-    let workspace =
-        WorkspaceDescriptor::new("workspace-1", "My Workspace", env.root_path().join("ws1"));
-    env.add_descriptor(workspace);
-    let env = env.create();
+        root.test_dir(|td| {
+            td.dir("ws1", |d| {
+                d.rafaeltab_workspace("workspace_one", "My Workspace", |_w| {});
+            });
+        });
+    })
+    .create();
 
     assert!(env.root_path().join("ws1").exists());
     assert!(env.root_path().join("ws1").is_dir());
@@ -19,26 +23,31 @@ fn test_workspace_descriptor_creates_directory() {
 
 #[test]
 fn test_workspace_descriptor_with_tags() {
-    let mut env = TestEnvironment::new();
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
 
-    let workspace =
-        WorkspaceDescriptor::new("workspace-1", "My Workspace", env.root_path().join("ws1"))
-            .with_tag("rust")
-            .with_tag("cli");
-
-    env.add_descriptor(workspace);
-    let env = env.create();
+        root.test_dir(|td| {
+            td.dir("ws1", |d| {
+                d.rafaeltab_workspace("workspace_one", "My Workspace", |w| {
+                    w.tag("rust");
+                    w.tag("cli");
+                });
+            });
+        });
+    })
+    .create();
 
     assert!(env.root_path().join("ws1").exists());
 }
 
 #[test]
 fn test_config_descriptor_creates_file() {
-    let mut env = TestEnvironment::new();
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
 
-    let config = ConfigDescriptor::new();
-    env.add_descriptor(config);
-    let env = env.create();
+        root.test_dir(|_td| {});
+    })
+    .create();
 
     let config_path = env.context().config_path();
     assert!(config_path.is_some());
@@ -49,15 +58,16 @@ fn test_config_descriptor_creates_file() {
 
 #[test]
 fn test_config_descriptor_with_workspace() {
-    let mut env = TestEnvironment::new();
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
 
-    let workspace =
-        WorkspaceDescriptor::new("workspace-1", "My Workspace", env.root_path().join("ws1"));
-    let config = ConfigDescriptor::new();
-
-    env.add_descriptor(workspace);
-    env.add_descriptor(config);
-    let env = env.create();
+        root.test_dir(|td| {
+            td.dir("ws1", |d| {
+                d.rafaeltab_workspace("workspace_one", "My Workspace", |_w| {});
+            });
+        });
+    })
+    .create();
 
     let config_path = env.context().config_path().unwrap();
     let config_content = fs::read_to_string(&config_path).unwrap();
@@ -68,23 +78,27 @@ fn test_config_descriptor_with_workspace() {
 
     let workspaces = json["workspaces"].as_array().unwrap();
     assert_eq!(workspaces.len(), 1);
-    assert_eq!(workspaces[0]["id"], "workspace-1");
+    assert_eq!(workspaces[0]["id"], "workspace_one");
     assert_eq!(workspaces[0]["name"], "My Workspace");
 }
 
 #[test]
 fn test_config_descriptor_with_multiple_workspaces() {
-    let mut env = TestEnvironment::new();
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
 
-    let ws1 = WorkspaceDescriptor::new("workspace-1", "Workspace One", env.root_path().join("ws1"));
-    let ws2 = WorkspaceDescriptor::new("workspace-2", "Workspace Two", env.root_path().join("ws2"))
-        .with_tag("rust");
-    let config = ConfigDescriptor::new();
-
-    env.add_descriptor(ws1);
-    env.add_descriptor(ws2);
-    env.add_descriptor(config);
-    let env = env.create();
+        root.test_dir(|td| {
+            td.dir("ws1", |d| {
+                d.rafaeltab_workspace("workspace_one", "Workspace One", |_w| {});
+            });
+            td.dir("ws2", |d| {
+                d.rafaeltab_workspace("workspace_two", "Workspace Two", |w| {
+                    w.tag("rust");
+                });
+            });
+        });
+    })
+    .create();
 
     let config_path = env.context().config_path().unwrap();
     let config_content = fs::read_to_string(&config_path).unwrap();
@@ -96,15 +110,18 @@ fn test_config_descriptor_with_multiple_workspaces() {
 
 #[test]
 fn test_config_descriptor_valid_json_schema() {
-    let mut env = TestEnvironment::new();
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            c.defaults();
+        });
 
-    let workspace =
-        WorkspaceDescriptor::new("test_ws", "Test Workspace", env.root_path().join("test"));
-    let config = ConfigDescriptor::new();
-
-    env.add_descriptor(workspace);
-    env.add_descriptor(config);
-    let env = env.create();
+        root.test_dir(|td| {
+            td.dir("test", |d| {
+                d.rafaeltab_workspace("test_ws", "Test Workspace", |_w| {});
+            });
+        });
+    })
+    .create();
 
     let config_path = env.context().config_path().unwrap();
     let config_content = fs::read_to_string(&config_path).unwrap();
@@ -117,24 +134,24 @@ fn test_config_descriptor_valid_json_schema() {
 
     // Verify required fields exist
     assert!(json.get("workspaces").is_some());
-    assert!(json.get("tmuxSessions").is_some());
+    // New API uses "tmux" with "sessions" inside, not "tmuxSessions"
+    assert!(json.get("tmux").is_some());
 }
 
 #[test]
 fn test_workspace_with_worktree_config() {
-    let mut env = TestEnvironment::new();
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
 
-    let workspace = WorkspaceDescriptor::new(
-        "ws_with_worktree",
-        "Worktree Workspace",
-        env.root_path().join("ws"),
-    )
-    .with_worktree_config(vec!["npm install".to_string()], vec![".env".to_string()]);
-
-    env.add_descriptor(workspace);
-    let config = ConfigDescriptor::new();
-    env.add_descriptor(config);
-    let env = env.create();
+        root.test_dir(|td| {
+            td.dir("ws", |d| {
+                d.rafaeltab_workspace("ws_with_worktree", "Worktree Workspace", |w| {
+                    w.worktree(&["npm install"], &[".env"]);
+                });
+            });
+        });
+    })
+    .create();
 
     let config_path = env.context().config_path().unwrap();
     let config_content = fs::read_to_string(&config_path).unwrap();
@@ -149,17 +166,20 @@ fn test_workspace_with_worktree_config() {
 
 #[test]
 fn test_config_descriptor_default_windows() {
-    let mut env = TestEnvironment::new();
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            c.defaults();
+        });
 
-    let config = ConfigDescriptor::new();
-    env.add_descriptor(config);
-    let env = env.create();
+        root.test_dir(|_td| {});
+    })
+    .create();
 
     let config_path = env.context().config_path().unwrap();
     let config_content = fs::read_to_string(&config_path).unwrap();
 
     let json: serde_json::Value = serde_json::from_str(&config_content).unwrap();
 
-    // Should have default empty arrays
-    assert!(json["defaultWindows"].is_array());
+    // Should have default windows in tmux config
+    assert!(json["tmux"]["defaultWindows"].is_array());
 }
