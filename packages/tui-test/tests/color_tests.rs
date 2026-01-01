@@ -69,7 +69,8 @@ fn color_assertion_fg_exact() {
     tui.wait_for_settle();
 
     // Should be able to call fg() and exact()
-    tui.find_text("Yellow").fg.exact(255, 255, 0);
+    // ANSI color 3 (Yellow) is typically (205, 205, 0), not pure yellow
+    tui.find_text("Yellow").fg.exact(205, 205, 0);
 }
 
 #[test]
@@ -82,5 +83,7 @@ fn color_assertion_bg_matcher() {
     tui.wait_for_settle();
 
     // Should be able to call bg() with matcher
-    tui.find_text("Yellow BG").bg.assert(ColorMatcher::YellowIsh);
+    tui.find_text("Yellow BG")
+        .bg
+        .assert(ColorMatcher::YellowIsh);
 }
