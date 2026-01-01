@@ -1,80 +1,109 @@
-use super::helpers;
+use crate::common::{
+    rafaeltab_descriptors::RafaeltabDirMixin, rafaeltab_descriptors::RafaeltabRootMixin, run_cli,
+};
+use test_descriptors::TestEnvironment;
 
 #[test]
 pub fn test_cli_integration() {
-    let input = r#"{
-  "workspaces": [
-    {
-      "root": "~/dotfiles",
-      "id": "dotfiles",
-      "name": "Dotfiles",
-      "tags": [
-        "dotfiles",
-        "lua"
-      ]
-    },
-    {
-      "root": "~/home/notes/coding_knowledge",
-      "id": "coding_knowledge",
-      "name": "Notes",
-      "tags": [
-        "notes",
-        "markdown"
-      ]
-    },
-    {
-      "root": "~/home/source/rafaeltab",
-      "id": "rafaeltab_cli",
-      "name": "Rafaeltab cli",
-      "tags": [
-        "rafaeltab",
-        "rust"
-      ]
-    },
-    {
-      "root": "~/home/source/code_analyzer",
-      "id": "code_analyzer",
-      "name": "Code analyzer",
-      "tags": [
-        "rust"
-      ]
-    }
-  ],
-  "tmux": {
-    "sessions": [
-      {
-        "windows": [
-          {
-            "name": "Neovim",
-            "command": "nvim ."
-          }
-        ],
-        "workspace": "coding_knowledge",
-        "name": "John"
-      }
-    ],
-    "defaultWindows": [
-      {
-        "name": "Neovim",
-        "command": "nvim ."
-      },
-      {
-        "name": "Zsh",
-        "command": null
-      }
-    ]
-  }
-}
-        "#;
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            c.default_window("Neovim");
+        });
 
-    let expected = r#"Dotfiles (dotfiles): /home/rafaeltab/dotfiles ["dotfiles", "lua"]
-Notes (coding_knowledge): /home/rafaeltab/home/notes/coding_knowledge ["notes", "markdown"]
-Rafaeltab cli (rafaeltab_cli): /home/rafaeltab/home/source/rafaeltab ["rafaeltab", "rust"]
-Code analyzer (code_analyzer): /home/rafaeltab/home/source/code_analyzer ["rust"]
-"#;
+        root.test_dir(|td| {
+            td.dir("dotfiles", |d| {
+                d.rafaeltab_workspace("dotfiles", "Dotfiles", |w| {
+                    w.tag("dotfiles");
+                    w.tag("lua");
+                });
+            });
+            td.dir("notes", |d| {
+                d.dir("coding_knowledge", |d| {
+                    d.rafaeltab_workspace("coding_knowledge", "Notes", |w| {
+                        w.tag("notes");
+                        w.tag("markdown");
+                    });
+                });
+            });
+            td.dir("source", |d| {
+                d.dir("rafaeltab", |d| {
+                    d.rafaeltab_workspace("rafaeltab_cli", "Rafaeltab cli", |w| {
+                        w.tag("rafaeltab");
+                        w.tag("rust");
+                    });
+                });
+                d.dir("code_analyzer", |d| {
+                    d.rafaeltab_workspace("code_analyzer", "Code analyzer", |w| {
+                        w.tag("rust");
+                    });
+                });
+            });
+        });
+    })
+    .create();
 
-    let test_ctx = helpers::TestContext::new(input).expect("Failed to create test config");
-    let (stdout, _stderr) =
-        helpers::run_cli_with_stdin(&["workspace", "list"], "", test_ctx.config_path());
-    helpers::verify_output(expected, &stdout);
+    let config_path = env.context().config_path().unwrap();
+    let root_path = env.root_path();
+
+    let (stdout, stderr, success) = run_cli(&["workspace", "list"], config_path.to_str().unwrap());
+
+    assert!(
+        success,
+        "workspace list command should succeed.\nSTDOUT: {}\nSTDERR: {}",
+        stdout, stderr
+    );
+
+    // Build expected output using the actual test directory paths
+    let expected_dotfiles = format!(
+        "Dotfiles (dotfiles): {} [\"dotfiles\", \"lua\"]",
+        root_path.join("dotfiles").display()
+    );
+    let expected_notes = format!(
+        "Notes (coding_knowledge): {} [\"notes\", \"markdown\"]",
+        root_path.join("notes/coding_knowledge").display()
+    );
+    let expected_rafaeltab = format!(
+        "Rafaeltab cli (rafaeltab_cli): {} [\"rafaeltab\", \"rust\"]",
+        root_path.join("source/rafaeltab").display()
+    );
+    let expected_analyzer = format!(
+        "Code analyzer (code_analyzer): {} [\"rust\"]",
+        root_path.join("source/code_analyzer").display()
+    );
+
+    // Verify all workspaces are in the output
+    assert!(
+        stdout.contains(&expected_dotfiles),
+        "Output should contain dotfiles workspace.\nExpected: {}\nGot: {}",
+        expected_dotfiles,
+        stdout
+    );
+    assert!(
+        stdout.contains(&expected_notes),
+        "Output should contain notes workspace.\nExpected: {}\nGot: {}",
+        expected_notes,
+        stdout
+    );
+    assert!(
+        stdout.contains(&expected_rafaeltab),
+        "Output should contain rafaeltab workspace.\nExpected: {}\nGot: {}",
+        expected_rafaeltab,
+        stdout
+    );
+    assert!(
+        stdout.contains(&expected_analyzer),
+        "Output should contain code analyzer workspace.\nExpected: {}\nGot: {}",
+        expected_analyzer,
+        stdout
+    );
+
+    // Verify we have exactly 4 workspaces (4 lines of output)
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert_eq!(
+        lines.len(),
+        4,
+        "Should have exactly 4 workspaces in output.\nGot {} lines: {:?}",
+        lines.len(),
+        lines
+    );
 }

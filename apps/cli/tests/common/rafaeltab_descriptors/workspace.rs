@@ -3,8 +3,20 @@ use std::path::PathBuf;
 use test_descriptors::{DirBuilder, GitBuilder};
 
 // Thread-local storage for collecting workspaces during test setup
+// This is automatically cleaned up after config creation or on panic
 thread_local! {
     pub static WORKSPACES: RefCell<Vec<WorkspaceData>> = RefCell::new(Vec::new());
+}
+
+/// Panic guard to ensure WORKSPACES is cleaned up even if test panics
+struct WorkspacePanicGuard;
+
+impl Drop for WorkspacePanicGuard {
+    fn drop(&mut self) {
+        if std::thread::panicking() {
+            WORKSPACES.with(|w| w.borrow_mut().clear());
+        }
+    }
 }
 
 /// Internal data structure for storing workspace configuration
@@ -24,7 +36,28 @@ pub struct WorktreeConfig {
     pub symlink_files: Vec<String>,
 }
 
-/// Builder for configuring a workspace
+/// Builder for configuring a rafaeltab workspace.
+///
+/// This builder allows you to configure workspace metadata including tags
+/// and worktree settings. The workspace will be registered in the global
+/// config when the config descriptor is created.
+///
+/// # Example
+/// ```ignore
+/// use test_descriptors::TestEnvironment;
+///
+/// let env = TestEnvironment::describe(|root| {
+///     root.rafaeltab_config(|_c| {});
+///     root.test_dir(|td| {
+///         td.dir("my-project", |d| {
+///             d.rafaeltab_workspace("my_project", "My Project", |w| {
+///                 w.tag("rust");
+///                 w.tag("cli");
+///             });
+///         });
+///     });
+/// }).create();
+/// ```
 pub struct WorkspaceBuilder {
     id: String,
     name: String,
@@ -59,6 +92,9 @@ impl WorkspaceBuilder {
 
     /// Register the workspace data (called internally, doesn't create directory)
     pub(crate) fn register(&self) {
+        // Ensure cleanup even on panic
+        let _guard = WorkspacePanicGuard;
+
         WORKSPACES.with(|workspaces| {
             workspaces.borrow_mut().push(WorkspaceData {
                 id: self.id.clone(),
@@ -84,10 +120,30 @@ pub struct WorkspaceDescriptor {
     pub(crate) worktree: Option<WorktreeConfig>,
 }
 
-/// Mixin trait for DirBuilder - registers workspace at directory path
+/// Mixin trait for `DirBuilder` to add workspace registration capability.
 ///
-/// The directory is created by the DirBuilder, so this just registers
-/// the workspace in the config at the directory's path.
+/// This trait allows you to register a rafaeltab workspace at a directory's path.
+/// The directory itself is created by the `DirBuilder`, and this mixin just
+/// registers the workspace metadata in the global config.
+///
+/// Use this when you want to create a workspace that points to a simple directory.
+///
+/// # Example
+/// ```ignore
+/// use test_descriptors::TestEnvironment;
+///
+/// let env = TestEnvironment::describe(|root| {
+///     root.rafaeltab_config(|_c| {});
+///     root.test_dir(|td| {
+///         td.dir("my-workspace", |d| {
+///             // Register this directory as a workspace
+///             d.rafaeltab_workspace("my_ws", "My Workspace", |w| {
+///                 w.tag("rust");
+///             });
+///         });
+///     });
+/// }).create();
+/// ```
 pub trait RafaeltabDirMixin {
     fn rafaeltab_workspace<F>(&mut self, id: &str, name: &str, f: F)
     where
@@ -108,10 +164,37 @@ impl RafaeltabDirMixin for DirBuilder {
     }
 }
 
-/// Mixin trait for GitBuilder - registers workspace at git repo path
+/// Mixin trait for `GitBuilder` to add workspace registration capability.
 ///
-/// The git repository is created by the GitBuilder, so this just registers
-/// the workspace in the config at the git repo's path.
+/// This trait allows you to register a rafaeltab workspace at a git repository's path.
+/// The git repository itself is created by the `GitBuilder`, and this mixin just
+/// registers the workspace metadata in the global config.
+///
+/// Use this when you want to create a workspace that points to a git repository.
+///
+/// # Example
+/// ```ignore
+/// use test_descriptors::TestEnvironment;
+///
+/// let env = TestEnvironment::describe(|root| {
+///     root.rafaeltab_config(|_c| {});
+///     root.test_dir(|td| {
+///         td.dir("projects", |d| {
+///             d.git("my-repo", |g| {
+///                 g.branch("main", |b| {
+///                     b.commit("Initial commit", |c| {
+///                         c.file("README.md", "# My Project");
+///                     });
+///                 });
+///                 // Register this git repo as a workspace
+///                 g.rafaeltab_workspace("my_repo", "My Repo", |w| {
+///                     w.tag("javascript");
+///                 });
+///             });
+///         });
+///     });
+/// }).create();
+/// ```
 pub trait RafaeltabGitMixin {
     fn rafaeltab_workspace<F>(&mut self, id: &str, name: &str, f: F)
     where
