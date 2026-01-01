@@ -1,5 +1,4 @@
-use crate::common::helpers::TestContext;
-use crate::common::tmux_helpers::TmuxTestContext;
+use super::helpers::{TestContext, TmuxTestContext};
 use std::process::Command;
 
 #[test]

@@ -1,4 +1,4 @@
-use crate::common::helpers;
+use super::helpers;
 
 #[test]
 pub fn test_cli_integration() {
