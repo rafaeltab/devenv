@@ -227,3 +227,199 @@ fn test_tmux_session_with_git_repo() {
     let session = session.unwrap();
     assert!(session.working_dir().ends_with("dev"));
 }
+
+// ============================================================================
+// run_shell() tests
+// ============================================================================
+
+#[test]
+fn test_run_shell_basic_command() {
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.tmux_session("shell-test", |s| {
+                    s.window("main");
+                });
+            });
+        });
+    })
+    .create();
+
+    let session = env
+        .find_tmux_session("shell-test")
+        .expect("session should exist");
+
+    let output = session.run_shell("echo hello");
+    assert!(output.success());
+    assert_eq!(output.stdout.trim(), "hello");
+}
+
+#[test]
+fn test_run_shell_uses_working_directory() {
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("my-project", |d| {
+                d.tmux_session("project-session", |s| {
+                    s.window("main");
+                });
+            });
+        });
+    })
+    .create();
+
+    let session = env
+        .find_tmux_session("project-session")
+        .expect("session should exist");
+
+    // pwd should return a path ending with my-project
+    let output = session.run_shell("pwd");
+    assert!(output.success());
+    assert!(output.stdout.trim().ends_with("my-project"));
+}
+
+#[test]
+fn test_run_shell_with_git_repo() {
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.git("my-repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial", |c| {
+                            c.file("README.md", "# Hello");
+                        });
+                    });
+                });
+                d.tmux_session("dev-session", |s| {
+                    s.window("shell");
+                });
+            });
+        });
+    })
+    .create();
+
+    let session = env
+        .find_tmux_session("dev-session")
+        .expect("session should exist");
+
+    // Should be able to see the git repo from the session's working dir
+    let output = session.run_shell("ls");
+    assert!(output.success());
+    assert!(output.stdout.contains("my-repo"));
+
+    // Should be able to run git commands in the repo
+    let output = session.run_shell("cd my-repo && git branch --show-current");
+    assert!(output.success());
+    assert_eq!(output.stdout.trim(), "main");
+}
+
+#[test]
+fn test_run_shell_failure() {
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.tmux_session("fail-test", |s| {
+                    s.window("main");
+                });
+            });
+        });
+    })
+    .create();
+
+    let session = env
+        .find_tmux_session("fail-test")
+        .expect("session should exist");
+
+    // Running a command that fails
+    let output = session.run_shell("exit 1");
+    assert!(!output.success());
+    assert_eq!(output.exit_code(), Some(1));
+}
+
+#[test]
+fn test_run_shell_assert_success() {
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.tmux_session("assert-test", |s| {
+                    s.window("main");
+                });
+            });
+        });
+    })
+    .create();
+
+    let session = env
+        .find_tmux_session("assert-test")
+        .expect("session should exist");
+
+    // Should not panic
+    session.run_shell("echo test").assert_success();
+}
+
+#[test]
+fn test_run_shell_assert_stdout_contains() {
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.tmux_session("stdout-test", |s| {
+                    s.window("main");
+                });
+            });
+        });
+    })
+    .create();
+
+    let session = env
+        .find_tmux_session("stdout-test")
+        .expect("session should exist");
+
+    session
+        .run_shell("echo 'hello world'")
+        .assert_success()
+        .assert_stdout_contains("hello")
+        .assert_stdout_contains("world");
+}
+
+#[test]
+fn test_run_shell_args() {
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.tmux_session("args-test", |s| {
+                    s.window("main");
+                });
+            });
+        });
+    })
+    .create();
+
+    let session = env
+        .find_tmux_session("args-test")
+        .expect("session should exist");
+
+    let output = session.run_shell_args("echo", &["hello", "world"]);
+    assert!(output.success());
+    assert_eq!(output.stdout.trim(), "hello world");
+}
+
+#[test]
+fn test_run_shell_captures_stderr() {
+    let env = TestEnvironment::describe(|root| {
+        root.test_dir(|td| {
+            td.dir("workspace", |d| {
+                d.tmux_session("stderr-test", |s| {
+                    s.window("main");
+                });
+            });
+        });
+    })
+    .create();
+
+    let session = env
+        .find_tmux_session("stderr-test")
+        .expect("session should exist");
+
+    let output = session.run_shell("echo error >&2");
+    assert!(output.success());
+    assert!(output.stderr.contains("error"));
+}
