@@ -5,7 +5,7 @@ use std::process::Command;
 pub struct GitRepoRef<'a> {
     pub(crate) name: String,
     pub(crate) path: PathBuf,
-    pub(crate) env: &'a TestEnvironment,
+    pub(crate) _env: &'a TestEnvironment,
 }
 
 impl<'a> GitRepoRef<'a> {

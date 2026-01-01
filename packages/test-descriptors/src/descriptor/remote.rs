@@ -30,7 +30,7 @@ impl RemoteDescriptor {
 
         // Initialize as bare repository
         let output = Command::new("git")
-            .args(&["init", "--bare"])
+            .args(["init", "--bare"])
             .current_dir(&bare_path)
             .output()?;
 

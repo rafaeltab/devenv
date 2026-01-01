@@ -96,7 +96,7 @@ impl CommitDescriptor {
 
         // Stage all changes
         let output = Command::new("git")
-            .args(&["add", "-A"])
+            .args(["add", "-A"])
             .current_dir(repo_path)
             .output()?;
 
@@ -110,7 +110,7 @@ impl CommitDescriptor {
 
         // Create commit
         let output = Command::new("git")
-            .args(&["commit", "-m", &self.message])
+            .args(["commit", "-m", &self.message])
             .current_dir(repo_path)
             .output()?;
 

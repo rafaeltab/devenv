@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 pub struct DirRef<'a> {
     pub(crate) path: PathBuf,
-    pub(crate) env: &'a TestEnvironment,
+    pub(crate) _env: &'a TestEnvironment,
 }
 
 impl<'a> DirRef<'a> {

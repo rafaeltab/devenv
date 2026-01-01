@@ -1,6 +1,6 @@
 use crate::descriptor::{CreateError, FileChange};
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 use std::process::Command;
 
 /// Builder for staged (but not committed) changes
@@ -87,7 +87,7 @@ pub struct StagedChanges {
 
 impl StagedChanges {
     /// Apply staged changes to a repository path
-    pub(crate) fn apply(&self, repo_path: &PathBuf) -> Result<(), CreateError> {
+    pub(crate) fn apply(&self, repo_path: &Path) -> Result<(), CreateError> {
         // Apply file changes
         for change in &self.changes {
             match change {
@@ -134,7 +134,7 @@ pub struct UnstagedChanges {
 
 impl UnstagedChanges {
     /// Apply unstaged changes to a repository path
-    pub(crate) fn apply(&self, repo_path: &PathBuf) -> Result<(), CreateError> {
+    pub(crate) fn apply(&self, repo_path: &Path) -> Result<(), CreateError> {
         // Apply modifications to tracked files (these won't be staged)
         for change in &self.modifications {
             match change {

@@ -67,7 +67,7 @@ impl Descriptor for GitRepoDescriptor {
 
         // Initialize git repository
         let output = Command::new("git")
-            .args(&["init"])
+            .args(["init"])
             .current_dir(&path)
             .output()?;
 
@@ -93,7 +93,7 @@ impl Descriptor for GitRepoDescriptor {
 
         // Rename branch to desired initial branch if needed
         let output = Command::new("git")
-            .args(&["branch", "--show-current"])
+            .args(["branch", "--show-current"])
             .current_dir(&path)
             .output()?;
 
