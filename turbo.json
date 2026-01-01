@@ -23,6 +23,12 @@
     "gen:schema": {},
     "lint": {},
     "test": {},
-    "test:integration": {}
+    "test:integration": {},
+    "test:all": {
+      "dependsOn": [
+        "test",
+        "test:integration"
+      ]
+    }
   }
 }
