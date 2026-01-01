@@ -1,3 +1,5 @@
+mod common;
+
 use crate::common::run_cli;
 use test_descriptors::TestEnvironment;
 

@@ -1,3 +1,5 @@
+mod common;
+
 use crate::common::{
     rafaeltab_descriptors::RafaeltabDirMixin, rafaeltab_descriptors::RafaeltabRootMixin, run_cli,
 };

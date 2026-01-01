@@ -1,3 +1,5 @@
+mod common;
+
 use crate::common::{rafaeltab_descriptors::RafaeltabRootMixin, run_cli_with_tmux};
 use test_descriptors::TestEnvironment;
 
