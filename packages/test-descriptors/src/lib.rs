@@ -14,4 +14,4 @@ pub use descriptor::{
     ResourceRegistry, TmuxSessionDescriptor, TmuxSessionInfo, TmuxSocket, WindowDescriptor,
 };
 pub use environment::TestEnvironment;
-pub use queries::{DirRef, GitRepoRef, TmuxSessionRef, WorktreeRef};
+pub use queries::{DirRef, GitRepoRef, ShellOutput, TmuxSessionRef, WorktreeRef};
