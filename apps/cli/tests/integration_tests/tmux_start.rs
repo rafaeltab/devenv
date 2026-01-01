@@ -4,38 +4,21 @@ use test_descriptors::TestEnvironment;
 #[test]
 fn test_start_creates_sessions_from_workspace_config() {
     let env = TestEnvironment::describe(|root| {
-        root.rafaeltab_config(|_c| {});
+        use crate::common::rafaeltab_descriptors::RafaeltabDirMixin;
+
+        root.rafaeltab_config(|c| {
+            c.tmux_session("ws_1", Some("test-ws"), &[("shell", None)]);
+        });
 
         root.test_dir(|td| {
-            td.dir("ws_1", |_d| {});
+            td.dir("ws_1", |d| {
+                d.rafaeltab_workspace("ws_1", "test ws", |_w| {});
+            });
         });
     })
     .create();
 
     let config_path = env.context().config_path().unwrap();
-
-    // Manually create a config with a session
-    let config = format!(
-        r#"{{
-        "workspaces": [{{
-            "id": "ws_1",
-            "name": "test ws",
-            "root": "{}",
-            "tags": []
-        }}],
-        "tmux": {{
-            "sessions": [{{
-                "workspace": "ws_1",
-                "name": "test-ws",
-                "windows": [{{ "name": "shell" }}]
-            }}],
-            "defaultWindows": []
-        }}
-    }}"#,
-        env.root_path().join("ws_1").display()
-    );
-
-    std::fs::write(&config_path, config).expect("Failed to write config");
 
     // Run CLI with isolated tmux socket
     let (stdout, stderr, success) = run_cli_with_tmux(
@@ -61,37 +44,21 @@ fn test_start_creates_sessions_from_workspace_config() {
 #[test]
 fn test_start_is_idempotent() {
     let env = TestEnvironment::describe(|root| {
-        root.rafaeltab_config(|_c| {});
+        use crate::common::rafaeltab_descriptors::RafaeltabDirMixin;
+
+        root.rafaeltab_config(|c| {
+            c.tmux_session("ws_2", Some("idempotent-ws"), &[("shell", None)]);
+        });
 
         root.test_dir(|td| {
-            td.dir("ws_2", |_d| {});
+            td.dir("ws_2", |d| {
+                d.rafaeltab_workspace("ws_2", "idempotent ws", |_w| {});
+            });
         });
     })
     .create();
 
     let config_path = env.context().config_path().unwrap();
-
-    let config = format!(
-        r#"{{
-        "workspaces": [{{
-            "id": "ws_2",
-            "name": "idempotent ws",
-            "root": "{}",
-            "tags": []
-        }}],
-        "tmux": {{
-            "sessions": [{{
-                "workspace": "ws_2",
-                "name": "idempotent-ws",
-                "windows": [{{ "name": "shell" }}]
-            }}],
-            "defaultWindows": []
-        }}
-    }}"#,
-        env.root_path().join("ws_2").display()
-    );
-
-    std::fs::write(&config_path, config).expect("Failed to write config");
 
     // Run tmux start twice
     for i in 1..=2 {
@@ -147,29 +114,20 @@ fn test_start_with_empty_config() {
 #[test]
 fn test_start_creates_path_based_session() {
     let env = TestEnvironment::describe(|root| {
-        root.rafaeltab_config(|_c| {});
         root.test_dir(|_td| {});
     })
     .create();
 
+    let test_path = env.root_path().to_string_lossy().to_string();
+
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(move |c| {
+            c.tmux_session_path(&test_path, "path-session", &[("shell", None)]);
+        });
+    })
+    .create();
+
     let config_path = env.context().config_path().unwrap();
-
-    let config = format!(
-        r#"{{
-        "workspaces": [],
-        "tmux": {{
-            "sessions": [{{
-                "path": "{}",
-                "name": "path-session",
-                "windows": [{{ "name": "shell" }}]
-            }}],
-            "defaultWindows": []
-        }}
-    }}"#,
-        env.root_path().display()
-    );
-
-    std::fs::write(&config_path, config).expect("Failed to write config");
 
     let (stdout, stderr, success) = run_cli_with_tmux(
         &["tmux", "start"],
@@ -193,54 +151,25 @@ fn test_start_creates_path_based_session() {
 #[test]
 fn test_start_creates_multiple_sessions() {
     let env = TestEnvironment::describe(|root| {
-        root.rafaeltab_config(|_c| {});
+        use crate::common::rafaeltab_descriptors::RafaeltabDirMixin;
+
+        root.rafaeltab_config(|c| {
+            c.tmux_session("ws_m1", Some("multi-ws-1"), &[("shell", None)]);
+            c.tmux_session("ws_m2", Some("multi-ws-2"), &[("shell", None)]);
+        });
 
         root.test_dir(|td| {
-            td.dir("ws_m1", |_d| {});
-            td.dir("ws_m2", |_d| {});
+            td.dir("ws_m1", |d| {
+                d.rafaeltab_workspace("ws_m1", "multi ws 1", |_w| {});
+            });
+            td.dir("ws_m2", |d| {
+                d.rafaeltab_workspace("ws_m2", "multi ws 2", |_w| {});
+            });
         });
     })
     .create();
 
     let config_path = env.context().config_path().unwrap();
-
-    let config = format!(
-        r#"{{
-        "workspaces": [
-            {{
-                "id": "ws_m1",
-                "name": "multi ws 1",
-                "root": "{}",
-                "tags": []
-            }},
-            {{
-                "id": "ws_m2",
-                "name": "multi ws 2",
-                "root": "{}",
-                "tags": []
-            }}
-        ],
-        "tmux": {{
-            "sessions": [
-                {{
-                    "workspace": "ws_m1",
-                    "name": "multi-ws-1",
-                    "windows": [{{ "name": "shell" }}]
-                }},
-                {{
-                    "workspace": "ws_m2",
-                    "name": "multi-ws-2",
-                    "windows": [{{ "name": "shell" }}]
-                }}
-            ],
-            "defaultWindows": []
-        }}
-    }}"#,
-        env.root_path().join("ws_m1").display(),
-        env.root_path().join("ws_m2").display()
-    );
-
-    std::fs::write(&config_path, config).expect("Failed to write config");
 
     let (stdout, stderr, success) = run_cli_with_tmux(
         &["tmux", "start"],

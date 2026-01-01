@@ -12,6 +12,22 @@ pub struct WorktreeGlobalConfig {
     pub symlink_files: Vec<String>,
 }
 
+/// Tmux window configuration
+#[derive(Debug, Clone)]
+pub struct TmuxWindow {
+    pub name: String,
+    pub command: Option<String>,
+}
+
+/// Tmux session configuration
+#[derive(Debug, Clone)]
+pub struct TmuxSession {
+    pub workspace: Option<String>,
+    pub path: Option<String>,
+    pub name: Option<String>,
+    pub windows: Vec<TmuxWindow>,
+}
+
 /// Builder for creating rafaeltab configuration files.
 ///
 /// This builder collects all registered workspaces and generates a valid
@@ -26,6 +42,7 @@ pub struct WorktreeGlobalConfig {
 ///     root.rafaeltab_config(|c| {
 ///         c.defaults();  // Add sensible defaults
 ///         c.default_window("editor");
+///         c.tmux_session("workspace_id", None, &[("shell", None)]);
 ///     });
 ///     // Add workspaces...
 /// }).create();
@@ -34,6 +51,7 @@ pub struct ConfigBuilder {
     use_defaults: bool,
     worktree_global: Option<WorktreeGlobalConfig>,
     default_windows: Vec<(String, Option<String>)>,
+    tmux_sessions: Vec<TmuxSession>,
 }
 
 impl ConfigBuilder {
@@ -42,6 +60,7 @@ impl ConfigBuilder {
             use_defaults: false,
             worktree_global: None,
             default_windows: Vec::new(),
+            tmux_sessions: Vec::new(),
         }
     }
 
@@ -69,11 +88,75 @@ impl ConfigBuilder {
             .push((name.to_string(), Some(command.to_string())));
     }
 
+    /// Add a tmux session for a workspace
+    ///
+    /// # Arguments
+    /// * `workspace_id` - The ID of the workspace this session is for
+    /// * `session_name` - Optional custom name for the session (defaults to workspace name)
+    /// * `windows` - List of window names (and optional commands)
+    ///
+    /// # Example
+    /// ```ignore
+    /// root.rafaeltab_config(|c| {
+    ///     c.tmux_session("my_workspace", None, &[("shell", None), ("editor", Some("nvim ."))]);
+    /// });
+    /// ```
+    pub fn tmux_session(
+        &mut self,
+        workspace_id: &str,
+        session_name: Option<&str>,
+        windows: &[(&str, Option<&str>)],
+    ) {
+        let windows = windows
+            .iter()
+            .map(|(name, cmd)| TmuxWindow {
+                name: name.to_string(),
+                command: cmd.map(|s| s.to_string()),
+            })
+            .collect();
+
+        self.tmux_sessions.push(TmuxSession {
+            workspace: Some(workspace_id.to_string()),
+            path: None,
+            name: session_name.map(|s| s.to_string()),
+            windows,
+        });
+    }
+
+    /// Add a tmux session for a specific path (not tied to a workspace)
+    ///
+    /// # Arguments
+    /// * `path` - The directory path for this session
+    /// * `session_name` - Name for the session
+    /// * `windows` - List of window names (and optional commands)
+    pub fn tmux_session_path(
+        &mut self,
+        path: &str,
+        session_name: &str,
+        windows: &[(&str, Option<&str>)],
+    ) {
+        let windows = windows
+            .iter()
+            .map(|(name, cmd)| TmuxWindow {
+                name: name.to_string(),
+                command: cmd.map(|s| s.to_string()),
+            })
+            .collect();
+
+        self.tmux_sessions.push(TmuxSession {
+            workspace: None,
+            path: Some(path.to_string()),
+            name: Some(session_name.to_string()),
+            windows,
+        });
+    }
+
     pub(crate) fn build(self) -> ConfigDescriptor {
         ConfigDescriptor {
             use_defaults: self.use_defaults,
             worktree_global: self.worktree_global,
             default_windows: self.default_windows,
+            tmux_sessions: self.tmux_sessions,
         }
     }
 }
@@ -84,6 +167,7 @@ pub struct ConfigDescriptor {
     use_defaults: bool,
     worktree_global: Option<WorktreeGlobalConfig>,
     default_windows: Vec<(String, Option<String>)>,
+    tmux_sessions: Vec<TmuxSession>,
 }
 
 impl Descriptor for ConfigDescriptor {
@@ -141,8 +225,37 @@ impl Descriptor for ConfigDescriptor {
             vec![]
         };
 
+        // Build tmux sessions
+        let sessions: Vec<serde_json::Value> = self
+            .tmux_sessions
+            .iter()
+            .map(|session| {
+                let mut s = json!({
+                    "windows": session.windows.iter().map(|w| {
+                        let mut win = json!({ "name": w.name });
+                        if let Some(cmd) = &w.command {
+                            win["command"] = json!(cmd);
+                        }
+                        win
+                    }).collect::<Vec<_>>()
+                });
+
+                if let Some(workspace) = &session.workspace {
+                    s["workspace"] = json!(workspace);
+                }
+                if let Some(path) = &session.path {
+                    s["path"] = json!(path);
+                }
+                if let Some(name) = &session.name {
+                    s["name"] = json!(name);
+                }
+
+                s
+            })
+            .collect();
+
         config["tmux"] = json!({
-            "sessions": [],
+            "sessions": sessions,
             "defaultWindows": default_windows,
         });
 
