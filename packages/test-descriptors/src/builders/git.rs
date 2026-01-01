@@ -1,3 +1,4 @@
+use super::changes::{StagedBuilder, StagedChanges, UnstagedBuilder, UnstagedChanges};
 use crate::descriptor::{
     BranchDescriptor, CommitDescriptor, CreateContext, CreateError, Descriptor, GitRepoDescriptor,
     RemoteDescriptor,
@@ -10,6 +11,8 @@ pub struct GitBuilder {
     branches: Vec<BranchDescriptor>,
     remotes: Vec<RemoteDescriptor>,
     initial_branch: Option<String>,
+    staged: Option<StagedChanges>,
+    unstaged: Option<UnstagedChanges>,
 }
 
 impl GitBuilder {
@@ -20,6 +23,8 @@ impl GitBuilder {
             branches: Vec::new(),
             remotes: Vec::new(),
             initial_branch: None,
+            staged: None,
+            unstaged: None,
         }
     }
 
@@ -49,6 +54,26 @@ impl GitBuilder {
         self.initial_branch = Some(name.to_string());
     }
 
+    /// Add staged (but not committed) changes to this repository
+    pub fn staged<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut StagedBuilder),
+    {
+        let mut builder = StagedBuilder::new();
+        f(&mut builder);
+        self.staged = Some(builder.build());
+    }
+
+    /// Add unstaged changes to this repository
+    pub fn unstaged<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut UnstagedBuilder),
+    {
+        let mut builder = UnstagedBuilder::new();
+        f(&mut builder);
+        self.unstaged = Some(builder.build());
+    }
+
     pub(crate) fn build(self) -> HierarchicalGitRepoDescriptor {
         HierarchicalGitRepoDescriptor {
             name: self.name,
@@ -56,6 +81,8 @@ impl GitBuilder {
             branches: self.branches,
             remotes: self.remotes,
             initial_branch: self.initial_branch.unwrap_or_else(|| "main".to_string()),
+            staged: self.staged,
+            unstaged: self.unstaged,
         }
     }
 }
@@ -174,6 +201,8 @@ pub struct HierarchicalGitRepoDescriptor {
     branches: Vec<BranchDescriptor>,
     remotes: Vec<RemoteDescriptor>,
     initial_branch: String,
+    staged: Option<StagedChanges>,
+    unstaged: Option<UnstagedChanges>,
 }
 
 impl Descriptor for HierarchicalGitRepoDescriptor {
@@ -209,6 +238,16 @@ impl Descriptor for HierarchicalGitRepoDescriptor {
 
         // Create the repo using sub-context
         repo.create(&sub_context)?;
+
+        // Apply staged changes (after all commits, on initial branch)
+        if let Some(staged) = &self.staged {
+            staged.apply(&path)?;
+        }
+
+        // Apply unstaged changes (after staged, so they remain unstaged)
+        if let Some(unstaged) = &self.unstaged {
+            unstaged.apply(&path)?;
+        }
 
         // Register in the original context's registry
         context

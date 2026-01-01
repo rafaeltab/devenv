@@ -74,6 +74,17 @@ impl<'a> WorktreeRef<'a> {
         !output.stdout.is_empty()
     }
 
+    /// Check if there are untracked files
+    pub fn has_untracked_files(&self) -> bool {
+        let output = Command::new("git")
+            .args(["ls-files", "--others", "--exclude-standard"])
+            .current_dir(&self.path)
+            .output()
+            .expect("Failed to run git ls-files");
+
+        !output.stdout.is_empty()
+    }
+
     /// Get the commit count on this branch
     pub fn commit_count(&self) -> usize {
         let output = Command::new("git")
