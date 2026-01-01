@@ -35,7 +35,6 @@ impl TerminalBuffer {
     }
 
     pub fn process_bytes(&mut self, bytes: &[u8]) {
-        // Simple implementation: just append text, ignoring escape sequences for now
         let text = String::from_utf8_lossy(bytes);
 
         // Find the last non-empty row
@@ -50,7 +49,34 @@ impl TerminalBuffer {
         }
 
         let mut col = 0;
-        for ch in text.chars() {
+        let mut current_fg: Option<(u8, u8, u8)> = None;
+        let mut current_bg: Option<(u8, u8, u8)> = None;
+
+        let mut chars = text.chars().peekable();
+        while let Some(ch) = chars.next() {
+            if ch == '\x1b' {
+                // ANSI escape sequence
+                if chars.peek() == Some(&'[') {
+                    chars.next(); // consume '['
+                    let mut code = String::new();
+
+                    // Read until we hit a letter (the command)
+                    while let Some(&next_ch) = chars.peek() {
+                        if next_ch.is_ascii_alphabetic() {
+                            let cmd = chars.next().unwrap();
+                            if cmd == 'm' {
+                                // SGR (Select Graphic Rendition) - color codes
+                                self.parse_sgr(&code, &mut current_fg, &mut current_bg);
+                            }
+                            break;
+                        } else {
+                            code.push(chars.next().unwrap());
+                        }
+                    }
+                }
+                continue;
+            }
+
             if ch == '\n' || ch == '\r' {
                 row += 1;
                 col = 0;
@@ -58,12 +84,54 @@ impl TerminalBuffer {
                     break;
                 }
             } else if ch.is_control() {
-                // Skip control characters for now
                 continue;
             } else {
                 if col < self.cols as usize && row < self.rows as usize {
                     self.content[row][col].c = ch;
+                    self.content[row][col].fg = current_fg;
+                    self.content[row][col].bg = current_bg;
                     col += 1;
+                }
+            }
+        }
+    }
+
+    fn parse_sgr(&self, code: &str, fg: &mut Option<(u8, u8, u8)>, bg: &mut Option<(u8, u8, u8)>) {
+        let parts: Vec<&str> = if code.is_empty() {
+            vec!["0"]
+        } else {
+            code.split(';').collect()
+        };
+
+        for part in parts {
+            match part {
+                "0" => {
+                    // Reset
+                    *fg = None;
+                    *bg = None;
+                }
+                // Foreground colors (30-37)
+                "30" => *fg = Some((0, 0, 0)),       // Black
+                "31" => *fg = Some((255, 0, 0)),     // Red
+                "32" => *fg = Some((0, 255, 0)),     // Green
+                "33" => *fg = Some((255, 255, 0)),   // Yellow
+                "34" => *fg = Some((0, 0, 255)),     // Blue
+                "35" => *fg = Some((255, 0, 255)),   // Magenta
+                "36" => *fg = Some((0, 255, 255)),   // Cyan
+                "37" => *fg = Some((255, 255, 255)), // White
+
+                // Background colors (40-47)
+                "40" => *bg = Some((0, 0, 0)),       // Black
+                "41" => *bg = Some((255, 0, 0)),     // Red
+                "42" => *bg = Some((0, 255, 0)),     // Green
+                "43" => *bg = Some((255, 255, 0)),   // Yellow
+                "44" => *bg = Some((0, 0, 255)),     // Blue
+                "45" => *bg = Some((255, 0, 255)),   // Magenta
+                "46" => *bg = Some((0, 255, 255)),   // Cyan
+                "47" => *bg = Some((255, 255, 255)), // White
+
+                _ => {
+                    // TODO: Handle 256-color and RGB color codes
                 }
             }
         }
