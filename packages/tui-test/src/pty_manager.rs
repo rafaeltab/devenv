@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
 
 pub struct PtyManager {
     _pty_pair: portable_pty::PtyPair,
