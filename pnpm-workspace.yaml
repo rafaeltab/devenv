@@ -5,6 +5,7 @@ packages:
   - apps/previ
   - apps/banner
   - packages/test-descriptors
+  - packages/tui-test
   - config/neovim
   - config/tmux
   - config/vale
