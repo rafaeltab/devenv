@@ -199,7 +199,9 @@ impl TuiSession {
         let positions = self.terminal.find_all_text(text);
         positions
             .into_iter()
-            .map(|_| TextMatch::new(text, &self.terminal, self.dump_on_fail))
+            .map(|pos| {
+                TextMatch::new_with_position(text, Some(pos), &self.terminal, self.dump_on_fail)
+            })
             .collect()
     }
 

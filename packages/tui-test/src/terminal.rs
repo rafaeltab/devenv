@@ -76,7 +76,7 @@ impl TerminalBuffer {
             0 => None,
             1 => Some(all[0]),
             n => panic!(
-                "find_text() found {} occurrences of {:?}. Use find_all_text() if multiple matches are expected",
+                "find_text() found multiple occurrences ({}) of {:?}. Use find_all_text() if multiple matches are expected",
                 n, text
             ),
         }

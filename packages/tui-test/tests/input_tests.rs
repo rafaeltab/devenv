@@ -26,7 +26,9 @@ fn press_key_enter() {
     tui.press_key(Key::Enter);
     tui.wait_for_settle();
 
-    tui.find_text("line1").assert_visible();
+    // cat echoes input, so "line1" may appear multiple times (as typed and as output)
+    let matches = tui.find_all_text("line1");
+    assert!(!matches.is_empty(), "Should find 'line1' at least once");
 }
 
 #[test]
@@ -43,8 +45,9 @@ fn press_key_arrows() {
     tui.press_key(Key::Enter);
     tui.wait_for_settle();
 
-    // Should have echoed the input
-    tui.find_text("test").assert_visible();
+    // Should have echoed the input (may appear multiple times)
+    let matches = tui.find_all_text("test");
+    assert!(!matches.is_empty(), "Should find 'test' at least once");
 }
 
 #[test]
@@ -68,8 +71,9 @@ fn press_key_backspace() {
     tui.press_key(Key::Enter);
     tui.wait_for_settle();
 
-    // Should see "hell" (last char deleted)
-    tui.find_text("hell").assert_visible();
+    // Should see "hell" (last char deleted) - may appear multiple times due to echo
+    let matches = tui.find_all_text("hell");
+    assert!(!matches.is_empty(), "Should find 'hell' at least once");
 }
 
 #[test]

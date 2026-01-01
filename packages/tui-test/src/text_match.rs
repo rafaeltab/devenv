@@ -19,6 +19,20 @@ impl TextMatch {
         }
     }
 
+    pub fn new_with_position(
+        text: &str,
+        position: Option<(u16, u16)>,
+        terminal: &TerminalBuffer,
+        dump_on_fail: bool,
+    ) -> Self {
+        Self {
+            text: text.to_string(),
+            position,
+            screen_snapshot: terminal.clone(),
+            dump_on_fail,
+        }
+    }
+
     pub fn assert_visible(&self) {
         if self.position.is_none() {
             if self.dump_on_fail {
