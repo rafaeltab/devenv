@@ -73,7 +73,8 @@ impl Descriptor for HierarchicalTmuxSessionDescriptor {
                 &working_dir,
             ];
 
-            if let Some(cmd) = first_window.command() {
+            let first_cmd_wrapped = first_window.command().map(|c| c.with_persistent_shell());
+            if let Some(ref cmd) = first_cmd_wrapped {
                 args.push(cmd);
             }
 
@@ -91,7 +92,8 @@ impl Descriptor for HierarchicalTmuxSessionDescriptor {
                     &working_dir,
                 ];
 
-                if let Some(cmd) = window.command() {
+                let cmd_wrapped = window.command().map(|c| c.with_persistent_shell());
+                if let Some(ref cmd) = cmd_wrapped {
                     args.push(cmd);
                 }
 
