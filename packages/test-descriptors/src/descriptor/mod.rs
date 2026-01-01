@@ -21,5 +21,5 @@ pub use registry::{ResourceRegistry, TmuxSessionInfo};
 pub use remote::RemoteDescriptor;
 pub use tmux_session::TmuxSessionDescriptor;
 pub use tmux_socket::TmuxSocket;
-pub use tmux_window::WindowDescriptor;
+pub use tmux_window::{WindowCommand, WindowDescriptor};
 pub use traits::{Descriptor, PathDescriptor};
