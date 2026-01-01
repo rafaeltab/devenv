@@ -1,6 +1,6 @@
 use crate::builders::RootBuilder;
 use crate::descriptor::{CreateContext, Descriptor, TmuxSocket};
-use crate::queries::{DirRef, GitRepoRef, TmuxSessionRef};
+use crate::queries::{DirRef, GitRepoRef, TmuxSessionRef, WorktreeRef};
 use std::path::Path;
 use tempfile::TempDir;
 
@@ -117,6 +117,20 @@ impl TestEnvironment {
             .map(|info| TmuxSessionRef {
                 name: info.name.clone(),
                 working_dir: info.working_dir.clone(),
+                env: self,
+            })
+    }
+
+    /// Find a git worktree by repository name and branch (query API)
+    pub fn find_worktree(&self, repo_name: &str, branch: &str) -> Option<WorktreeRef<'_>> {
+        self.context
+            .registry()
+            .borrow()
+            .get_worktree(repo_name, branch)
+            .map(|path| WorktreeRef {
+                repo_name: repo_name.to_string(),
+                branch: branch.to_string(),
+                path: path.clone(),
                 env: self,
             })
     }

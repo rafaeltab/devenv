@@ -1,5 +1,6 @@
 use super::git::GitBuilder;
 use super::tmux::SessionBuilder;
+use super::worktree::WorktreeBuilder;
 use crate::descriptor::{CreateContext, CreateError, Descriptor};
 use std::path::PathBuf;
 
@@ -47,6 +48,22 @@ impl DirBuilder {
     {
         // Tmux session's working directory is our path (not a subdirectory)
         let mut builder = SessionBuilder::new(name, self.our_path());
+        f(&mut builder);
+        self.children.push(Box::new(builder.build()));
+    }
+
+    /// Create a git worktree from an existing repository
+    ///
+    /// # Arguments
+    /// * `repo_name` - Name of the git repository (must already be created)
+    /// * `base_branch` - Branch to base the worktree on
+    /// * `branch` - New branch name for the worktree
+    /// * `f` - Builder closure for configuring the worktree
+    pub fn git_worktree<F>(&mut self, repo_name: &str, base_branch: &str, branch: &str, f: F)
+    where
+        F: FnOnce(&mut WorktreeBuilder),
+    {
+        let mut builder = WorktreeBuilder::new(repo_name, base_branch, branch, self.our_path());
         f(&mut builder);
         self.children.push(Box::new(builder.build()));
     }
