@@ -48,6 +48,11 @@ OnLoad:add(function()
   luasnip.config.setup {}
 
   cmp.setup {
+    performance = {
+      debounce = 150,
+      throttle = 50,
+      fetching_timeout = 500,
+    },
     snippet = {
       expand = function(args)
         luasnip.lsp_expand(args.body)
@@ -104,7 +109,7 @@ OnLoad:add(function()
       end,
     },
     sources = {
-      { name = 'nvim_lsp' },
+      { name = 'nvim_lsp', max_item_count = 20 },
       { name = 'luasnip' },
     },
   }

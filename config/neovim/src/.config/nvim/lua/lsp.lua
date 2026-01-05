@@ -126,7 +126,9 @@ OnLoad:add(function()
   vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = "Open diagnostics list" })
 
   vim.diagnostic.config({
-    underline = true
+    underline = true,
+    update_in_insert = false,
+    severity_sort = true,
   })
 
   -- nvim-cmp supports additional completion capabilities, so broadcast that to servers

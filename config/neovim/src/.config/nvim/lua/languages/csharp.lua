@@ -18,17 +18,20 @@ LanguagesV2:configure_language(function()
             return require("omnisharp_extended").handler(...)
           end,
         },
-        -- keys = {
-        --   {
-        --     "gd",
-        --     require("omnisharp_extended").telescope_lsp_definitions()
-        --     ,
-        --     desc = "Goto Definition",
-        --   },
-        -- },
-        enable_roslyn_analyzers = true,
-        organize_imports_on_format = true,
-        enable_import_completion = true,
+        settings = {
+          RoslynExtensionsOptions = {
+            EnableAnalyzersSupport = true,
+            EnableImportCompletion = true,
+            AnalyzeOpenDocumentsOnly = true,
+          },
+          MsBuild = {
+            LoadProjectsOnDemand = true,
+          },
+          FormattingOptions = {
+            EnableEditorConfigSupport = true,
+            OrganizeImports = true,
+          },
+        },
       }
     },
     mason = { "csharpier" },
