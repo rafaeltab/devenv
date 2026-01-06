@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn main() {
@@ -15,7 +15,7 @@ fn main() {
     build_key_detector_crate(&test_programs_dir);
 }
 
-fn compile_standalone_programs(test_programs_dir: &PathBuf) {
+fn compile_standalone_programs(test_programs_dir: &Path) {
     if let Ok(entries) = fs::read_dir(test_programs_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
@@ -59,7 +59,7 @@ fn compile_standalone_programs(test_programs_dir: &PathBuf) {
     }
 }
 
-fn build_key_detector_crate(test_programs_dir: &PathBuf) {
+fn build_key_detector_crate(test_programs_dir: &Path) {
     let key_detector_dir = test_programs_dir.join("key_detector_crate");
     let main_rs = key_detector_dir.join("main.rs");
     let cargo_toml = key_detector_dir.join("Cargo.toml");
