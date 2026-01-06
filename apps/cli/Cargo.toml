@@ -27,3 +27,4 @@ unicode-width = "0.1"
 [dev-dependencies]
 tempfile = "3"
 test-descriptors = { path = "../../packages/test-descriptors" }
+tui-test = { path = "../../packages/tui-test" }
