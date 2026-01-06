@@ -215,7 +215,7 @@ fn test_git_repo_descriptor_with_remote() {
         root.test_dir(|td| {
             td.dir("workspace", |d| {
                 d.git("test-repo", |g| {
-                    g.remote("origin");
+                    g.remote("origin", |_| {});
                 });
             });
         });

@@ -8,7 +8,7 @@ fn test_full_environment_with_git_and_tmux() {
         root.test_dir(|td| {
             td.dir("workspace", |_| {});
             td.git("project", |g| {
-                g.remote("origin");
+                g.remote("origin", |_| {});
                 g.branch("feature", |b| {
                     b.commit("Add feature", |c| {
                         c.file("feature.txt", "feature code");
@@ -104,7 +104,7 @@ fn test_git_push_to_local_remote() {
     let env = TestEnvironment::describe(|root| {
         root.test_dir(|td| {
             td.git("push-test", |g| {
-                g.remote("origin");
+                g.remote("origin", |_| {});
             });
         });
     })
@@ -325,7 +325,7 @@ fn test_complex_scenario_workspace_with_multiple_features() {
             td.dir("workspaces", |ws| {
                 ws.dir("project-a", |pa| {
                     pa.git("main-repo", |g| {
-                        g.remote("origin");
+                        g.remote("origin", |_| {});
                         g.branch("develop", |b| {
                             b.commit("Setup project", |c| {
                                 c.file("package.json", "{\"name\": \"project-a\"}");

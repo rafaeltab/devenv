@@ -89,7 +89,7 @@ fn test_environment_with_complex_git_repo() {
     let env = TestEnvironment::describe(|root| {
         root.test_dir(|td| {
             td.git("complex-repo", |g| {
-                g.remote("origin");
+                g.remote("origin", |_| {});
                 g.branch("feature", |b| {
                     b.commit("Add feature", |c| {
                         c.file("feature.txt", "content");

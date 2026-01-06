@@ -8,7 +8,7 @@ pub mod worktree;
 
 pub use changes::{StagedBuilder, UnstagedBuilder};
 pub use dir::DirBuilder;
-pub use git::{BranchBuilder, CommitBuilder, GitBuilder};
+pub use git::{BranchBuilder, CommitBuilder, GitBuilder, RemoteBranchBuilder, RemoteBuilder, RemoteCommitBuilder};
 pub use root::RootBuilder;
 pub use test_dir::TestDirBuilder;
 pub use tmux::SessionBuilder;

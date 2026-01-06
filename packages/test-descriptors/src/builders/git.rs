@@ -1,7 +1,7 @@
 use super::changes::{StagedBuilder, StagedChanges, UnstagedBuilder, UnstagedChanges};
 use crate::descriptor::{
     BranchDescriptor, CommitDescriptor, CreateContext, CreateError, Descriptor, GitRepoDescriptor,
-    RemoteDescriptor,
+    RemoteBranchDescriptor, RemoteCommitDescriptor, RemoteDescriptor,
 };
 use std::path::PathBuf;
 
@@ -28,7 +28,6 @@ impl GitBuilder {
         }
     }
 
-    /// Get the full path this git repository will be created at
     pub fn repo_path(&self) -> PathBuf {
         self.parent_path.join(&self.name)
     }
@@ -51,15 +50,19 @@ impl GitBuilder {
         self.branches.push(builder.build());
     }
 
-    pub fn remote(&mut self, name: &str) {
-        self.remotes.push(RemoteDescriptor::new(name));
+    pub fn remote<F>(&mut self, name: &str, f: F)
+    where
+        F: FnOnce(&mut RemoteBuilder),
+    {
+        let mut builder = RemoteBuilder::new(name);
+        f(&mut builder);
+        self.remotes.push(builder.build());
     }
 
     pub fn initial_branch(&mut self, name: &str) {
         self.initial_branch = Some(name.to_string());
     }
 
-    /// Add staged (but not committed) changes to this repository
     pub fn staged<F>(&mut self, f: F)
     where
         F: FnOnce(&mut StagedBuilder),
@@ -69,7 +72,6 @@ impl GitBuilder {
         self.staged = Some(builder.build());
     }
 
-    /// Add unstaged changes to this repository
     pub fn unstaged<F>(&mut self, f: F)
     where
         F: FnOnce(&mut UnstagedBuilder),
@@ -192,6 +194,131 @@ impl CommitBuilder {
             } else {
                 commit = commit.pushed_to(&remote);
             }
+        }
+
+        commit
+    }
+}
+
+pub struct RemoteBuilder {
+    name: String,
+    branches: Vec<RemoteBranchDescriptor>,
+}
+
+impl RemoteBuilder {
+    pub(crate) fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            branches: Vec::new(),
+        }
+    }
+
+    pub fn branch<F>(&mut self, name: &str, f: F)
+    where
+        F: FnOnce(&mut RemoteBranchBuilder),
+    {
+        let mut builder = RemoteBranchBuilder::new(name);
+        f(&mut builder);
+        self.branches.push(builder.build());
+    }
+
+    pub fn branch_from<F>(&mut self, name: &str, base: &str, f: F)
+    where
+        F: FnOnce(&mut RemoteBranchBuilder),
+    {
+        let mut builder = RemoteBranchBuilder::from(name, base);
+        f(&mut builder);
+        self.branches.push(builder.build());
+    }
+
+    pub(crate) fn build(self) -> RemoteDescriptor {
+        let mut remote = RemoteDescriptor::new(&self.name);
+        for branch in self.branches {
+            remote = remote.with_branch(branch);
+        }
+        remote
+    }
+}
+
+pub struct RemoteBranchBuilder {
+    name: String,
+    base: Option<String>,
+    commits: Vec<RemoteCommitDescriptor>,
+}
+
+impl RemoteBranchBuilder {
+    pub(crate) fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            base: None,
+            commits: Vec::new(),
+        }
+    }
+
+    pub(crate) fn from(name: &str, base: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            base: Some(base.to_string()),
+            commits: Vec::new(),
+        }
+    }
+
+    pub fn commit<F>(&mut self, message: &str, f: F)
+    where
+        F: FnOnce(&mut RemoteCommitBuilder),
+    {
+        let mut builder = RemoteCommitBuilder::new(message);
+        f(&mut builder);
+        self.commits.push(builder.build());
+    }
+
+    pub(crate) fn build(self) -> RemoteBranchDescriptor {
+        let mut branch = if let Some(base) = self.base {
+            RemoteBranchDescriptor::from(&self.name, &base)
+        } else {
+            RemoteBranchDescriptor::new(&self.name)
+        };
+
+        for commit in self.commits {
+            branch = branch.with_commit(commit);
+        }
+
+        branch
+    }
+}
+
+pub struct RemoteCommitBuilder {
+    message: String,
+    files: Vec<(String, String)>,
+    deletes: Vec<String>,
+}
+
+impl RemoteCommitBuilder {
+    pub(crate) fn new(message: &str) -> Self {
+        Self {
+            message: message.to_string(),
+            files: Vec::new(),
+            deletes: Vec::new(),
+        }
+    }
+
+    pub fn file(&mut self, path: &str, content: &str) {
+        self.files.push((path.to_string(), content.to_string()));
+    }
+
+    pub fn delete(&mut self, path: &str) {
+        self.deletes.push(path.to_string());
+    }
+
+    pub(crate) fn build(self) -> RemoteCommitDescriptor {
+        let mut commit = RemoteCommitDescriptor::new(&self.message);
+
+        for (path, content) in self.files {
+            commit = commit.with_file(&path, &content);
+        }
+
+        for path in self.deletes {
+            commit = commit.with_delete(&path);
         }
 
         commit

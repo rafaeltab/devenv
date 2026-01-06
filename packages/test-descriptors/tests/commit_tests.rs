@@ -174,7 +174,7 @@ fn test_commit_pushed_to_remote() {
         root.test_dir(|td| {
             td.dir("workspace", |d| {
                 d.git("test-repo", |g| {
-                    g.remote("origin");
+                    g.remote("origin", |_| {});
                     // Use a feature branch instead of main (main already exists)
                     g.branch("feature", |b| {
                         b.commit("Pushed commit", |c| {

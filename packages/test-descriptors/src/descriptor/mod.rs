@@ -18,7 +18,7 @@ pub use directory::DirectoryDescriptor;
 pub use error::CreateError;
 pub use git_repo::GitRepoDescriptor;
 pub use registry::{ResourceRegistry, TmuxSessionInfo};
-pub use remote::RemoteDescriptor;
+pub use remote::{RemoteBranchDescriptor, RemoteCommitDescriptor, RemoteDescriptor};
 pub use tmux_session::TmuxSessionDescriptor;
 pub use tmux_socket::TmuxSocket;
 pub use tmux_window::{WindowCommand, WindowDescriptor};
