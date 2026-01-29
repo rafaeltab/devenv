@@ -6,8 +6,8 @@ LanguagesV2:configure_language(function()
   --- @type LanguageConfig
   return {
     -- lspconfig = {
-    --     ['csharp_ls'] = {
-    --     }
+    --   ['csharp_ls'] = {
+    --   }
     -- },
     -- mason = { 'csharp_ls' },
     lspconfig = {
@@ -21,7 +21,7 @@ LanguagesV2:configure_language(function()
         settings = {
           RoslynExtensionsOptions = {
             EnableAnalyzersSupport = true,
-            EnableImportCompletion = true,
+            EnableImportCompletion = false,
             AnalyzeOpenDocumentsOnly = true,
           },
           MsBuild = {
@@ -34,6 +34,7 @@ LanguagesV2:configure_language(function()
         },
       }
     },
+    -- lspconfig = {},
     mason = { "csharpier" },
     treesitter = { 'c_sharp' }
   }
