@@ -53,6 +53,15 @@ impl TestEnvironment {
                 .expect("Failed to create descriptor");
         }
 
+        // Create the tmux client if one was configured
+        if let Some(client_descriptor) = self.context.take_pending_client() {
+            let socket_name = self.tmux_socket.name().to_string();
+            let client = client_descriptor
+                .create_client(&socket_name)
+                .expect("Failed to create tmux client");
+            self.tmux_client = Some(client);
+        }
+
         self.created = true;
         self
     }

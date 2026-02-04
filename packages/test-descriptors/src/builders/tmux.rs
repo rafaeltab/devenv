@@ -161,6 +161,16 @@ impl Descriptor for HierarchicalTmuxSessionDescriptor {
             .borrow_mut()
             .register_tmux_session(self.name.clone(), session_info);
 
+        // If we have a client descriptor, register it as pending
+        // It will be created after all descriptors are processed
+        if let Some(client_desc) = &self.client_descriptor {
+            context.set_pending_client(TmuxClientDescriptor::new(
+                client_desc.session_name().to_string(),
+                client_desc.pty_size().0,
+                client_desc.pty_size().1,
+            ));
+        }
+
         Ok(())
     }
 }

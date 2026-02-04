@@ -66,6 +66,6 @@ impl<'a> TesterFactory<'a> {
             .env
             .tmux_client()
             .expect("No tmux client configured in environment");
-        TmuxFullClientTester::new(client)
+        TmuxFullClientTester::new(client, self.env.tmux())
     }
 }
