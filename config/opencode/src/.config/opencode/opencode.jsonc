@@ -1,0 +1,49 @@
+{
+    "$schema": "https://opencode.ai/config.json",
+    "theme": "darling",
+    "model": "anthropic/claude-sonnet-4-5",
+    "autoupdate": true,
+    "permission": {
+        "bash": {
+            "*": "ask",
+            "git diff": "allow",
+            "git log": "allow",
+            "git status": "allow",
+            "git show": "allow",
+            "grep": "allow",
+            "find": "allow",
+            "mkdir": "allow",
+            "tee": "ask",
+            "cat": "allow",
+            "ls": "allow",
+            "make": "allow",
+            "pwd": "allow",
+            "head": "allow",
+            "tail": "allow",
+            "echo": "allow",
+            "sort": "allow",
+            "wc": "allow",
+            "jq": "allow",
+            "cd": "allow",
+            "cargo check": "allow",
+            "cargo build": "allow",
+            "cargo test": "allow",
+        }
+    },
+    "agent": {
+        "build": {
+            "permission": {
+                "bash": {
+                    "sed": "allow"
+                }
+            }
+        }
+    },
+    "mcp": {
+        "vibe_kanban": {
+            "type": "local",
+            "command": ["npx", "-y", "vibe-kanban@latest", "--mcp"],
+            "enabled": false
+        }
+    }
+}

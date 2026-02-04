@@ -1,0 +1,217 @@
+{
+    "$schema": "https://opencode.ai/theme.json",
+    "defs": {
+        "zeroTwoRed": "#a30000",
+        "zeroTwoPink": "#f2babd",
+        "zeroTwoPale": "#fec8cd",
+        "streliziaWhite": "#ffffff",
+        "pistilDark": "#121212",
+        "pistilGray": "#1e1e1e",
+        "pistilBorder": "#333333",
+        "parasiteBlue": "#5da9f6",
+        "hornGlow": "#ff2d2d",
+        "textMuted": "#888888"
+    },
+    "theme": {
+        "primary": {
+            "dark": "zeroTwoRed",
+            "light": "zeroTwoRed"
+        },
+        "secondary": {
+            "dark": "zeroTwoPink",
+            "light": "zeroTwoPink"
+        },
+        "accent": {
+            "dark": "parasiteBlue",
+            "light": "parasiteBlue"
+        },
+        "error": {
+            "dark": "hornGlow",
+            "light": "zeroTwoRed"
+        },
+        "warning": {
+            "dark": "zeroTwoPink",
+            "light": "zeroTwoPink"
+        },
+        "success": {
+            "dark": "parasiteBlue",
+            "light": "parasiteBlue"
+        },
+        "info": {
+            "dark": "zeroTwoPale",
+            "light": "zeroTwoRed"
+        },
+        "text": {
+            "dark": "streliziaWhite",
+            "light": "pistilDark"
+        },
+        "textMuted": {
+            "dark": "textMuted",
+            "light": "textMuted"
+        },
+        "background": {
+            "dark": "pistilDark",
+            "light": "streliziaWhite"
+        },
+        "backgroundPanel": {
+            "dark": "pistilGray",
+            "light": "zeroTwoPale"
+        },
+        "backgroundElement": {
+            "dark": "pistilBorder",
+            "light": "zeroTwoPink"
+        },
+        "border": {
+            "dark": "pistilBorder",
+            "light": "zeroTwoPink"
+        },
+        "borderActive": {
+            "dark": "zeroTwoRed",
+            "light": "zeroTwoRed"
+        },
+        "borderSubtle": {
+            "dark": "pistilGray",
+            "light": "zeroTwoPale"
+        },
+        "diffAdded": {
+            "dark": "parasiteBlue",
+            "light": "parasiteBlue"
+        },
+        "diffRemoved": {
+            "dark": "zeroTwoRed",
+            "light": "zeroTwoRed"
+        },
+        "diffContext": {
+            "dark": "textMuted",
+            "light": "textMuted"
+        },
+        "diffHunkHeader": {
+            "dark": "zeroTwoPink",
+            "light": "zeroTwoPink"
+        },
+        "diffHighlightAdded": {
+            "dark": "parasiteBlue",
+            "light": "parasiteBlue"
+        },
+        "diffHighlightRemoved": {
+            "dark": "zeroTwoRed",
+            "light": "zeroTwoRed"
+        },
+        "diffAddedBg": {
+            "dark": "#16202a",
+            "light": "#eef6ff"
+        },
+        "diffRemovedBg": {
+            "dark": "#2a1616",
+            "light": "#fff0f0"
+        },
+        "diffContextBg": {
+            "dark": "pistilGray",
+            "light": "zeroTwoPale"
+        },
+        "diffLineNumber": {
+            "dark": "textMuted",
+            "light": "textMuted"
+        },
+        "diffAddedLineNumberBg": {
+            "dark": "#1c2a38",
+            "light": "#e0efff"
+        },
+        "diffRemovedLineNumberBg": {
+            "dark": "#381c1c",
+            "light": "#ffe0e0"
+        },
+        "markdownText": {
+            "dark": "streliziaWhite",
+            "light": "pistilDark"
+        },
+        "markdownHeading": {
+            "dark": "zeroTwoRed",
+            "light": "zeroTwoRed"
+        },
+        "markdownLink": {
+            "dark": "parasiteBlue",
+            "light": "parasiteBlue"
+        },
+        "markdownLinkText": {
+            "dark": "zeroTwoPink",
+            "light": "zeroTwoRed"
+        },
+        "markdownCode": {
+            "dark": "zeroTwoPale",
+            "light": "zeroTwoRed"
+        },
+        "markdownBlockQuote": {
+            "dark": "textMuted",
+            "light": "zeroTwoPink"
+        },
+        "markdownEmph": {
+            "dark": "zeroTwoPink",
+            "light": "zeroTwoRed"
+        },
+        "markdownStrong": {
+            "dark": "zeroTwoRed",
+            "light": "zeroTwoRed"
+        },
+        "markdownHorizontalRule": {
+            "dark": "pistilBorder",
+            "light": "zeroTwoPink"
+        },
+        "markdownListItem": {
+            "dark": "zeroTwoRed",
+            "light": "zeroTwoRed"
+        },
+        "markdownListEnumeration": {
+            "dark": "zeroTwoPink",
+            "light": "zeroTwoRed"
+        },
+        "markdownImage": {
+            "dark": "parasiteBlue",
+            "light": "parasiteBlue"
+        },
+        "markdownImageText": {
+            "dark": "zeroTwoPale",
+            "light": "zeroTwoRed"
+        },
+        "markdownCodeBlock": {
+            "dark": "streliziaWhite",
+            "light": "pistilDark"
+        },
+        "syntaxComment": {
+            "dark": "textMuted",
+            "light": "textMuted"
+        },
+        "syntaxKeyword": {
+            "dark": "zeroTwoRed",
+            "light": "zeroTwoRed"
+        },
+        "syntaxFunction": {
+            "dark": "parasiteBlue",
+            "light": "parasiteBlue"
+        },
+        "syntaxVariable": {
+            "dark": "zeroTwoPale",
+            "light": "pistilDark"
+        },
+        "syntaxString": {
+            "dark": "zeroTwoPink",
+            "light": "zeroTwoRed"
+        },
+        "syntaxNumber": {
+            "dark": "zeroTwoRed",
+            "light": "zeroTwoRed"
+        },
+        "syntaxType": {
+            "dark": "zeroTwoPale",
+            "light": "zeroTwoRed"
+        },
+        "syntaxOperator": {
+            "dark": "zeroTwoRed",
+            "light": "zeroTwoRed"
+        },
+        "syntaxPunctuation": {
+            "dark": "streliziaWhite",
+            "light": "pistilDark"
+        }
+    }
+}
