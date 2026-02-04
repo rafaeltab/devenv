@@ -24,8 +24,9 @@ fn tmux_client_pty_captures_pane_output() {
 
     let cmd = Command::new("echo").args(&["Captured via pane"]);
     let mut asserter = env.testers().tmux_client_pty().run(&cmd);
-    asserter.wait_for_settle();
 
+    // Use wait_for_text for deterministic waiting
+    asserter.wait_for_text("Captured via pane");
     asserter.find_text("Captured via pane").assert_visible();
 }
 
@@ -50,8 +51,9 @@ fn tmux_client_pty_sends_keys() {
     let mut asserter = env.testers().tmux_client_pty().run(&cmd);
 
     asserter.type_text("typed via send-keys");
-    asserter.wait_for_settle();
 
+    // Use wait_for_text for deterministic waiting
+    asserter.wait_for_text("typed via send-keys");
     asserter.find_text("typed via send-keys").assert_visible();
 
     asserter.send_keys(&[test_descriptors::testers::Key::Char('d')
@@ -96,12 +98,28 @@ fn tmux_client_pty_captures_colors() {
     })
     .create();
 
-    let cmd = Command::new("printf").args(&["\x1b[31mRed Output\x1b[0m"]);
+    // Use a unique marker that won't appear in the command itself
+    let cmd = Command::new("printf").args(&["\x1b[31mCOLORED_MARKER\x1b[0m"]);
     let mut asserter = env.testers().tmux_client_pty().run(&cmd);
-    asserter.wait_for_settle();
 
-    let text_match = asserter.find_text("Red Output");
-    text_match.fg.assert_matches(ColorMatcher::RedIsh);
+    // Use wait_for_text for deterministic waiting
+    asserter.wait_for_text("COLORED_MARKER");
+
+    // find_all_text since the text may appear in both the command and output
+    let matches = asserter.find_all_text("COLORED_MARKER");
+    assert!(!matches.is_empty(), "COLORED_MARKER should be found");
+
+    // At least one match should have red foreground color
+    let has_red = matches.iter().any(|m| {
+        m.fg.rgb().map_or(false, |(r, g, b)| {
+            // Check if it's reddish (red > green and red > blue by a margin)
+            r > g.saturating_add(30) && r > b.saturating_add(30)
+        })
+    });
+    assert!(
+        has_red,
+        "At least one COLORED_MARKER should have red foreground"
+    );
 }
 
 /// Cursor positioning works.
@@ -124,7 +142,9 @@ fn tmux_client_pty_supports_cursor_position() {
     // Clear and position at row 5, col 10
     let cmd = Command::new("printf").args(&["\x1b[2J\x1b[H\x1b[5;10HMarker"]);
     let mut asserter = env.testers().tmux_client_pty().run(&cmd);
-    asserter.wait_for_settle();
+
+    // Use wait_for_text for deterministic waiting
+    asserter.wait_for_text("Marker");
 
     let text_match = asserter.find_text("Marker");
     let pos = text_match.position().expect("Marker should be found");

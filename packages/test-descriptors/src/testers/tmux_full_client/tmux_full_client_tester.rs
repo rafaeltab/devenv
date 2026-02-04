@@ -51,12 +51,24 @@ impl TuiTester for TmuxFullClientTester<'_> {
             cmd_parts.push(format!("cd '{}'", cwd.display()));
         }
 
-        // Add the actual command
+        // Add the actual command with properly quoted arguments
         let args = cmd.build_args();
-        let args_str = if args.is_empty() {
+        let quoted_args: Vec<String> = args
+            .iter()
+            .map(|arg| {
+                // Use $'...' syntax for proper escape handling in bash
+                // This allows literal escape sequences to work
+                let escaped = arg
+                    .replace('\\', "\\\\")
+                    .replace('\'', "\\'")
+                    .replace('\x1b', "\\e"); // ESC character -> \e
+                format!("$'{}'", escaped)
+            })
+            .collect();
+        let args_str = if quoted_args.is_empty() {
             String::new()
         } else {
-            format!(" {}", args.join(" "))
+            format!(" {}", quoted_args.join(" "))
         };
         cmd_parts.push(format!("{}{}", cmd.program(), args_str));
 

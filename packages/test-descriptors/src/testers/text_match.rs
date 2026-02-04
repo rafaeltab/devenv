@@ -52,6 +52,11 @@ impl TextMatch {
         }
     }
 
+    /// Returns true if the text was found on the screen.
+    pub fn is_visible(&self) -> bool {
+        self.found
+    }
+
     /// Assert that the text is visible in the TUI output.
     pub fn assert_visible(&self) {
         assert!(
