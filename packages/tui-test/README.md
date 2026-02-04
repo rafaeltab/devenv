@@ -6,10 +6,6 @@ Framework-agnostic TUI testing library for terminal applications.
 
 `tui-test` enables testing any terminal user interface application through imperative interactions with a virtual PTY. It works with any TUI framework (Ratatui, Cursive, etc.) and even non-Rust applications.
 
-## Status
-
-🚧 **Under Development** - See [TUI_TEST_PLAN.md](../../TUI_TEST_PLAN.md) for implementation plan.
-
 ## Usage
 
 ```rust
