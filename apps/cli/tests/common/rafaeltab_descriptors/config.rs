@@ -88,6 +88,28 @@ impl ConfigBuilder {
             .push((name.to_string(), Some(command.to_string())));
     }
 
+    /// Add multiple default windows at once
+    ///
+    /// # Arguments
+    /// * `windows` - Array of tuples (name, optional_command)
+    ///
+    /// # Example
+    /// ```ignore
+    /// root.rafaeltab_config(|c| {
+    ///     c.default_windows(&[
+    ///         ("editor", Some("nvim .")),
+    ///         ("shell", None),
+    ///         ("build", Some("npm run dev")),
+    ///     ]);
+    /// });
+    /// ```
+    pub fn default_windows(&mut self, windows: &[(&str, Option<&str>)]) {
+        for (name, cmd) in windows {
+            self.default_windows
+                .push((name.to_string(), cmd.map(|s| s.to_string())));
+        }
+    }
+
     /// Add a tmux session for a workspace
     ///
     /// # Arguments
