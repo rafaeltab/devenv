@@ -3,7 +3,7 @@
 //! Tests for TuiAsserter lifecycle operations including spawning commands,
 //! environment configuration, terminal sizing, and exit code handling.
 
-use test_descriptors::testers::{Command, Key, TuiAsserter};
+use test_descriptors::testers::{Command, Key, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
 
 /// Spawn a simple command (echo) and verify it completes with exit code 0.
@@ -72,7 +72,8 @@ fn spawn_with_custom_cwd() {
     })
     .create();
 
-    let workspace_path = env.find_dir("my-workspace").unwrap().path();
+    let dir_ref = env.find_dir("my-workspace").unwrap();
+    let workspace_path = dir_ref.path();
     let cmd = Command::new("pwd").cwd(&workspace_path);
 
     let mut asserter = env.testers().pty().run(&cmd);

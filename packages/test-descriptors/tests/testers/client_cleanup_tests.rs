@@ -25,7 +25,7 @@ fn client_killed_on_env_drop() {
         .create();
 
         // Store socket name for later verification
-        socket_name = env.tmux_socket().name().to_string();
+        socket_name = env.tmux_socket().to_string();
 
         // Verify client exists
         assert!(env.has_tmux_client());

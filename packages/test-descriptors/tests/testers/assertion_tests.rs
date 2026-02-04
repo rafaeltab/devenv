@@ -2,7 +2,7 @@
 //!
 //! Tests for text visibility assertions.
 
-use test_descriptors::testers::{Command, TuiAsserter};
+use test_descriptors::testers::{Command, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
 
 /// `assert_visible()` passes when text exists.
@@ -98,7 +98,7 @@ fn text_match_position_returns_coords() {
     assert!(pos.is_some());
 
     let (row, col) = pos.unwrap();
-    // Row and col should be valid coordinates
-    assert!(row >= 0);
-    assert!(col >= 0);
+    // Row and col should be valid coordinates (1000 since this is outside of the default pty size)
+    assert!(row < 1000);
+    assert!(col < 1000);
 }

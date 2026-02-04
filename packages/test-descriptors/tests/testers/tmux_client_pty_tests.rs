@@ -2,7 +2,7 @@
 //!
 //! Tests for TUI execution inside tmux via capture-pane.
 
-use test_descriptors::testers::{ColorMatcher, Command, Key, TuiAsserter};
+use test_descriptors::testers::{ColorMatcher, Command, Key, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
 
 /// Output captured via capture-pane.

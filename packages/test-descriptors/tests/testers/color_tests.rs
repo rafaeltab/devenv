@@ -2,7 +2,7 @@
 //!
 //! Tests for color detection and matching in terminal output.
 
-use test_descriptors::testers::{ColorAssertion, ColorMatcher, Command, TuiAsserter};
+use test_descriptors::testers::{ColorAssertion, ColorMatcher, Command, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
 
 /// Grayscale detection works.

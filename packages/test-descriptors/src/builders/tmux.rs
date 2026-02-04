@@ -1,12 +1,39 @@
 use crate::descriptor::{
-    CreateContext, CreateError, Descriptor, TmuxSessionInfo, TmuxSocket, WindowDescriptor,
+    CreateContext, CreateError, Descriptor, TmuxClientDescriptor, TmuxSessionInfo, TmuxSocket,
+    WindowDescriptor,
 };
 use std::path::PathBuf;
+
+/// Builder for configuring a tmux client attached to a session.
+pub struct ClientBuilder {
+    pty_rows: u16,
+    pty_cols: u16,
+}
+
+impl ClientBuilder {
+    pub(crate) fn new() -> Self {
+        Self {
+            pty_rows: 24,
+            pty_cols: 80,
+        }
+    }
+
+    /// Set the PTY size for the client.
+    pub fn pty_size(&mut self, rows: u16, cols: u16) {
+        self.pty_rows = rows;
+        self.pty_cols = cols;
+    }
+
+    pub(crate) fn build(self, session_name: &str) -> TmuxClientDescriptor {
+        TmuxClientDescriptor::new(session_name.to_string(), self.pty_rows, self.pty_cols)
+    }
+}
 
 pub struct SessionBuilder {
     name: String,
     parent_path: PathBuf,
     windows: Vec<WindowDescriptor>,
+    client: Option<ClientBuilder>,
 }
 
 impl SessionBuilder {
@@ -15,6 +42,7 @@ impl SessionBuilder {
             name: name.to_string(),
             parent_path,
             windows: Vec::new(),
+            client: None,
         }
     }
 
@@ -27,11 +55,24 @@ impl SessionBuilder {
             .push(WindowDescriptor::new(name).with_command(command));
     }
 
+    /// Configure a tmux client to be attached to this session.
+    ///
+    /// Only one client can be attached per test environment.
+    pub fn with_client<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut ClientBuilder),
+    {
+        let mut builder = ClientBuilder::new();
+        f(&mut builder);
+        self.client = Some(builder);
+    }
+
     pub(crate) fn build(self) -> HierarchicalTmuxSessionDescriptor {
         HierarchicalTmuxSessionDescriptor {
-            name: self.name,
+            name: self.name.clone(),
             parent_path: self.parent_path,
             windows: self.windows,
+            client_descriptor: self.client.map(|c| c.build(&self.name)),
         }
     }
 }
@@ -42,6 +83,14 @@ pub struct HierarchicalTmuxSessionDescriptor {
     name: String,
     parent_path: PathBuf,
     windows: Vec<WindowDescriptor>,
+    client_descriptor: Option<TmuxClientDescriptor>,
+}
+
+impl HierarchicalTmuxSessionDescriptor {
+    /// Get the client descriptor if one is configured.
+    pub fn client_descriptor(&self) -> Option<&TmuxClientDescriptor> {
+        self.client_descriptor.as_ref()
+    }
 }
 
 impl Descriptor for HierarchicalTmuxSessionDescriptor {

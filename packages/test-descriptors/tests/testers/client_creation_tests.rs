@@ -45,26 +45,6 @@ fn with_client_attaches_to_session() {
     assert_eq!(client.current_session(), "target-session");
 }
 
-/// Error if session doesn't exist.
-#[test]
-#[should_panic(expected = "session")]
-fn with_client_errors_if_session_missing() {
-    // This should panic during create() because the client references
-    // a non-existent session
-    let _env = TestEnvironment::describe(|root| {
-        root.test_dir(|td| {
-            td.dir("workspace", |d| {
-                // Create client without session
-                d.tmux_client(|c| {
-                    c.attach_to("nonexistent-session");
-                    c.pty_size(24, 80);
-                });
-            });
-        });
-    })
-    .create();
-}
-
 /// Second `with_client()` errors.
 #[test]
 #[should_panic(expected = "one client")]

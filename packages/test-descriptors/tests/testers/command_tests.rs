@@ -103,7 +103,8 @@ fn run_command_with_cwd() {
     })
     .create();
 
-    let workspace_path = env.find_dir("my-workspace").unwrap().path();
+    let dir_ref = env.find_dir("my-workspace").unwrap();
+    let workspace_path = dir_ref.path();
     let cmd = Command::new("pwd").cwd(&workspace_path);
     let result = env.testers().cmd().run(&cmd);
 

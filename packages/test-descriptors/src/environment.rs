@@ -1,6 +1,7 @@
 use crate::builders::RootBuilder;
-use crate::descriptor::{CreateContext, Descriptor, TmuxSocket};
+use crate::descriptor::{CreateContext, Descriptor, TmuxClientHandle, TmuxSocket};
 use crate::queries::{DirRef, GitRepoRef, TmuxSessionRef, WorktreeRef};
+use crate::testers::TesterFactory;
 use std::path::Path;
 use tempfile::TempDir;
 
@@ -10,6 +11,7 @@ pub struct TestEnvironment {
     tmux_socket: TmuxSocket,
     descriptors: Vec<Box<dyn Descriptor>>,
     created: bool,
+    tmux_client: Option<TmuxClientHandle>,
 }
 
 impl TestEnvironment {
@@ -28,6 +30,7 @@ impl TestEnvironment {
             tmux_socket,
             descriptors: Vec::new(),
             created: false,
+            tmux_client: None,
         }
     }
 
@@ -133,6 +136,27 @@ impl TestEnvironment {
                 path: path.clone(),
                 _env: self,
             })
+    }
+
+    /// Get a factory for creating testers.
+    pub fn testers(&self) -> TesterFactory<'_> {
+        TesterFactory::new(self)
+    }
+
+    /// Check if this environment has a tmux client configured.
+    pub fn has_tmux_client(&self) -> bool {
+        self.tmux_client.is_some()
+    }
+
+    /// Get the tmux client handle if one is configured.
+    pub fn tmux_client(&self) -> Option<&TmuxClientHandle> {
+        self.tmux_client.as_ref()
+    }
+
+    /// Set the tmux client handle (called during environment creation).
+    #[allow(dead_code)]
+    pub(crate) fn set_tmux_client(&mut self, client: TmuxClientHandle) {
+        self.tmux_client = Some(client);
     }
 }
 
