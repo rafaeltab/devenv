@@ -28,7 +28,8 @@ fn tmux_full_client_shows_tmux_ui() {
 
     // Should see tmux UI elements (session name in status bar)
     asserter.find_text("my-session").assert_visible();
-    asserter.find_text("Hello").assert_visible();
+    let hello_occurances = asserter.find_all_text("Hello");
+    assert_eq!(hello_occurances.len(), 2, "Output should have both the command and the output of the command");
 }
 
 /// Panics if no client.

@@ -27,6 +27,10 @@ impl TmuxSocket {
             .arg("-L")
             .arg(&self.name)
             .args(args)
+            // Use bash as the default shell for a clean test environment.
+            // This avoids issues with user shell configurations (fancy prompts, etc.)
+            // and ensures consistent behavior with $'...' escape syntax.
+            .env("SHELL", "/bin/bash")
             .output()?;
 
         if !output.status.success() {

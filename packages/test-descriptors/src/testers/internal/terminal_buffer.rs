@@ -113,6 +113,20 @@ impl TerminalBuffer {
         self.screen_content()
     }
 
+    /// Clear the terminal buffer, resetting all cells to default and cursor to (0, 0).
+    /// Used by capture-pane which returns full content each time.
+    pub(crate) fn clear(&mut self) {
+        for row in &mut self.grid {
+            for cell in row {
+                *cell = Cell::default();
+            }
+        }
+        self.cursor_row = 0;
+        self.cursor_col = 0;
+        self.current_fg = (255, 255, 255);
+        self.current_bg = (0, 0, 0);
+    }
+
     fn scroll_up(&mut self) {
         // Remove the top line of scroll region and add a new blank line at bottom
         if self.scroll_top < self.scroll_bottom && (self.scroll_bottom as usize) < self.grid.len() {
