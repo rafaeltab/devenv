@@ -1,7 +1,8 @@
 mod common;
 
 use crate::common::{
-    rafaeltab_descriptors::RafaeltabDirMixin, rafaeltab_descriptors::RafaeltabRootMixin, run_cli,
+    rafaeltab_descriptors::RafaeltabDirMixin, rafaeltab_descriptors::RafaeltabRootMixin,
+    CliTestRunner,
 };
 use test_descriptors::TestEnvironment;
 
@@ -44,10 +45,11 @@ pub fn test_cli_integration() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
     let root_path = env.root_path();
 
-    let (stdout, stderr, success) = run_cli(&["workspace", "list"], config_path.to_str().unwrap());
+    let (stdout, stderr, success) = CliTestRunner::new()
+        .with_env(&env)
+        .run(&["workspace", "list"]);
 
     assert!(
         success,

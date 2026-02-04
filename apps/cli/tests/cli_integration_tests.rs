@@ -1,7 +1,7 @@
 mod common;
 
 use common::rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabGitMixin, RafaeltabRootMixin};
-use common::run_cli;
+use common::CliTestRunner;
 use test_descriptors::TestEnvironment;
 
 #[test]
@@ -26,10 +26,10 @@ fn test_workspace_list_command() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
     // Run workspace list command to verify it works
-    let (stdout, stderr, success) = run_cli(&["workspace", "list"], config_path.to_str().unwrap());
+    let (stdout, stderr, success) = CliTestRunner::new()
+        .with_env(&env)
+        .run(&["workspace", "list"]);
 
     assert!(
         success,
@@ -62,10 +62,10 @@ fn test_workspace_with_git_repo() {
     assert!(env.root_path().join("my-project").exists());
     assert!(env.root_path().join("my-project/repo/.git").exists());
 
-    let config_path = env.context().config_path().unwrap();
-
     // Verify workspace is in config
-    let (stdout, stderr, success) = run_cli(&["workspace", "list"], config_path.to_str().unwrap());
+    let (stdout, stderr, success) = CliTestRunner::new()
+        .with_env(&env)
+        .run(&["workspace", "list"]);
 
     if !success || (!stdout.contains("my_project") && !stdout.contains("My Project")) {
         eprintln!("Workspace list output:");
@@ -197,7 +197,9 @@ fn test_complex_workspace_scenario() {
     assert_eq!(workspaces.len(), 2);
 
     // Run workspace list
-    let (stdout, stderr, success) = run_cli(&["workspace", "list"], config_path.to_str().unwrap());
+    let (stdout, stderr, success) = CliTestRunner::new()
+        .with_env(&env)
+        .run(&["workspace", "list"]);
 
     if !success {
         eprintln!("Workspace list output:");
