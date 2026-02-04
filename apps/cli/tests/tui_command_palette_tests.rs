@@ -1,6 +1,6 @@
 mod common;
 
-use crate::common::run_cli_tui;
+use crate::common::CliTestRunner;
 use test_descriptors::TestEnvironment;
 use tui_test::Key;
 
@@ -12,13 +12,10 @@ fn test_command_palette_displays_commands() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
-    let mut tui = run_cli_tui(
-        &["command-palette", "show"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let mut tui = CliTestRunner::new()
+        .with_env(&env)
+        .with_tui()
+        .run(&["command-palette", "show"]);
 
     tui.wait_for_settle();
 
@@ -54,13 +51,10 @@ fn test_command_palette_filters_commands() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
-    let mut tui = run_cli_tui(
-        &["command-palette", "show"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let mut tui = CliTestRunner::new()
+        .with_env(&env)
+        .with_tui()
+        .run(&["command-palette", "show"]);
 
     tui.wait_for_settle();
 
@@ -94,13 +88,10 @@ fn test_command_palette_text_input() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
-    let mut tui = run_cli_tui(
-        &["command-palette", "show"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let mut tui = CliTestRunner::new()
+        .with_env(&env)
+        .with_tui()
+        .run(&["command-palette", "show"]);
 
     tui.wait_for_settle();
 
@@ -139,13 +130,10 @@ fn test_command_palette_enter_completes() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
-    let mut tui = run_cli_tui(
-        &["command-palette", "show"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let mut tui = CliTestRunner::new()
+        .with_env(&env)
+        .with_tui()
+        .run(&["command-palette", "show"]);
 
     tui.wait_for_settle();
 
@@ -166,13 +154,10 @@ fn test_command_palette_ctrl_c_exits() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
-    let mut tui = run_cli_tui(
-        &["command-palette", "show"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let mut tui = CliTestRunner::new()
+        .with_env(&env)
+        .with_tui()
+        .run(&["command-palette", "show"]);
 
     tui.wait_for_settle();
 

@@ -2,7 +2,7 @@ mod common;
 
 use crate::common::{
     rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabRootMixin},
-    run_cli_tui,
+    CliTestRunner,
 };
 use test_descriptors::TestEnvironment;
 use tui_test::Key;
@@ -30,22 +30,15 @@ fn test_tmux_switch_displays_sessions() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
     // Start the sessions first
-    let (_, _, success) = common::run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let (_, _, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
     assert!(success, "Failed to start tmux sessions");
 
     // Now test the TUI
-    let mut tui = run_cli_tui(
-        &["tmux", "switch"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let mut tui = CliTestRunner::new()
+        .with_env(&env)
+        .with_tui()
+        .run(&["tmux", "switch"]);
 
     tui.wait_for_settle();
 
@@ -94,21 +87,14 @@ fn test_tmux_switch_fuzzy_filtering() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
     // Start the sessions first
-    let (_, _, success) = common::run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let (_, _, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
     assert!(success, "Failed to start tmux sessions");
 
-    let mut tui = run_cli_tui(
-        &["tmux", "switch"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let mut tui = CliTestRunner::new()
+        .with_env(&env)
+        .with_tui()
+        .run(&["tmux", "switch"]);
 
     tui.wait_for_settle();
 
@@ -167,21 +153,14 @@ fn test_tmux_switch_navigation() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
     // Start the sessions first
-    let (_, _, success) = common::run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let (_, _, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
     assert!(success, "Failed to start tmux sessions");
 
-    let mut tui = run_cli_tui(
-        &["tmux", "switch"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let mut tui = CliTestRunner::new()
+        .with_env(&env)
+        .with_tui()
+        .run(&["tmux", "switch"]);
 
     tui.wait_for_settle();
 
@@ -238,21 +217,14 @@ fn test_tmux_switch_cancel_with_q() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
     // Start the sessions first
-    let (_, _, success) = common::run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let (_, _, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
     assert!(success, "Failed to start tmux sessions");
 
-    let mut tui = run_cli_tui(
-        &["tmux", "switch"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let mut tui = CliTestRunner::new()
+        .with_env(&env)
+        .with_tui()
+        .run(&["tmux", "switch"]);
 
     tui.wait_for_settle();
     tui.find_text("Test Session").assert_visible();
@@ -278,21 +250,14 @@ fn test_tmux_switch_cancel_with_ctrl_c() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
     // Start the sessions first
-    let (_, _, success) = common::run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let (_, _, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
     assert!(success, "Failed to start tmux sessions");
 
-    let mut tui = run_cli_tui(
-        &["tmux", "switch"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let mut tui = CliTestRunner::new()
+        .with_env(&env)
+        .with_tui()
+        .run(&["tmux", "switch"]);
 
     tui.wait_for_settle();
     tui.find_text("Test Session").assert_visible();

@@ -2,7 +2,7 @@ mod common;
 
 use crate::common::{
     rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabGitMixin, RafaeltabRootMixin},
-    run_cli_with_tmux,
+    CliTestRunner,
 };
 use std::process::Command;
 use test_descriptors::TestEnvironment;
@@ -34,15 +34,13 @@ fn test_worktree_start_uses_default_windows() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
     let repo_path = env.root_path().join("project/repo");
 
     // Run worktree start
-    let (stdout, stderr, success) = run_cli_with_tmux(
-        &["worktree", "start", "feat/test", "--yes"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let (stdout, stderr, success) =
+        CliTestRunner::new()
+            .with_env(&env)
+            .run(&["worktree", "start", "feat/test", "--yes"]);
 
     assert!(
         success,
@@ -121,15 +119,12 @@ fn test_worktree_start_uses_workspace_specific_windows() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
     let repo_path = env.root_path().join("project/repo");
 
     // Run worktree start
-    let (stdout, stderr, success) = run_cli_with_tmux(
-        &["worktree", "start", "feat/api", "--yes"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let (stdout, stderr, success) = CliTestRunner::new()
+        .with_env(&env)
+        .run(&["worktree", "start", "feat/api", "--yes"]);
 
     assert!(
         success,
@@ -203,15 +198,13 @@ fn test_worktree_start_handles_empty_default_windows() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
     let repo_path = env.root_path().join("project/repo");
 
     // Run worktree start
-    let (stdout, stderr, success) = run_cli_with_tmux(
-        &["worktree", "start", "feat/empty", "--yes"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let (stdout, stderr, success) =
+        CliTestRunner::new()
+            .with_env(&env)
+            .run(&["worktree", "start", "feat/empty", "--yes"]);
 
     assert!(
         success,

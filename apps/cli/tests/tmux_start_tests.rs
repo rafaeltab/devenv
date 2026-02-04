@@ -1,6 +1,6 @@
 mod common;
 
-use crate::common::{rafaeltab_descriptors::RafaeltabRootMixin, run_cli_with_tmux};
+use crate::common::{rafaeltab_descriptors::RafaeltabRootMixin, CliTestRunner};
 use test_descriptors::TestEnvironment;
 
 #[test]
@@ -20,14 +20,8 @@ fn test_start_creates_sessions_from_workspace_config() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
     // Run CLI with isolated tmux socket
-    let (stdout, stderr, success) = run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let (stdout, stderr, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
 
     assert!(
         success,
@@ -60,15 +54,9 @@ fn test_start_is_idempotent() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
     // Run tmux start twice
     for i in 1..=2 {
-        let (stdout, stderr, success) = run_cli_with_tmux(
-            &["tmux", "start"],
-            config_path.to_str().unwrap(),
-            env.tmux_socket(),
-        );
+        let (stdout, stderr, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
 
         assert!(
             success,
@@ -93,11 +81,7 @@ fn test_start_with_empty_config() {
     })
     .create();
 
-    let (stdout, stderr, success) = run_cli_with_tmux(
-        &["tmux", "start"],
-        env.context().config_path().unwrap().to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let (stdout, stderr, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
 
     assert!(
         success,
@@ -129,13 +113,7 @@ fn test_start_creates_path_based_session() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
-    let (stdout, stderr, success) = run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let (stdout, stderr, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
 
     assert!(
         success,
@@ -171,13 +149,7 @@ fn test_start_creates_multiple_sessions() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
-    let (stdout, stderr, success) = run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let (stdout, stderr, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
 
     assert!(
         success,
