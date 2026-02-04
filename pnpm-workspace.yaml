@@ -11,3 +11,4 @@ packages:
   - config/vale
   - config/ideavim
   - config/zsh
+  - config/opencode

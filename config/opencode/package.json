@@ -1,0 +1,7 @@
+{
+  "name": "@rafaeltab-devenv/opencode-config",
+  "version": "0.0.0",
+  "scripts": {
+    "activate": "stow -t ~ --adopt -S -d ./src ."
+  }
+}
