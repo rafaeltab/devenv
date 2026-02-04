@@ -2,7 +2,7 @@
 id: reviewer
 name: Reviewer
 description: "Code review, security, and quality assurance agent"
-category: subagents/code
+category: agents/code
 type: agent
 version: 1.0.0
 author: opencode
@@ -20,6 +20,8 @@ permissions:
     "git diff": allow
     "git log": allow
     "*": ask
+  edit:
+    "**/*": "deny"
 tags:
   - review
   - quality

@@ -1,7 +1,6 @@
 {
     "$schema": "https://opencode.ai/config.json",
     "theme": "darling",
-    "model": "anthropic/claude-sonnet-4-5",
     "autoupdate": true,
     "permission": {
         "bash": {
@@ -20,21 +19,34 @@
             "pwd*": "allow",
             "head*": "allow",
             "tail*": "allow",
-            "echo*": "allow",
             "sort*": "allow",
+            "rg*": "allow",
             "wc*": "allow",
             "jq*": "allow",
             "cd*": "allow",
             "cargo check*": "allow",
             "cargo build*": "allow",
             "cargo test*": "allow",
-        }
+            "tree*": "allow",
+            "xargs grep*": "allow",
+        },
     },
     "agent": {
+        "explore": {
+            "permission": {
+                "bash": {
+                    // The agent sometimes tries to use these to write files
+                    "cat*": "deny",
+                    "echo*": "deny",
+                },
+                "read": "allow"
+            }
+        },
         "build": {
             "permission": {
                 "bash": {
-                    "sed": "allow"
+                    "sed": "allow",
+                    "mkdir*": "allow"
                 }
             }
         }

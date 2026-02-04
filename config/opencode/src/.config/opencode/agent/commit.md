@@ -1,7 +1,8 @@
 ---
 description: An agent that specializes in making good git commits.
 mode: subagent
-tools:
+category: subagent/code
+tools: 
     bash: true
 permissions:
     "*": deny
@@ -48,5 +49,13 @@ Area is a comma separated one word description (can sometimes have a dash) of th
 - api,account
 - api,otel
 - infra,network
+- api,locations
+- api,apaleo-inventory
+- api,mdm
+- web,devices
+- api,dtm
+- web,login
+- infra,dev,mdm
 - makefile
 - editorconfig
+- cspell
