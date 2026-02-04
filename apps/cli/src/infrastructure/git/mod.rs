@@ -510,6 +510,8 @@ fn parse_main_worktree_from_porcelain(output: &str) -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
+    use test_utils::assert_path_equals;
+
     use super::*;
     use std::fs;
     use std::process::Command;
@@ -561,7 +563,7 @@ mod tests {
         let result = get_root_worktree_path(temp_dir.path());
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), temp_dir.path());
+        assert_path_equals!(result.unwrap(), temp_dir.path());
     }
 
     #[test]
@@ -585,7 +587,7 @@ mod tests {
         let result = get_root_worktree_path(&worktree_path);
 
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), temp_dir.path());
+        assert_path_equals!(result.unwrap(), temp_dir.path());
 
         // Cleanup worktree
         Command::new("git")

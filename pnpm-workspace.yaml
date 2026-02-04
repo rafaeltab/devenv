@@ -6,6 +6,7 @@ packages:
   - apps/banner
   - packages/test-descriptors
   - packages/tui-test
+  - packages/test-utils
   - config/neovim
   - config/tmux
   - config/vale

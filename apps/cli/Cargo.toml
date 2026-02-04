@@ -28,3 +28,4 @@ unicode-width = "0.1"
 tempfile = "3"
 test-descriptors = { path = "../../packages/test-descriptors" }
 tui-test = { path = "../../packages/tui-test" }
+test-utils = { path = "../../packages/test-utils" }

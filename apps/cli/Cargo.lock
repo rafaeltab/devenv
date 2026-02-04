@@ -1125,6 +1125,7 @@ dependencies = [
  "sublime_fuzzy",
  "tempfile",
  "test-descriptors",
+ "test-utils",
  "tui-test",
  "unicode-width 0.1.13",
  "uuid",
@@ -1456,6 +1457,10 @@ dependencies = [
  "thiserror",
  "uuid",
 ]
+
+[[package]]
+name = "test-utils"
+version = "0.1.0"
 
 [[package]]
 name = "thiserror"

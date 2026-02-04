@@ -1,0 +1,12 @@
+{
+  "name": "@rafaeltab-devenv/test-utils",
+  "version": "0.0.0",
+  "scripts": {
+    "build": "cargo build",
+    "build:release": "cargo build --release",
+    "dev": "cargo dev",
+    "test": "cargo test",
+    "format": "cargo fmt",
+    "lint": "cargo build --all-features && cargo clippy --all-features -- -Dwarnings"
+  }
+}
