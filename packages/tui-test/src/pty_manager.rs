@@ -2,6 +2,7 @@ use crate::TuiError;
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use std::collections::HashMap;
 use std::io::{Read, Write};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -20,6 +21,7 @@ impl PtyManager {
         envs: &HashMap<String, String>,
         rows: u16,
         cols: u16,
+        cwd: Option<PathBuf>,
     ) -> Result<Self, TuiError> {
         let pty_system = native_pty_system();
 
@@ -37,6 +39,10 @@ impl PtyManager {
 
         for (key, value) in envs {
             cmd.env(key, value);
+        }
+
+        if let Some(dir) = cwd {
+            cmd.cwd(dir);
         }
 
         let child = pty_pair
