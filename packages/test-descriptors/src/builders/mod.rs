@@ -11,5 +11,5 @@ pub use dir::DirBuilder;
 pub use git::{BranchBuilder, CommitBuilder, GitBuilder};
 pub use root::RootBuilder;
 pub use test_dir::TestDirBuilder;
-pub use tmux::SessionBuilder;
+pub use tmux::{ClientBuilder, SessionBuilder};
 pub use worktree::WorktreeBuilder;

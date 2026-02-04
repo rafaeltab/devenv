@@ -4,7 +4,7 @@
 //! during TUI interactions.
 
 use std::time::Instant;
-use test_descriptors::testers::{Command, TuiAsserter};
+use test_descriptors::testers::{Command, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
 
 /// Verify `wait_ms(100)` delays at least 100ms.

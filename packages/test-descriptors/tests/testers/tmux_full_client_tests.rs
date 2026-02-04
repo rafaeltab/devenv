@@ -2,7 +2,7 @@
 //!
 //! Tests for full tmux client PTY interaction (including tmux UI).
 
-use test_descriptors::testers::{Command, Key, Modifier, TuiAsserter};
+use test_descriptors::testers::{Command, Key, Modifier, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
 
 /// Tmux status bar visible.

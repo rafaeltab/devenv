@@ -2,7 +2,7 @@
 //!
 //! End-to-end integration tests for TUI interactions.
 
-use test_descriptors::testers::{ColorMatcher, Command, Key, TuiAsserter};
+use test_descriptors::testers::{ColorMatcher, Command, Key, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
 
 /// Multi-step menu interaction.

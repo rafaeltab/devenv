@@ -32,7 +32,7 @@ fn command_env_adds_variable() {
 #[test]
 fn command_cwd_sets_directory() {
     let cmd = Command::new("pwd").cwd("/some/path");
-    assert_eq!(cmd.cwd(), Some(PathBuf::from("/some/path")));
+    assert_eq!(cmd.get_cwd(), Some(PathBuf::from("/some/path")));
 }
 
 /// All args returned in order.
@@ -70,14 +70,14 @@ fn command_builder_chaining() {
     assert_eq!(cmd.program(), "myapp");
     assert_eq!(cmd.build_args(), vec!["--flag", "subcommand"]);
     assert_eq!(cmd.build_env().get("CONFIG"), Some(&"test".to_string()));
-    assert_eq!(cmd.cwd(), Some(PathBuf::from("/app")));
+    assert_eq!(cmd.get_cwd(), Some(PathBuf::from("/app")));
 }
 
 /// PTY size configuration.
 #[test]
 fn command_pty_size_sets_dimensions() {
     let cmd = Command::new("tput").pty_size(30, 100);
-    let (rows, cols) = cmd.pty_size();
+    let (rows, cols) = cmd.get_pty_size();
     assert_eq!(rows, 30);
     assert_eq!(cols, 100);
 }
@@ -86,7 +86,7 @@ fn command_pty_size_sets_dimensions() {
 #[test]
 fn command_default_pty_size() {
     let cmd = Command::new("echo");
-    let (rows, cols) = cmd.pty_size();
+    let (rows, cols) = cmd.get_pty_size();
     // Default is typically 24x80
     assert_eq!(rows, 24);
     assert_eq!(cols, 80);

@@ -127,8 +127,7 @@ fn current_session_updates_after_switch() {
     assert_eq!(client.current_session(), "session-1");
 
     // Switch to session-2 using tmux command
-    let socket = env.tmux_socket();
-    socket
+    env.tmux()
         .run_tmux(&["switch-client", "-t", "session-2"])
         .expect("Switch should succeed");
 
