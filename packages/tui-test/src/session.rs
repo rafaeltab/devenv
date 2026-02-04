@@ -2,6 +2,7 @@ use crate::pty_manager::PtyManager;
 use crate::terminal::TerminalBuffer;
 use crate::{Key, TextMatch, TuiError};
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 pub fn spawn_tui(command: &str, args: &[&str]) -> TuiSessionBuilder {
@@ -12,6 +13,7 @@ pub struct TuiSessionBuilder {
     command: String,
     args: Vec<String>,
     envs: HashMap<String, String>,
+    cwd: Option<PathBuf>,
     rows: u16,
     cols: u16,
     settle_timeout_ms: u64,
@@ -24,11 +26,17 @@ impl TuiSessionBuilder {
             command: command.to_string(),
             args: args.iter().map(|s| s.to_string()).collect(),
             envs: HashMap::new(),
+            cwd: None,
             rows: 40,
             cols: 120,
             settle_timeout_ms: Self::default_settle_timeout(),
             dump_on_fail: Self::default_dump_on_fail(),
         }
+    }
+
+    pub fn cwd<P: AsRef<Path>>(mut self, dir: P) -> Self {
+        self.cwd = Some(dir.as_ref().to_path_buf());
+        self
     }
 
     fn default_settle_timeout() -> u64 {
@@ -66,7 +74,14 @@ impl TuiSessionBuilder {
     }
 
     pub fn spawn(self) -> Result<TuiSession, TuiError> {
-        let pty = PtyManager::spawn(&self.command, &self.args, &self.envs, self.rows, self.cols)?;
+        let pty = PtyManager::spawn(
+            &self.command,
+            &self.args,
+            &self.envs,
+            self.rows,
+            self.cols,
+            self.cwd,
+        )?;
         let terminal = TerminalBuffer::new(self.rows, self.cols);
 
         Ok(TuiSession {
