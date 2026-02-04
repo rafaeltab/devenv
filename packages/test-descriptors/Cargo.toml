@@ -8,5 +8,7 @@ description = "Declarative test environment descriptors for integration testing"
 tempfile = "3"
 uuid = { version = "1", features = ["v4"] }
 thiserror = "1"
+portable-pty = "0.8"
+vte = "0.13"
 
 [dev-dependencies]

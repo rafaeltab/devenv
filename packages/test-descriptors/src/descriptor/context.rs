@@ -1,4 +1,5 @@
 use super::registry::ResourceRegistry;
+use super::tmux_client::TmuxClientDescriptor;
 use std::cell::RefCell;
 use std::path::PathBuf;
 
@@ -7,6 +8,8 @@ pub struct CreateContext {
     registry: RefCell<ResourceRegistry>,
     tmux_socket: RefCell<Option<String>>,
     config_path: RefCell<Option<PathBuf>>,
+    /// Pending client descriptor to be created after all other descriptors.
+    pending_client: RefCell<Option<TmuxClientDescriptor>>,
 }
 
 impl CreateContext {
@@ -16,6 +19,7 @@ impl CreateContext {
             registry: RefCell::new(ResourceRegistry::new()),
             tmux_socket: RefCell::new(None),
             config_path: RefCell::new(None),
+            pending_client: RefCell::new(None),
         }
     }
 
@@ -49,5 +53,20 @@ impl CreateContext {
 
     pub fn config_path(&self) -> Option<PathBuf> {
         self.config_path.borrow().clone()
+    }
+
+    /// Register a pending client descriptor to be created after the session.
+    pub fn set_pending_client(&self, client: TmuxClientDescriptor) {
+        *self.pending_client.borrow_mut() = Some(client);
+    }
+
+    /// Take the pending client descriptor, if any.
+    pub fn take_pending_client(&self) -> Option<TmuxClientDescriptor> {
+        self.pending_client.borrow_mut().take()
+    }
+
+    /// Check if there is a pending client.
+    pub fn has_pending_client(&self) -> bool {
+        self.pending_client.borrow().is_some()
     }
 }
