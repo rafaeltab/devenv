@@ -56,7 +56,11 @@ impl CreateContext {
     }
 
     /// Register a pending client descriptor to be created after the session.
+    /// Only one client can be configured per test environment.
     pub fn set_pending_client(&self, client: TmuxClientDescriptor) {
+        if self.pending_client.borrow().is_some() {
+            panic!("Only one client can be configured per test environment");
+        }
         *self.pending_client.borrow_mut() = Some(client);
     }
 
