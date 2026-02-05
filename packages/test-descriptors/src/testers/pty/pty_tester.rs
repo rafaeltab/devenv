@@ -1,8 +1,19 @@
 use super::pty_asserter::PtyAsserter;
 use crate::testers::command::Command;
+use crate::testers::internal::PtyBackend;
 use crate::testers::traits::TuiTester;
+use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 
 /// PTY-based TUI tester that runs commands in a pseudo-terminal.
+///
+/// This tester spawns commands directly in a PTY without any tmux involvement.
+/// It provides the fastest TUI testing experience with:
+/// - No tmux dependency - tests run even if tmux is not installed
+/// - Full key support - all key combinations work
+/// - Direct exit code handling - access to process exit status
+/// - Simplest debugging - fewer layers to debug
+///
+/// Note: The `$TMUX` environment variable will NOT be set when using this tester.
 #[derive(Debug)]
 pub struct PtyTester {
     rows: u16,
@@ -36,7 +47,50 @@ impl PtyTester {
 impl TuiTester for PtyTester {
     type Asserter = PtyAsserter;
 
-    fn run(&self, _cmd: &Command) -> Self::Asserter {
-        todo!("Phase 5: Implement PtyTester::run")
+    fn run(&self, cmd: &Command) -> Self::Asserter {
+        // Use Command's PTY size if set, otherwise use tester defaults
+        let (cmd_rows, cmd_cols) = cmd.get_pty_size();
+        let (rows, cols) = if cmd_rows != 24 || cmd_cols != 80 {
+            // Command has custom PTY size
+            (cmd_rows, cmd_cols)
+        } else {
+            // Use tester defaults
+            (self.rows, self.cols)
+        };
+
+        // 1. Create PTY system and open a PTY pair
+        let pty_system = native_pty_system();
+        let pty_pair = pty_system
+            .openpty(PtySize {
+                rows,
+                cols,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
+            .expect("Failed to create PTY");
+
+        // 2. Build the command
+        let mut pty_cmd = CommandBuilder::new(cmd.program());
+        for arg in cmd.build_args() {
+            pty_cmd.arg(arg);
+        }
+        for (key, value) in cmd.build_env() {
+            pty_cmd.env(key, value);
+        }
+        if let Some(cwd) = cmd.get_cwd() {
+            pty_cmd.cwd(cwd);
+        }
+
+        // 3. Spawn the command in the PTY
+        let child = pty_pair
+            .slave
+            .spawn_command(pty_cmd)
+            .expect("Failed to spawn command in PTY");
+
+        // 4. Create the PtyBackend from the master PTY
+        let backend = PtyBackend::new(pty_pair.master).expect("Failed to create PTY backend");
+
+        // 5. Create and return the PtyAsserter
+        PtyAsserter::new(backend, rows, cols, child, self.settle_timeout_ms)
     }
 }
