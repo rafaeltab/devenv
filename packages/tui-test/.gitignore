@@ -1,2 +1,0 @@
-tests/test_programs/*
-!tests/test_programs/*.rs
