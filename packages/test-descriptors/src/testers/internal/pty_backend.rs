@@ -35,6 +35,7 @@ impl From<std::io::Error> for PtyError {
 /// to PTY output for terminal emulation.
 pub(crate) struct PtyBackend {
     master: Box<dyn MasterPty + Send>,
+    writer: Box<dyn Write + Send>,
     read_buffer: Arc<Mutex<Vec<u8>>>,
     _reader_thread: JoinHandle<()>,
     running: Arc<Mutex<bool>>,
@@ -50,6 +51,11 @@ impl PtyBackend {
         // Get a reader from the master PTY
         let mut reader = master
             .try_clone_reader()
+            .map_err(|e| PtyError::Pty(e.to_string()))?;
+
+        // Take the writer upfront - this can only be called once
+        let writer = master
+            .take_writer()
             .map_err(|e| PtyError::Pty(e.to_string()))?;
 
         let reader_thread = thread::spawn(move || {
@@ -83,6 +89,7 @@ impl PtyBackend {
 
         Ok(Self {
             master,
+            writer,
             read_buffer,
             _reader_thread: reader_thread,
             running,
@@ -102,13 +109,9 @@ impl PtyBackend {
     }
 
     /// Write bytes to the PTY input.
-    pub(crate) fn write_bytes(&self, bytes: &[u8]) -> Result<(), PtyError> {
-        let mut writer = self
-            .master
-            .take_writer()
-            .map_err(|e| PtyError::Pty(e.to_string()))?;
-        writer.write_all(bytes)?;
-        writer.flush()?;
+    pub(crate) fn write_bytes(&mut self, bytes: &[u8]) -> Result<(), PtyError> {
+        self.writer.write_all(bytes)?;
+        self.writer.flush()?;
         Ok(())
     }
 

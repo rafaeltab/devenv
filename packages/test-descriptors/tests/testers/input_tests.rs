@@ -44,8 +44,12 @@ fn press_key_enter() {
     asserter.type_text("line2");
     asserter.wait_for_settle();
 
-    asserter.find_text("line1").assert_visible();
-    asserter.find_text("line2").assert_visible();
+    // Use find_all_text since cat echoes back the input after Enter,
+    // causing "line1" to appear twice (typed + echoed)
+    let line1_matches = asserter.find_all_text("line1");
+    let line2_matches = asserter.find_all_text("line2");
+    assert!(!line1_matches.is_empty(), "line1 should be visible");
+    assert!(!line2_matches.is_empty(), "line2 should be visible");
 
     asserter.send_keys(&[Key::Char('d').with_modifier(Modifier::Ctrl)]);
 }

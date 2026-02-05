@@ -179,12 +179,16 @@ fn test_overwrite_mode() {
     .create();
 
     // Print AAAAA, move to column 2, print BB
+    // After AAAAA: cursor at col 5, screen shows "AAAAA"
+    // Move to row 1, col 2 (1-indexed) = col 1 (0-indexed)
+    // Print BB: overwrites positions 1 and 2
+    // Result: A at 0, B at 1, B at 2, A at 3, A at 4 = "ABBAA"
     let cmd = Command::new("printf").args(&["\x1b[2J\x1b[HAAAAA\x1b[1;2HBB"]);
     let mut asserter = env.testers().pty().run(&cmd);
     asserter.wait_for_settle();
 
-    // Result should be ABBBA
-    asserter.find_text("ABBBA").assert_visible();
+    // Result should be ABBAA (B overwrites positions 1 and 2)
+    asserter.find_text("ABBAA").assert_visible();
 }
 
 /// Tab stops at column 8, 16, 24...
