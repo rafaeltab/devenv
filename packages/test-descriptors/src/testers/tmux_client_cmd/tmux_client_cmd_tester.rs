@@ -27,7 +27,7 @@ impl CommandTester for TmuxClientCmdTester<'_> {
         let separator = format!("===SEP_{}===", Uuid::new_v4().simple());
         let exit_marker = format!("===EXIT_{}===", Uuid::new_v4().simple());
 
-        // Build the command setup (env vars and cwd)
+        // Build the command setup (env vars only, cwd is handled by run-shell -c)
         let mut setup_parts = vec![];
 
         // Export environment variables
@@ -35,13 +35,6 @@ impl CommandTester for TmuxClientCmdTester<'_> {
             // Escape single quotes in values
             let escaped_value = value.replace('\'', "'\\''");
             setup_parts.push(format!("export {}='{}'", key, escaped_value));
-        }
-
-        // Change directory if specified
-        if let Some(cwd) = cmd.get_cwd() {
-            let cwd_str = cwd.to_string_lossy();
-            let escaped_cwd = cwd_str.replace('\'', "'\\''");
-            setup_parts.push(format!("cd '{}'", escaped_cwd));
         }
 
         // Build the actual command with properly escaped arguments
@@ -65,7 +58,7 @@ impl CommandTester for TmuxClientCmdTester<'_> {
             format!("'{}' {}", escaped_program, args)
         };
 
-        // Build the setup portion (env + cd)
+        // Build the setup portion (env vars only)
         let setup = if setup_parts.is_empty() {
             String::new()
         } else {
@@ -87,13 +80,18 @@ impl CommandTester for TmuxClientCmdTester<'_> {
             exit_marker = exit_marker
         );
 
-        // Execute via tmux run-shell
-        // Note: We don't use -t flag because that sends output to the pane
-        // instead of returning it. Without -t, output goes to stdout but
-        // $TMUX is still set because we're running in the tmux server context.
-        // The client reference is kept to ensure a client exists (required by API).
+        // Execute via tmux run-shell with -c for working directory
+        // If cwd is specified, use -c to set the starting directory
+        // This ensures std::env::current_dir() returns the correct path
         let _ = self.client; // Ensure client exists
-        let output = self.socket.run_tmux(&["run-shell", &script]);
+        let output = if let Some(cwd) = cmd.get_cwd() {
+            let cwd_str = cwd.to_string_lossy();
+            self.socket
+                .run_tmux(&["run-shell", "-c", &cwd_str, &script])
+        } else {
+            self.socket.run_tmux(&["run-shell", &script])
+        };
+
         match output {
             Ok(raw_output) => self.parse_output(&raw_output, &separator, &exit_marker),
             Err(e) => CommandResult {

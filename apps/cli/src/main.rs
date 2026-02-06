@@ -351,6 +351,7 @@ fn main() -> Result<(), io::Error> {
                         worktree_storage: &storage,
                         session_repository: tmux_repository,
                         client_repository: tmux_repository,
+                        tmux_storage: &storage,
                     })
                 }
                 WorktreeCommands::Complete(args) => {
