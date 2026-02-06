@@ -1,6 +1,6 @@
 //! Command to start a new git worktree
 
-use std::path::Path;
+use std::{path::Path, process::exit};
 
 use duct::cmd;
 use inquire::Confirm;
@@ -27,7 +27,7 @@ use crate::{
         },
     },
     infrastructure::git::{self, symlink::create_symlinks, BranchLocation, GitError},
-    storage::worktree::WorktreeStorage,
+    storage::{tmux::TmuxStorage, worktree::WorktreeStorage},
     utils::path::expand_path,
 };
 
@@ -49,6 +49,8 @@ pub struct WorktreeStartOptions<'a> {
     pub session_repository: &'a dyn TmuxSessionRepository,
     /// Repository for tmux client operations
     pub client_repository: &'a dyn TmuxClientRepository,
+    /// Storage for tmux configuration
+    pub tmux_storage: &'a dyn TmuxStorage,
 }
 
 /// Result of the worktree start command
@@ -106,6 +108,7 @@ impl RafaeltabCommand<WorktreeStartOptions<'_>> for WorktreeStartCommand {
             }
             WorktreeStartResult::Failed(err) => {
                 eprintln!("Error: {}", err);
+                exit(1);
             }
         }
     }
@@ -306,8 +309,13 @@ impl WorktreeStartCommand {
         let session_name = format!("{}-{}", workspace.name, options.branch_name);
 
         // Create a session description for the worktree
-        let session =
-            create_tmux_session(options.session_repository, &session_name, &worktree_path);
+        let session = create_tmux_session(
+            options.session_repository,
+            &session_name,
+            &worktree_path,
+            &workspace.id,
+            options.tmux_storage,
+        );
 
         // 17. If onCreate failed, don't switch to session
         if let Some((failed_cmd, error)) = on_create_failed {
@@ -336,12 +344,20 @@ impl WorktreeStartCommand {
 /// Find the workspace that contains the given path.
 /// When workspaces are nested, returns the most specific (longest path) match.
 fn find_workspace_for_path<'a>(path: &Path, workspaces: &'a [Workspace]) -> Option<&'a Workspace> {
-    let path_str = path.to_string_lossy();
+    // Canonicalize the input path to handle symlinks and relative paths
+    let canonical_path = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    let path_str = canonical_path.to_string_lossy();
 
-    // Build a list of (workspace_id, expanded_path) for lookup
+    // Build a list of (workspace_id, expanded_and_canonicalized_path) for lookup
     let workspace_paths: Vec<(&str, String)> = workspaces
         .iter()
-        .map(|ws| (ws.id.as_str(), expand_path(&ws.path)))
+        .map(|ws| {
+            let expanded = expand_path(&ws.path);
+            let canonical = std::fs::canonicalize(&expanded)
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or(expanded);
+            (ws.id.as_str(), canonical)
+        })
         .collect();
 
     // Find the most specific workspace ID
@@ -373,10 +389,12 @@ fn create_tmux_session(
     session_repository: &dyn TmuxSessionRepository,
     session_name: &str,
     worktree_path: &Path,
+    workspace_id: &str,
+    tmux_storage: &dyn TmuxStorage,
 ) -> Option<crate::domain::tmux_workspaces::aggregates::tmux::session::TmuxSession> {
-    use crate::domain::tmux_workspaces::aggregates::tmux::description::{
-        session::{PathSessionDescription, SessionDescription, SessionKind},
-        window::WindowDescription,
+    use crate::commands::tmux::session_utils::get_windows_for_workspace;
+    use crate::domain::tmux_workspaces::aggregates::tmux::description::session::{
+        PathSessionDescription, SessionDescription, SessionKind,
     };
     use uuid::{uuid, Uuid};
 
@@ -389,16 +407,7 @@ fn create_tmux_session(
         kind: SessionKind::Path(PathSessionDescription {
             path: worktree_path.to_string_lossy().to_string(),
         }),
-        windows: vec![
-            WindowDescription {
-                name: "neovim".to_string(),
-                command: Some("nvim .".to_string()),
-            },
-            WindowDescription {
-                name: "shell".to_string(),
-                command: None,
-            },
-        ],
+        windows: get_windows_for_workspace(workspace_id, tmux_storage),
         session: None,
     };
 

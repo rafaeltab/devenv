@@ -61,21 +61,25 @@ pub fn test_cli_integration() {
     );
 
     // Build expected output using the actual test directory paths
+    // Canonicalize paths to handle macOS /private symlinks and other OS-specific path differences
+    let canonical_root =
+        std::fs::canonicalize(root_path).unwrap_or_else(|_| root_path.to_path_buf());
+
     let expected_dotfiles = format!(
         "Dotfiles (dotfiles): {} [\"dotfiles\", \"lua\"]",
-        root_path.join("dotfiles").display()
+        canonical_root.join("dotfiles").display()
     );
     let expected_notes = format!(
         "Notes (coding_knowledge): {} [\"notes\", \"markdown\"]",
-        root_path.join("notes/coding_knowledge").display()
+        canonical_root.join("notes/coding_knowledge").display()
     );
     let expected_rafaeltab = format!(
         "Rafaeltab cli (rafaeltab_cli): {} [\"rafaeltab\", \"rust\"]",
-        root_path.join("source/rafaeltab").display()
+        canonical_root.join("source/rafaeltab").display()
     );
     let expected_analyzer = format!(
         "Code analyzer (code_analyzer): {} [\"rust\"]",
-        root_path.join("source/code_analyzer").display()
+        canonical_root.join("source/code_analyzer").display()
     );
 
     // Verify all workspaces are in the output

@@ -1,4 +1,6 @@
 use super::changes::{StagedBuilder, StagedChanges, UnstagedBuilder, UnstagedChanges};
+use super::tmux::SessionBuilder;
+use crate::builders::tmux::HierarchicalTmuxSessionDescriptor;
 use crate::descriptor::{
     BranchDescriptor, CommitDescriptor, CreateContext, CreateError, Descriptor, GitRepoDescriptor,
     RemoteDescriptor,
@@ -13,6 +15,7 @@ pub struct GitBuilder {
     initial_branch: Option<String>,
     staged: Option<StagedChanges>,
     unstaged: Option<UnstagedChanges>,
+    tmux_sessions: Vec<HierarchicalTmuxSessionDescriptor>,
 }
 
 impl GitBuilder {
@@ -25,6 +28,7 @@ impl GitBuilder {
             initial_branch: None,
             staged: None,
             unstaged: None,
+            tmux_sessions: Vec::new(),
         }
     }
 
@@ -79,6 +83,16 @@ impl GitBuilder {
         self.unstaged = Some(builder.build());
     }
 
+    /// Create a tmux session with working directory set to this repository
+    pub fn tmux_session<F>(&mut self, name: &str, f: F)
+    where
+        F: FnOnce(&mut SessionBuilder),
+    {
+        let mut builder = SessionBuilder::new(name, self.repo_path());
+        f(&mut builder);
+        self.tmux_sessions.push(builder.build());
+    }
+
     pub(crate) fn build(self) -> HierarchicalGitRepoDescriptor {
         HierarchicalGitRepoDescriptor {
             name: self.name,
@@ -88,6 +102,7 @@ impl GitBuilder {
             initial_branch: self.initial_branch.unwrap_or_else(|| "main".to_string()),
             staged: self.staged,
             unstaged: self.unstaged,
+            tmux_sessions: self.tmux_sessions,
         }
     }
 }
@@ -208,6 +223,7 @@ pub struct HierarchicalGitRepoDescriptor {
     initial_branch: String,
     staged: Option<StagedChanges>,
     unstaged: Option<UnstagedChanges>,
+    tmux_sessions: Vec<HierarchicalTmuxSessionDescriptor>,
 }
 
 impl Descriptor for HierarchicalGitRepoDescriptor {
@@ -259,6 +275,11 @@ impl Descriptor for HierarchicalGitRepoDescriptor {
             .registry()
             .borrow_mut()
             .register_git_repo(self.name.clone(), path);
+
+        // Create tmux sessions (working dir will be the repo path)
+        for session in &self.tmux_sessions {
+            session.create(context)?;
+        }
 
         Ok(())
     }

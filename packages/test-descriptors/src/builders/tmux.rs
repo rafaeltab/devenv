@@ -37,7 +37,7 @@ pub struct SessionBuilder {
 }
 
 impl SessionBuilder {
-    pub(crate) fn new(name: &str, parent_path: PathBuf) -> Self {
+    pub fn new(name: &str, parent_path: PathBuf) -> Self {
         Self {
             name: name.to_string(),
             parent_path,
