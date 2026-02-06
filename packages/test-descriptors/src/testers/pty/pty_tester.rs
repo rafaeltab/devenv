@@ -74,6 +74,12 @@ impl TuiTester for PtyTester {
         for arg in cmd.build_args() {
             pty_cmd.arg(arg);
         }
+
+        // Preserve PATH so the command can find executables
+        if let Ok(path) = std::env::var("PATH") {
+            pty_cmd.env("PATH", path);
+        }
+
         for (key, value) in cmd.build_env() {
             pty_cmd.env(key, value);
         }
@@ -88,7 +94,7 @@ impl TuiTester for PtyTester {
             .expect("Failed to spawn command in PTY");
 
         // 4. Create the PtyBackend from the master PTY
-        let backend = PtyBackend::new(pty_pair.master).expect("Failed to create PTY backend");
+        let backend = PtyBackend::new(pty_pair).expect("Failed to create PTY backend");
 
         // 5. Create and return the PtyAsserter
         PtyAsserter::new(backend, rows, cols, child, self.settle_timeout_ms)

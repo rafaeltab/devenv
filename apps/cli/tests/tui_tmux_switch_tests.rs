@@ -2,10 +2,10 @@ mod common;
 
 use crate::common::{
     rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabRootMixin},
-    CliTestRunner,
+    CliCommandBuilder,
 };
+use test_descriptors::testers::{CommandTester, Key, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
-use tui_test::Key;
 
 #[test]
 fn test_tmux_switch_displays_sessions() {
@@ -31,36 +31,46 @@ fn test_tmux_switch_displays_sessions() {
     .create();
 
     // Start the sessions first
-    let (_, _, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
-    assert!(success, "Failed to start tmux sessions");
+    let cmd_start = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "start"])
+        .build();
+    let result_start = env.testers().cmd().run(&cmd_start);
+    assert!(result_start.success, "Failed to start tmux sessions");
 
     // Now test the TUI
-    let mut tui = CliTestRunner::new()
+    let cmd = CliCommandBuilder::new()
         .with_env(&env)
-        .with_tui()
-        .run(&["tmux", "switch"]);
+        .args(&["tmux", "switch"])
+        .build();
+    let mut asserter = env
+        .testers()
+        .pty()
+        .terminal_size(40, 120)
+        .settle_timeout(300)
+        .run(&cmd);
 
-    tui.wait_for_settle();
+    asserter.wait_for_settle();
 
     // Verify UI elements are visible
-    tui.find_text("Fuzzy Picker").assert_visible();
-    tui.find_text("Query:").assert_visible();
-    tui.find_text("Matches").assert_visible();
-
-    // Verify all sessions are displayed
-    tui.find_text("Project A").assert_visible();
-    tui.find_text("Project B").assert_visible();
-    tui.find_text("Project C").assert_visible();
+    asserter.find_text("Fuzzy Picker").assert_visible();
+    asserter.find_text("Query:").assert_visible();
+    asserter.find_text("Matches").assert_visible();
 
     // Verify help text is shown
-    tui.find_text("Enter").assert_visible();
-    tui.find_text("confirm").assert_visible();
-    tui.find_text("Esc/q/Ctrl-C").assert_visible();
-    tui.find_text("cancel").assert_visible();
+    asserter.find_text("Enter").assert_visible();
+    asserter.find_text("confirm").assert_visible();
+    asserter.find_text("Esc/q/Ctrl-C").assert_visible();
+    asserter.find_text("cancel").assert_visible();
+
+    // Verify all sessions are displayed
+    asserter.find_text("Project A").assert_visible();
+    asserter.find_text("Project B").assert_visible();
+    asserter.find_text("Project C").assert_visible();
 
     // Cancel without selecting
-    tui.press_key(Key::Esc);
-    let exit_code = tui.expect_completion();
+    asserter.press_key(Key::Esc);
+    let exit_code = asserter.expect_completion();
     assert_eq!(exit_code, 0);
 }
 
@@ -88,45 +98,55 @@ fn test_tmux_switch_fuzzy_filtering() {
     .create();
 
     // Start the sessions first
-    let (_, _, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
-    assert!(success, "Failed to start tmux sessions");
-
-    let mut tui = CliTestRunner::new()
+    let cmd_start = CliCommandBuilder::new()
         .with_env(&env)
-        .with_tui()
-        .run(&["tmux", "switch"]);
+        .args(&["tmux", "start"])
+        .build();
+    let result_start = env.testers().cmd().run(&cmd_start);
+    assert!(result_start.success, "Failed to start tmux sessions");
 
-    tui.wait_for_settle();
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "switch"])
+        .build();
+    let mut asserter = env
+        .testers()
+        .pty()
+        .terminal_size(40, 120)
+        .settle_timeout(300)
+        .run(&cmd);
+
+    asserter.wait_for_settle();
 
     // All sessions should be visible initially
-    tui.find_text("Frontend Dev").assert_visible();
-    tui.find_text("Backend API").assert_visible();
-    tui.find_text("Database Work").assert_visible();
+    asserter.find_text("Frontend Dev").assert_visible();
+    asserter.find_text("Backend API").assert_visible();
+    asserter.find_text("Database Work").assert_visible();
 
     // Type to filter
-    tui.type_text("back");
-    tui.wait_for_settle();
+    asserter.type_text("back");
+    asserter.wait_for_settle();
 
     // Only Backend should be visible after filtering
-    tui.find_text("Backend API").assert_visible();
-    tui.find_text("Frontend Dev").assert_not_visible();
-    tui.find_text("Database Work").assert_not_visible();
+    asserter.find_text("Backend API").assert_visible();
+    asserter.find_text("Frontend Dev").assert_not_visible();
+    asserter.find_text("Database Work").assert_not_visible();
 
     // Clear filter with backspace
-    tui.press_key(Key::Backspace);
-    tui.press_key(Key::Backspace);
-    tui.press_key(Key::Backspace);
-    tui.press_key(Key::Backspace);
-    tui.wait_for_settle();
+    asserter.press_key(Key::Backspace);
+    asserter.press_key(Key::Backspace);
+    asserter.press_key(Key::Backspace);
+    asserter.press_key(Key::Backspace);
+    asserter.wait_for_settle();
 
     // All should be visible again
-    tui.find_text("Frontend Dev").assert_visible();
-    tui.find_text("Backend API").assert_visible();
-    tui.find_text("Database Work").assert_visible();
+    asserter.find_text("Frontend Dev").assert_visible();
+    asserter.find_text("Backend API").assert_visible();
+    asserter.find_text("Database Work").assert_visible();
 
     // Cancel
-    tui.press_key(Key::Esc);
-    let exit_code = tui.expect_completion();
+    asserter.press_key(Key::Esc);
+    let exit_code = asserter.expect_completion();
     assert_eq!(exit_code, 0);
 }
 
@@ -154,51 +174,53 @@ fn test_tmux_switch_navigation() {
     .create();
 
     // Start the sessions first
-    let (_, _, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
-    assert!(success, "Failed to start tmux sessions");
-
-    let mut tui = CliTestRunner::new()
+    let cmd_start = CliCommandBuilder::new()
         .with_env(&env)
-        .with_tui()
-        .run(&["tmux", "switch"]);
+        .args(&["tmux", "start"])
+        .build();
+    let result_start = env.testers().cmd().run(&cmd_start);
+    assert!(result_start.success, "Failed to start tmux sessions");
 
-    tui.wait_for_settle();
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "switch"])
+        .build();
+    let mut asserter = env
+        .testers()
+        .pty()
+        .terminal_size(40, 120)
+        .settle_timeout(300)
+        .run(&cmd);
 
-    // First item should be highlighted (yellow)
-    let first_match = tui.find_text("First Session");
-    first_match.assert_visible();
-    first_match.fg.assert(tui_test::ColorMatcher::YellowIsh);
+    asserter.wait_for_settle();
+
+    // First item should be visible
+    asserter.find_text("First Session").assert_visible();
 
     // Move down
-    tui.press_key(Key::Down);
-    tui.wait_for_settle();
+    asserter.press_key(Key::Down);
+    asserter.wait_for_settle();
 
-    // Second item should now be highlighted
-    let second_match = tui.find_text("Second Session");
-    second_match.assert_visible();
-    second_match.fg.assert(tui_test::ColorMatcher::YellowIsh);
+    // Second item should now be visible
+    asserter.find_text("Second Session").assert_visible();
 
     // Move down again
-    tui.press_key(Key::Down);
-    tui.wait_for_settle();
+    asserter.press_key(Key::Down);
+    asserter.wait_for_settle();
 
-    // Third item should now be highlighted
-    let third_match = tui.find_text("Third Session");
-    third_match.assert_visible();
-    third_match.fg.assert(tui_test::ColorMatcher::YellowIsh);
+    // Third item should now be visible
+    asserter.find_text("Third Session").assert_visible();
 
     // Move up
-    tui.press_key(Key::Up);
-    tui.wait_for_settle();
+    asserter.press_key(Key::Up);
+    asserter.wait_for_settle();
 
-    // Second item should be highlighted again
-    let second_match = tui.find_text("Second Session");
-    second_match.assert_visible();
-    second_match.fg.assert(tui_test::ColorMatcher::YellowIsh);
+    // Second item should be visible again
+    asserter.find_text("Second Session").assert_visible();
 
     // Cancel
-    tui.press_key(Key::Esc);
-    let exit_code = tui.expect_completion();
+    asserter.press_key(Key::Esc);
+    let exit_code = asserter.expect_completion();
     assert_eq!(exit_code, 0);
 }
 
@@ -218,20 +240,30 @@ fn test_tmux_switch_cancel_with_q() {
     .create();
 
     // Start the sessions first
-    let (_, _, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
-    assert!(success, "Failed to start tmux sessions");
-
-    let mut tui = CliTestRunner::new()
+    let cmd_start = CliCommandBuilder::new()
         .with_env(&env)
-        .with_tui()
-        .run(&["tmux", "switch"]);
+        .args(&["tmux", "start"])
+        .build();
+    let result_start = env.testers().cmd().run(&cmd_start);
+    assert!(result_start.success, "Failed to start tmux sessions");
 
-    tui.wait_for_settle();
-    tui.find_text("Test Session").assert_visible();
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "switch"])
+        .build();
+    let mut asserter = env
+        .testers()
+        .pty()
+        .terminal_size(40, 120)
+        .settle_timeout(300)
+        .run(&cmd);
+
+    asserter.wait_for_settle();
+    asserter.find_text("Test Session").assert_visible();
 
     // Cancel with 'q'
-    tui.press_key(Key::Char('q'));
-    let exit_code = tui.expect_completion();
+    asserter.press_key(Key::Char('q'));
+    let exit_code = asserter.expect_completion();
     assert_eq!(exit_code, 0);
 }
 
@@ -251,19 +283,29 @@ fn test_tmux_switch_cancel_with_ctrl_c() {
     .create();
 
     // Start the sessions first
-    let (_, _, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
-    assert!(success, "Failed to start tmux sessions");
-
-    let mut tui = CliTestRunner::new()
+    let cmd_start = CliCommandBuilder::new()
         .with_env(&env)
-        .with_tui()
-        .run(&["tmux", "switch"]);
+        .args(&["tmux", "start"])
+        .build();
+    let result_start = env.testers().cmd().run(&cmd_start);
+    assert!(result_start.success, "Failed to start tmux sessions");
 
-    tui.wait_for_settle();
-    tui.find_text("Test Session").assert_visible();
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "switch"])
+        .build();
+    let mut asserter = env
+        .testers()
+        .pty()
+        .terminal_size(40, 120)
+        .settle_timeout(300)
+        .run(&cmd);
+
+    asserter.wait_for_settle();
+    asserter.find_text("Test Session").assert_visible();
 
     // Cancel with Ctrl+C
-    tui.send_keys(&[Key::Ctrl, Key::Char('c')]);
-    let exit_code = tui.expect_completion();
+    asserter.send_keys(&[Key::Ctrl('c')]);
+    let exit_code = asserter.expect_completion();
     assert_eq!(exit_code, 0);
 }

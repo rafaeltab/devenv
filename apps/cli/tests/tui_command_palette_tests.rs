@@ -1,8 +1,8 @@
 mod common;
 
-use crate::common::CliTestRunner;
+use common::CliCommandBuilder;
+use test_descriptors::testers::{Key, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
-use tui_test::Key;
 
 #[test]
 fn test_command_palette_displays_commands() {
@@ -12,34 +12,45 @@ fn test_command_palette_displays_commands() {
     })
     .create();
 
-    let mut tui = CliTestRunner::new()
+    let cmd = CliCommandBuilder::new()
         .with_env(&env)
-        .with_tui()
-        .run(&["command-palette", "show"]);
+        .args(&["command-palette", "show"])
+        .build();
+    let mut asserter = env
+        .testers()
+        .pty()
+        .terminal_size(40, 120)
+        .settle_timeout(300)
+        .run(&cmd);
 
-    tui.wait_for_settle();
+    asserter.wait_for_settle();
 
     // Verify UI title is visible
-    tui.find_text("Enter your command:").assert_visible();
+    asserter.find_text("Enter your command:").assert_visible();
 
     // Verify all example commands are displayed
-    tui.find_text("Open workspace").assert_visible();
-    tui.find_text("Add workspace").assert_visible();
-    tui.find_text("Open link").assert_visible();
-    tui.find_text("Github").assert_visible();
+    asserter.find_text("Open workspace").assert_visible();
+    asserter.find_text("Add workspace").assert_visible();
+    asserter.find_text("Open link").assert_visible();
+    asserter.find_text("Github").assert_visible();
 
     // Verify descriptions are shown
-    tui.find_text("Search through the workspaces, and open it")
+    asserter
+        .find_text("Search through the workspaces, and open it")
         .assert_visible();
-    tui.find_text("Create a workspace in the current directory")
+    asserter
+        .find_text("Create a workspace in the current directory")
         .assert_visible();
-    tui.find_text("Search through links, and open them")
+    asserter
+        .find_text("Search through links, and open them")
         .assert_visible();
-    tui.find_text("Open a github repository").assert_visible();
+    asserter
+        .find_text("Open a github repository")
+        .assert_visible();
 
     // Exit with Ctrl+C
-    tui.send_keys(&[Key::Ctrl, Key::Char('c')]);
-    let exit_code = tui.expect_completion();
+    asserter.send_keys(&[Key::Ctrl('c')]);
+    let exit_code = asserter.expect_completion();
     assert_eq!(exit_code, 0);
 }
 
@@ -51,32 +62,38 @@ fn test_command_palette_filters_commands() {
     })
     .create();
 
-    let mut tui = CliTestRunner::new()
+    let cmd = CliCommandBuilder::new()
         .with_env(&env)
-        .with_tui()
-        .run(&["command-palette", "show"]);
+        .args(&["command-palette", "show"])
+        .build();
+    let mut asserter = env
+        .testers()
+        .pty()
+        .terminal_size(40, 120)
+        .settle_timeout(300)
+        .run(&cmd);
 
-    tui.wait_for_settle();
+    asserter.wait_for_settle();
 
     // All commands visible initially
-    tui.find_text("Open workspace").assert_visible();
-    tui.find_text("Add workspace").assert_visible();
-    tui.find_text("Open link").assert_visible();
-    tui.find_text("Github").assert_visible();
+    asserter.find_text("Open workspace").assert_visible();
+    asserter.find_text("Add workspace").assert_visible();
+    asserter.find_text("Open link").assert_visible();
+    asserter.find_text("Github").assert_visible();
 
     // Type to filter
-    tui.type_text("workspace");
-    tui.wait_for_settle();
+    asserter.type_text("workspace");
+    asserter.wait_for_settle();
 
     // Only workspace-related commands should be visible
-    tui.find_text("Open workspace").assert_visible();
-    tui.find_text("Add workspace").assert_visible();
+    asserter.find_text("Open workspace").assert_visible();
+    asserter.find_text("Add workspace").assert_visible();
     // Note: "Open link" and "Github" might still be visible if the filter
     // implementation allows partial matches or if they're always shown
 
     // Exit with Ctrl+C
-    tui.send_keys(&[Key::Ctrl, Key::Char('c')]);
-    let exit_code = tui.expect_completion();
+    asserter.send_keys(&[Key::Ctrl('c')]);
+    let exit_code = asserter.expect_completion();
     assert_eq!(exit_code, 0);
 }
 
@@ -88,37 +105,43 @@ fn test_command_palette_text_input() {
     })
     .create();
 
-    let mut tui = CliTestRunner::new()
+    let cmd = CliCommandBuilder::new()
         .with_env(&env)
-        .with_tui()
-        .run(&["command-palette", "show"]);
+        .args(&["command-palette", "show"])
+        .build();
+    let mut asserter = env
+        .testers()
+        .pty()
+        .terminal_size(40, 120)
+        .settle_timeout(300)
+        .run(&cmd);
 
-    tui.wait_for_settle();
+    asserter.wait_for_settle();
 
     // Type some unique text that won't appear in command names
-    tui.type_text("xyz");
-    tui.wait_for_settle();
+    asserter.type_text("xyz");
+    asserter.wait_for_settle();
 
     // The typed text should appear in the command palette
-    tui.find_text("xyz").assert_visible();
+    asserter.find_text("xyz").assert_visible();
 
     // Use backspace to delete
-    tui.press_key(Key::Backspace);
-    tui.wait_for_settle();
+    asserter.press_key(Key::Backspace);
+    asserter.wait_for_settle();
 
     // "xy" should now be visible instead of "xyz"
-    tui.find_text("xy").assert_visible();
+    asserter.find_text("xy").assert_visible();
 
     // Continue deleting
-    tui.press_key(Key::Backspace);
-    tui.wait_for_settle();
+    asserter.press_key(Key::Backspace);
+    asserter.wait_for_settle();
 
     // Input should be empty now, "xy" should not be visible
-    tui.find_text("xy").assert_not_visible();
+    asserter.find_text("xy").assert_not_visible();
 
     // Exit with Ctrl+C
-    tui.send_keys(&[Key::Ctrl, Key::Char('c')]);
-    let exit_code = tui.expect_completion();
+    asserter.send_keys(&[Key::Ctrl('c')]);
+    let exit_code = asserter.expect_completion();
     assert_eq!(exit_code, 0);
 }
 
@@ -130,19 +153,25 @@ fn test_command_palette_enter_completes() {
     })
     .create();
 
-    let mut tui = CliTestRunner::new()
+    let cmd = CliCommandBuilder::new()
         .with_env(&env)
-        .with_tui()
-        .run(&["command-palette", "show"]);
+        .args(&["command-palette", "show"])
+        .build();
+    let mut asserter = env
+        .testers()
+        .pty()
+        .terminal_size(40, 120)
+        .settle_timeout(300)
+        .run(&cmd);
 
-    tui.wait_for_settle();
+    asserter.wait_for_settle();
 
     // Verify command palette is displayed
-    tui.find_text("Enter your command:").assert_visible();
+    asserter.find_text("Enter your command:").assert_visible();
 
     // Press Enter to complete
-    tui.press_key(Key::Enter);
-    let exit_code = tui.expect_completion();
+    asserter.press_key(Key::Enter);
+    let exit_code = asserter.expect_completion();
     assert_eq!(exit_code, 0);
 }
 
@@ -154,18 +183,24 @@ fn test_command_palette_ctrl_c_exits() {
     })
     .create();
 
-    let mut tui = CliTestRunner::new()
+    let cmd = CliCommandBuilder::new()
         .with_env(&env)
-        .with_tui()
-        .run(&["command-palette", "show"]);
+        .args(&["command-palette", "show"])
+        .build();
+    let mut asserter = env
+        .testers()
+        .pty()
+        .terminal_size(40, 120)
+        .settle_timeout(300)
+        .run(&cmd);
 
-    tui.wait_for_settle();
+    asserter.wait_for_settle();
 
     // Verify command palette is displayed
-    tui.find_text("Enter your command:").assert_visible();
+    asserter.find_text("Enter your command:").assert_visible();
 
     // Exit with Ctrl+C
-    tui.send_keys(&[Key::Ctrl, Key::Char('c')]);
-    let exit_code = tui.expect_completion();
+    asserter.send_keys(&[Key::Ctrl('c')]);
+    let exit_code = asserter.expect_completion();
     assert_eq!(exit_code, 0);
 }

@@ -1,6 +1,7 @@
 mod common;
 
-use crate::common::{rafaeltab_descriptors::RafaeltabRootMixin, CliTestRunner};
+use crate::common::{rafaeltab_descriptors::RafaeltabRootMixin, CliCommandBuilder};
+use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
 
 #[test]
@@ -21,12 +22,16 @@ fn test_start_creates_sessions_from_workspace_config() {
     .create();
 
     // Run CLI with isolated tmux socket
-    let (stdout, stderr, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "start"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
 
     assert!(
-        success,
+        result.success,
         "Command failed:\nstdout: {}\nstderr: {}",
-        stdout, stderr
+        result.stdout, result.stderr
     );
 
     // Session name comes from the config, defaults to workspace name if not specified
@@ -56,12 +61,16 @@ fn test_start_is_idempotent() {
 
     // Run tmux start twice
     for i in 1..=2 {
-        let (stdout, stderr, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
+        let cmd = CliCommandBuilder::new()
+            .with_env(&env)
+            .args(&["tmux", "start"])
+            .build();
+        let result = env.testers().cmd().run(&cmd);
 
         assert!(
-            success,
+            result.success,
             "Command failed on run {i}:\nstdout: {}\nstderr: {}",
-            stdout, stderr
+            result.stdout, result.stderr
         );
     }
 
@@ -81,12 +90,16 @@ fn test_start_with_empty_config() {
     })
     .create();
 
-    let (stdout, stderr, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "start"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
 
     assert!(
-        success,
+        result.success,
         "Command failed:\nstdout: {}\nstderr: {}",
-        stdout, stderr
+        result.stdout, result.stderr
     );
 
     let sessions = env.tmux().list_sessions().expect("Failed to list sessions");
@@ -113,12 +126,16 @@ fn test_start_creates_path_based_session() {
     })
     .create();
 
-    let (stdout, stderr, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "start"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
 
     assert!(
-        success,
+        result.success,
         "Command failed:\nstdout: {}\nstderr: {}",
-        stdout, stderr
+        result.stdout, result.stderr
     );
 
     let sessions = env.tmux().list_sessions().expect("Failed to list sessions");
@@ -149,12 +166,16 @@ fn test_start_creates_multiple_sessions() {
     })
     .create();
 
-    let (stdout, stderr, success) = CliTestRunner::new().with_env(&env).run(&["tmux", "start"]);
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "start"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
 
     assert!(
-        success,
+        result.success,
         "Command failed:\nstdout: {}\nstderr: {}",
-        stdout, stderr
+        result.stdout, result.stderr
     );
 
     let sessions = env.tmux().list_sessions().expect("Failed to list sessions");

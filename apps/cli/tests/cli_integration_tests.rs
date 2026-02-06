@@ -1,7 +1,8 @@
 mod common;
 
 use common::rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabGitMixin, RafaeltabRootMixin};
-use common::CliTestRunner;
+use common::CliCommandBuilder;
+use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
 
 #[test]
@@ -27,14 +28,16 @@ fn test_workspace_list_command() {
     .create();
 
     // Run workspace list command to verify it works
-    let (stdout, stderr, success) = CliTestRunner::new()
+    let cmd = CliCommandBuilder::new()
         .with_env(&env)
-        .run(&["workspace", "list"]);
+        .args(&["workspace", "list"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
 
     assert!(
-        success,
+        result.success,
         "workspace list command should succeed.\nSTDOUT: {}\nSTDERR: {}",
-        stdout, stderr
+        result.stdout, result.stderr
     );
 }
 
@@ -63,18 +66,22 @@ fn test_workspace_with_git_repo() {
     assert!(env.root_path().join("my-project/repo/.git").exists());
 
     // Verify workspace is in config
-    let (stdout, stderr, success) = CliTestRunner::new()
+    let cmd = CliCommandBuilder::new()
         .with_env(&env)
-        .run(&["workspace", "list"]);
+        .args(&["workspace", "list"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
 
-    if !success || (!stdout.contains("my_project") && !stdout.contains("My Project")) {
+    if !result.success
+        || (!result.stdout.contains("my_project") && !result.stdout.contains("My Project"))
+    {
         eprintln!("Workspace list output:");
-        eprintln!("STDOUT: {}", stdout);
-        eprintln!("STDERR: {}", stderr);
+        eprintln!("STDOUT: {}", result.stdout);
+        eprintln!("STDERR: {}", result.stderr);
     }
 
     // Just verify the command succeeded - output format may vary
-    assert!(success, "workspace list command should succeed");
+    assert!(result.success, "workspace list command should succeed");
 }
 
 #[test]
@@ -197,18 +204,20 @@ fn test_complex_workspace_scenario() {
     assert_eq!(workspaces.len(), 2);
 
     // Run workspace list
-    let (stdout, stderr, success) = CliTestRunner::new()
+    let cmd = CliCommandBuilder::new()
         .with_env(&env)
-        .run(&["workspace", "list"]);
+        .args(&["workspace", "list"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
 
-    if !success {
+    if !result.success {
         eprintln!("Workspace list output:");
-        eprintln!("STDOUT: {}", stdout);
-        eprintln!("STDERR: {}", stderr);
+        eprintln!("STDOUT: {}", result.stdout);
+        eprintln!("STDERR: {}", result.stderr);
     }
 
     // Just verify the command succeeded - output format may vary
-    assert!(success, "workspace list command should succeed");
+    assert!(result.success, "workspace list command should succeed");
 }
 
 #[test]

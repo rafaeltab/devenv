@@ -2,8 +2,9 @@ mod common;
 
 use crate::common::{
     rafaeltab_descriptors::RafaeltabDirMixin, rafaeltab_descriptors::RafaeltabRootMixin,
-    CliTestRunner,
+    CliCommandBuilder,
 };
+use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
 
 #[test]
@@ -47,14 +48,16 @@ pub fn test_cli_integration() {
 
     let root_path = env.root_path();
 
-    let (stdout, stderr, success) = CliTestRunner::new()
+    let cmd = CliCommandBuilder::new()
         .with_env(&env)
-        .run(&["workspace", "list"]);
+        .args(&["workspace", "list"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
 
     assert!(
-        success,
+        result.success,
         "workspace list command should succeed.\nSTDOUT: {}\nSTDERR: {}",
-        stdout, stderr
+        result.stdout, result.stderr
     );
 
     // Build expected output using the actual test directory paths
@@ -77,32 +80,32 @@ pub fn test_cli_integration() {
 
     // Verify all workspaces are in the output
     assert!(
-        stdout.contains(&expected_dotfiles),
+        result.stdout.contains(&expected_dotfiles),
         "Output should contain dotfiles workspace.\nExpected: {}\nGot: {}",
         expected_dotfiles,
-        stdout
+        result.stdout
     );
     assert!(
-        stdout.contains(&expected_notes),
+        result.stdout.contains(&expected_notes),
         "Output should contain notes workspace.\nExpected: {}\nGot: {}",
         expected_notes,
-        stdout
+        result.stdout
     );
     assert!(
-        stdout.contains(&expected_rafaeltab),
+        result.stdout.contains(&expected_rafaeltab),
         "Output should contain rafaeltab workspace.\nExpected: {}\nGot: {}",
         expected_rafaeltab,
-        stdout
+        result.stdout
     );
     assert!(
-        stdout.contains(&expected_analyzer),
+        result.stdout.contains(&expected_analyzer),
         "Output should contain code analyzer workspace.\nExpected: {}\nGot: {}",
         expected_analyzer,
-        stdout
+        result.stdout
     );
 
     // Verify we have exactly 4 workspaces (4 lines of output)
-    let lines: Vec<&str> = stdout.lines().collect();
+    let lines: Vec<&str> = result.stdout.lines().collect();
     assert_eq!(
         lines.len(),
         4,

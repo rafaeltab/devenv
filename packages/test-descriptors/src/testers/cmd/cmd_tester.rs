@@ -25,6 +25,12 @@ impl CommandTester for CmdTester {
         // Clear environment to ensure we're running "outside tmux"
         // Then add the specified environment variables
         process.env_clear();
+
+        // Preserve PATH so the command can find executables like tmux
+        if let Ok(path) = std::env::var("PATH") {
+            process.env("PATH", path);
+        }
+
         for (key, value) in cmd.build_env() {
             process.env(key, value);
         }
