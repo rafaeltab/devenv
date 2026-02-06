@@ -1,6 +1,7 @@
 mod common;
 
-use common::CliTestRunner;
+use common::CliCommandBuilder;
+use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
 
 /// Test that the --config flag actually uses the specified config file
@@ -28,20 +29,22 @@ pub fn test_config_flag_uses_specified_file() {
 
     std::fs::write(&config_path, input).expect("Failed to write config");
 
-    let (stdout, _stderr, _success) = CliTestRunner::new()
+    let cmd = CliCommandBuilder::new()
         .with_config(&config_path)
-        .run(&["workspace", "list"]);
+        .args(&["workspace", "list"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
 
     // Verify the output contains the unique workspace ID from our temp config
     assert!(
-        stdout.contains("test_workspace_unique_123"),
+        result.stdout.contains("test_workspace_unique_123"),
         "Output should contain the workspace ID from the specified config file.\nGot: {}",
-        stdout
+        result.stdout
     );
     assert!(
-        stdout.contains("Test Workspace Unique"),
+        result.stdout.contains("Test Workspace Unique"),
         "Output should contain the workspace name from the specified config file.\nGot: {}",
-        stdout
+        result.stdout
     );
 }
 
@@ -70,19 +73,21 @@ pub fn test_config_flag_isolates_from_home_config() {
 
     std::fs::write(&config_path, input).expect("Failed to write config");
 
-    let (stdout, _stderr, _success) = CliTestRunner::new()
+    let cmd = CliCommandBuilder::new()
         .with_config(&config_path)
-        .run(&["workspace", "list"]);
+        .args(&["workspace", "list"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
 
     // Verify we only see the isolated workspace
     assert!(
-        stdout.contains("isolated_workspace"),
+        result.stdout.contains("isolated_workspace"),
         "Output should contain the isolated workspace.\nGot: {}",
-        stdout
+        result.stdout
     );
 
     // The output should be a single line (plus newline) for our one workspace
-    let lines: Vec<&str> = stdout.lines().collect();
+    let lines: Vec<&str> = result.stdout.lines().collect();
     assert_eq!(
         lines.len(),
         1,
@@ -148,19 +153,21 @@ pub fn test_multiple_configs_no_crosstalk() {
     let env_a = TestEnvironment::describe(|_root| {}).create();
     let config_path_a = env_a.root_path().join("config.json");
     std::fs::write(&config_path_a, config_a).expect("Failed to write config A");
-    let (stdout_a, _, _) = CliTestRunner::new()
+    let cmd_a = CliCommandBuilder::new()
         .with_config(&config_path_a)
-        .run(&["workspace", "list"]);
+        .args(&["workspace", "list"])
+        .build();
+    let result_a = env_a.testers().cmd().run(&cmd_a);
     assert!(
-        stdout_a.contains("config_a"),
+        result_a.stdout.contains("config_a"),
         "Config A should show config_a"
     );
     assert!(
-        !stdout_a.contains("config_b"),
+        !result_a.stdout.contains("config_b"),
         "Config A should not show config_b"
     );
     assert!(
-        !stdout_a.contains("config_c"),
+        !result_a.stdout.contains("config_c"),
         "Config A should not show config_c"
     );
 
@@ -168,19 +175,21 @@ pub fn test_multiple_configs_no_crosstalk() {
     let env_b = TestEnvironment::describe(|_root| {}).create();
     let config_path_b = env_b.root_path().join("config.json");
     std::fs::write(&config_path_b, config_b).expect("Failed to write config B");
-    let (stdout_b, _, _) = CliTestRunner::new()
+    let cmd_b = CliCommandBuilder::new()
         .with_config(&config_path_b)
-        .run(&["workspace", "list"]);
+        .args(&["workspace", "list"])
+        .build();
+    let result_b = env_b.testers().cmd().run(&cmd_b);
     assert!(
-        !stdout_b.contains("config_a"),
+        !result_b.stdout.contains("config_a"),
         "Config B should not show config_a"
     );
     assert!(
-        stdout_b.contains("config_b"),
+        result_b.stdout.contains("config_b"),
         "Config B should show config_b"
     );
     assert!(
-        !stdout_b.contains("config_c"),
+        !result_b.stdout.contains("config_c"),
         "Config B should not show config_c"
     );
 
@@ -188,19 +197,21 @@ pub fn test_multiple_configs_no_crosstalk() {
     let env_c = TestEnvironment::describe(|_root| {}).create();
     let config_path_c = env_c.root_path().join("config.json");
     std::fs::write(&config_path_c, config_c).expect("Failed to write config C");
-    let (stdout_c, _, _) = CliTestRunner::new()
+    let cmd_c = CliCommandBuilder::new()
         .with_config(&config_path_c)
-        .run(&["workspace", "list"]);
+        .args(&["workspace", "list"])
+        .build();
+    let result_c = env_c.testers().cmd().run(&cmd_c);
     assert!(
-        !stdout_c.contains("config_a"),
+        !result_c.stdout.contains("config_a"),
         "Config C should not show config_a"
     );
     assert!(
-        !stdout_c.contains("config_b"),
+        !result_c.stdout.contains("config_b"),
         "Config C should not show config_b"
     );
     assert!(
-        stdout_c.contains("config_c"),
+        result_c.stdout.contains("config_c"),
         "Config C should show config_c"
     );
 }

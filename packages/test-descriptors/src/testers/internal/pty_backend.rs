@@ -1,4 +1,4 @@
-use portable_pty::{MasterPty, PtySize};
+use portable_pty::{PtyPair, PtySize};
 use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
@@ -34,7 +34,8 @@ impl From<std::io::Error> for PtyError {
 /// This provides a background reader thread and synchronous access
 /// to PTY output for terminal emulation.
 pub(crate) struct PtyBackend {
-    master: Box<dyn MasterPty + Send>,
+    /// The PTY pair - must be kept alive to keep the slave open
+    pty_pair: PtyPair,
     writer: Box<dyn Write + Send>,
     read_buffer: Arc<Mutex<Vec<u8>>>,
     _reader_thread: JoinHandle<()>,
@@ -42,19 +43,21 @@ pub(crate) struct PtyBackend {
 }
 
 impl PtyBackend {
-    pub(crate) fn new(master: Box<dyn MasterPty + Send>) -> Result<Self, PtyError> {
+    pub(crate) fn new(pty_pair: PtyPair) -> Result<Self, PtyError> {
         let read_buffer = Arc::new(Mutex::new(Vec::new()));
         let read_buffer_clone = Arc::clone(&read_buffer);
         let running = Arc::new(Mutex::new(true));
         let running_clone = Arc::clone(&running);
 
         // Get a reader from the master PTY
-        let mut reader = master
+        let mut reader = pty_pair
+            .master
             .try_clone_reader()
             .map_err(|e| PtyError::Pty(e.to_string()))?;
 
         // Take the writer upfront - this can only be called once
-        let writer = master
+        let writer = pty_pair
+            .master
             .take_writer()
             .map_err(|e| PtyError::Pty(e.to_string()))?;
 
@@ -88,7 +91,7 @@ impl PtyBackend {
         });
 
         Ok(Self {
-            master,
+            pty_pair,
             writer,
             read_buffer,
             _reader_thread: reader_thread,
@@ -118,7 +121,8 @@ impl PtyBackend {
     /// Get the PTY size.
     #[allow(dead_code)]
     pub(crate) fn get_size(&self) -> Result<PtySize, PtyError> {
-        self.master
+        self.pty_pair
+            .master
             .get_size()
             .map_err(|e| PtyError::Pty(e.to_string()))
     }
@@ -126,7 +130,8 @@ impl PtyBackend {
     /// Resize the PTY.
     #[allow(dead_code)]
     pub(crate) fn resize(&self, size: PtySize) -> Result<(), PtyError> {
-        self.master
+        self.pty_pair
+            .master
             .resize(size)
             .map_err(|e| PtyError::Pty(e.to_string()))
     }
