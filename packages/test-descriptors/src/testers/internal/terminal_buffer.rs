@@ -1,6 +1,41 @@
-use vte::{Params, Parser, Perform};
+//! TerminalBuffer implementation using wezterm-term
+//!
+//! This is a drop-in replacement for the custom TerminalBuffer,
+//! using the battle-tested wezterm-term library.
+
+use std::io::{self, Write};
+use std::sync::Arc;
+use wezterm_term::color::{ColorAttribute, ColorPalette};
+use wezterm_term::{Terminal as WezTerminal, TerminalConfiguration, TerminalSize};
+
+/// Simple configuration implementation
+#[derive(Debug)]
+struct SimpleConfig {
+    generation: usize,
+}
+
+impl SimpleConfig {
+    fn new() -> Self {
+        Self { generation: 0 }
+    }
+}
+
+impl TerminalConfiguration for SimpleConfig {
+    fn generation(&self) -> usize {
+        self.generation
+    }
+
+    fn scrollback_size(&self) -> usize {
+        0 // No scrollback to match current behavior
+    }
+
+    fn color_palette(&self) -> ColorPalette {
+        ColorPalette::default()
+    }
+}
 
 /// Represents a single cell in the terminal grid.
+/// This matches the existing Cell struct for API compatibility.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Cell {
     pub character: char,
@@ -26,574 +61,290 @@ impl Default for Cell {
     }
 }
 
-/// Terminal buffer for storing and querying terminal output.
-/// Uses VTE parser to process ANSI escape sequences.
-#[derive(Debug, Clone)]
+/// Dummy writer that discards all data (we don't need to write to PTY in tests)
+struct DummyWriter;
+
+impl Write for DummyWriter {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+/// Terminal buffer using wezterm-term for VTE processing
 pub(crate) struct TerminalBuffer {
+    terminal: WezTerminal,
     rows: u16,
     cols: u16,
-    grid: Vec<Vec<Cell>>,
-    cursor_row: u16,
-    cursor_col: u16,
-    // Current attributes for new characters
-    current_fg: (u8, u8, u8),
-    current_bg: (u8, u8, u8),
-    // Saved cursor position
-    saved_cursor: Option<(u16, u16)>,
-    // Scroll region (top, bottom) - 0-indexed
-    scroll_top: u16,
-    scroll_bottom: u16,
+}
+
+impl Clone for TerminalBuffer {
+    fn clone(&self) -> Self {
+        // Create a new terminal with same dimensions
+        let size = TerminalSize {
+            rows: self.rows as usize,
+            cols: self.cols as usize,
+            pixel_width: 0,
+            pixel_height: 0,
+            dpi: 96,
+        };
+        let config: Arc<dyn TerminalConfiguration + Send + Sync> = Arc::new(SimpleConfig::new());
+        let new_terminal = WezTerminal::new(
+            size,
+            config,
+            "test-terminal",
+            "0.1.0",
+            Box::new(DummyWriter),
+        );
+
+        Self {
+            terminal: new_terminal,
+            rows: self.rows,
+            cols: self.cols,
+        }
+    }
+}
+
+impl PartialEq for TerminalBuffer {
+    fn eq(&self, other: &Self) -> bool {
+        // Compare by rendering both terminals
+        self.render() == other.render()
+    }
+}
+
+impl std::fmt::Debug for TerminalBuffer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TerminalBuffer")
+            .field("rows", &self.rows)
+            .field("cols", &self.cols)
+            .field("render", &self.render())
+            .finish()
+    }
 }
 
 impl TerminalBuffer {
     pub(crate) fn new(rows: u16, cols: u16) -> Self {
-        let grid = (0..rows)
-            .map(|_| (0..cols).map(|_| Cell::default()).collect())
-            .collect();
+        let size = TerminalSize {
+            rows: rows as usize,
+            cols: cols as usize,
+            pixel_width: 0,
+            pixel_height: 0,
+            dpi: 96,
+        };
+
+        let config: Arc<dyn TerminalConfiguration + Send + Sync> = Arc::new(SimpleConfig::new());
+
+        let terminal = WezTerminal::new(
+            size,
+            config,
+            "test-terminal",
+            "0.1.0",
+            Box::new(DummyWriter),
+        );
 
         Self {
+            terminal,
             rows,
             cols,
-            grid,
-            cursor_row: 0,
-            cursor_col: 0,
-            current_fg: (255, 255, 255),
-            current_bg: (0, 0, 0),
-            saved_cursor: None,
-            scroll_top: 0,
-            scroll_bottom: rows.saturating_sub(1),
         }
     }
 
     pub(crate) fn process_bytes(&mut self, bytes: &[u8]) {
-        let mut parser = Parser::new();
-        for byte in bytes {
-            parser.advance(self, *byte);
+        self.terminal.advance_bytes(bytes);
+    }
+
+    pub(crate) fn render(&self) -> String {
+        let screen = self.terminal.screen();
+        let mut lines = Vec::new();
+
+        // Get visible lines - screen stores lines in VecDeque
+        // Last N lines are the visible ones
+        let visible_rows = self.rows as usize;
+        let all_lines = screen.lines_in_phys_range(0..screen.scrollback_rows());
+
+        // Get the last visible_rows lines
+        let start_idx = all_lines.len().saturating_sub(visible_rows);
+        let visible_lines = &all_lines[start_idx..];
+
+        for line in visible_lines {
+            let text: String = line
+                .visible_cells()
+                .map(|cell| {
+                    // Handle multi-char cells (wide characters)
+                    cell.str().chars().next().unwrap_or(' ')
+                })
+                .collect();
+            lines.push(text.trim_end().to_string());
         }
+
+        lines.join("\n")
     }
 
     pub(crate) fn screen_content(&self) -> String {
-        self.grid
-            .iter()
-            .map(|row| {
-                let line: String = row.iter().map(|cell| cell.character).collect();
-                line.trim_end().to_string()
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
+        self.render()
     }
 
-    /// Find all occurrences of text in the terminal buffer.
-    /// Returns positions as (row, col) tuples.
     pub(crate) fn find_all_text(&self, text: &str) -> Vec<(u16, u16)> {
         let mut positions = Vec::new();
+        let screen = self.terminal.screen();
 
-        for (row_idx, row) in self.grid.iter().enumerate() {
-            let line: String = row.iter().map(|cell| cell.character).collect();
+        let visible_rows = self.rows as usize;
+        let all_lines = screen.lines_in_phys_range(0..screen.scrollback_rows());
+        let start_idx = all_lines.len().saturating_sub(visible_rows);
+        let visible_lines = &all_lines[start_idx..];
+
+        for (row, line) in visible_lines.iter().enumerate() {
+            let line_text: String = line
+                .visible_cells()
+                .map(|cell| cell.str().to_string())
+                .collect();
+
+            // Search for all occurrences in this line
             let mut start = 0;
-            while let Some(pos) = line[start..].find(text) {
-                let col = start + pos;
-                positions.push((row_idx as u16, col as u16));
-                start = col + 1;
+            while let Some(pos) = line_text[start..].find(text) {
+                let absolute_col = start + pos;
+                positions.push((row as u16, absolute_col as u16));
+                start = absolute_col + 1;
             }
         }
 
         positions
     }
 
-    /// Get a cell at the given position.
-    pub(crate) fn get_cell(&self, row: u16, col: u16) -> Option<&Cell> {
-        self.grid
-            .get(row as usize)
-            .and_then(|r| r.get(col as usize))
+    pub(crate) fn get_cell(&self, row: u16, col: u16) -> Option<Cell> {
+        if row >= self.rows || col >= self.cols {
+            return None;
+        }
+
+        let screen = self.terminal.screen();
+        let visible_rows = self.rows as usize;
+        let all_lines = screen.lines_in_phys_range(0..screen.scrollback_rows());
+        let start_idx = all_lines.len().saturating_sub(visible_rows);
+
+        let line = all_lines.get(start_idx + row as usize)?;
+
+        // Get cell at column
+        let cells: Vec<_> = line.visible_cells().collect();
+        if col as usize >= cells.len() {
+            return None;
+        }
+
+        let wez_cell = &cells[col as usize];
+
+        // Convert wezterm cell to our Cell type
+        let character = wez_cell.str().chars().next().unwrap_or(' ');
+
+        // Convert colors from wezterm's format
+        let (fg_r, fg_g, fg_b) = convert_color(wez_cell.attrs().foreground());
+        let (bg_r, bg_g, bg_b) = convert_color(wez_cell.attrs().background());
+
+        Some(Cell {
+            character,
+            fg_r,
+            fg_g,
+            fg_b,
+            bg_r,
+            bg_g,
+            bg_b,
+        })
     }
 
-    /// Render the terminal buffer as a string for debugging.
-    pub(crate) fn render(&self) -> String {
-        self.screen_content()
-    }
-
-    /// Clear the terminal buffer, resetting all cells to default and cursor to (0, 0).
-    /// Used by capture-pane which returns full content each time.
     pub(crate) fn clear(&mut self) {
-        for row in &mut self.grid {
-            for cell in row {
-                *cell = Cell::default();
-            }
-        }
-        self.cursor_row = 0;
-        self.cursor_col = 0;
-        self.current_fg = (255, 255, 255);
-        self.current_bg = (0, 0, 0);
-    }
-
-    fn scroll_up(&mut self) {
-        // Remove the top line of scroll region and add a new blank line at bottom
-        if self.scroll_top < self.scroll_bottom && (self.scroll_bottom as usize) < self.grid.len() {
-            self.grid.remove(self.scroll_top as usize);
-            let new_row = (0..self.cols).map(|_| Cell::default()).collect();
-            self.grid.insert(self.scroll_bottom as usize, new_row);
-        }
-    }
-
-    fn newline(&mut self) {
-        if self.cursor_row >= self.scroll_bottom {
-            self.scroll_up();
-        } else {
-            self.cursor_row += 1;
-        }
-    }
-
-    fn carriage_return(&mut self) {
-        self.cursor_col = 0;
-    }
-
-    fn put_char(&mut self, c: char) {
-        if self.cursor_row < self.rows && self.cursor_col < self.cols {
-            let cell = &mut self.grid[self.cursor_row as usize][self.cursor_col as usize];
-            cell.character = c;
-            cell.fg_r = self.current_fg.0;
-            cell.fg_g = self.current_fg.1;
-            cell.fg_b = self.current_fg.2;
-            cell.bg_r = self.current_bg.0;
-            cell.bg_g = self.current_bg.1;
-            cell.bg_b = self.current_bg.2;
-        }
-
-        self.cursor_col += 1;
-        if self.cursor_col >= self.cols {
-            self.cursor_col = 0;
-            self.newline();
-        }
-    }
-
-    fn parse_sgr(&mut self, params: &Params) {
-        let mut iter = params.iter();
-
-        while let Some(param) = iter.next() {
-            let code = param.first().copied().unwrap_or(0);
-            match code {
-                0 => {
-                    // Reset
-                    self.current_fg = (255, 255, 255);
-                    self.current_bg = (0, 0, 0);
-                }
-                30..=37 => {
-                    // Standard foreground colors
-                    self.current_fg = Self::standard_color(code - 30);
-                }
-                38 => {
-                    // Extended foreground color
-                    if let Some(mode) = iter.next() {
-                        match mode.first().copied().unwrap_or(0) {
-                            2 => {
-                                // RGB
-                                let r =
-                                    iter.next().and_then(|p| p.first().copied()).unwrap_or(0) as u8;
-                                let g =
-                                    iter.next().and_then(|p| p.first().copied()).unwrap_or(0) as u8;
-                                let b =
-                                    iter.next().and_then(|p| p.first().copied()).unwrap_or(0) as u8;
-                                self.current_fg = (r, g, b);
-                            }
-                            5 => {
-                                // 256 color
-                                let idx =
-                                    iter.next().and_then(|p| p.first().copied()).unwrap_or(0) as u8;
-                                self.current_fg = Self::color_256(idx);
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-                39 => {
-                    // Default foreground
-                    self.current_fg = (255, 255, 255);
-                }
-                40..=47 => {
-                    // Standard background colors
-                    self.current_bg = Self::standard_color(code - 40);
-                }
-                48 => {
-                    // Extended background color
-                    if let Some(mode) = iter.next() {
-                        match mode.first().copied().unwrap_or(0) {
-                            2 => {
-                                // RGB
-                                let r =
-                                    iter.next().and_then(|p| p.first().copied()).unwrap_or(0) as u8;
-                                let g =
-                                    iter.next().and_then(|p| p.first().copied()).unwrap_or(0) as u8;
-                                let b =
-                                    iter.next().and_then(|p| p.first().copied()).unwrap_or(0) as u8;
-                                self.current_bg = (r, g, b);
-                            }
-                            5 => {
-                                // 256 color
-                                let idx =
-                                    iter.next().and_then(|p| p.first().copied()).unwrap_or(0) as u8;
-                                self.current_bg = Self::color_256(idx);
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-                49 => {
-                    // Default background
-                    self.current_bg = (0, 0, 0);
-                }
-                90..=97 => {
-                    // Bright foreground colors
-                    self.current_fg = Self::bright_color(code - 90);
-                }
-                100..=107 => {
-                    // Bright background colors
-                    self.current_bg = Self::bright_color(code - 100);
-                }
-                _ => {}
-            }
-        }
-    }
-
-    fn standard_color(idx: u16) -> (u8, u8, u8) {
-        match idx {
-            0 => (0, 0, 0),       // Black
-            1 => (205, 0, 0),     // Red
-            2 => (0, 205, 0),     // Green
-            3 => (205, 205, 0),   // Yellow
-            4 => (0, 0, 238),     // Blue
-            5 => (205, 0, 205),   // Magenta
-            6 => (0, 205, 205),   // Cyan
-            7 => (229, 229, 229), // White
-            _ => (255, 255, 255),
-        }
-    }
-
-    fn bright_color(idx: u16) -> (u8, u8, u8) {
-        match idx {
-            0 => (127, 127, 127), // Bright Black (Gray)
-            1 => (255, 0, 0),     // Bright Red
-            2 => (0, 255, 0),     // Bright Green
-            3 => (255, 255, 0),   // Bright Yellow
-            4 => (92, 92, 255),   // Bright Blue
-            5 => (255, 0, 255),   // Bright Magenta
-            6 => (0, 255, 255),   // Bright Cyan
-            7 => (255, 255, 255), // Bright White
-            _ => (255, 255, 255),
-        }
-    }
-
-    fn color_256(idx: u8) -> (u8, u8, u8) {
-        match idx {
-            0..=15 => {
-                // Standard + bright colors
-                if idx < 8 {
-                    Self::standard_color(idx as u16)
-                } else {
-                    Self::bright_color((idx - 8) as u16)
-                }
-            }
-            16..=231 => {
-                // 216 color cube: 6x6x6
-                let idx = idx - 16;
-                let r = (idx / 36) % 6;
-                let g = (idx / 6) % 6;
-                let b = idx % 6;
-                let to_rgb = |c: u8| if c == 0 { 0 } else { 55 + c * 40 };
-                (to_rgb(r), to_rgb(g), to_rgb(b))
-            }
-            232..=255 => {
-                // Grayscale: 24 shades
-                let gray = 8 + (idx - 232) * 10;
-                (gray, gray, gray)
-            }
-        }
+        // Reset the terminal to initial state
+        let size = TerminalSize {
+            rows: self.rows as usize,
+            cols: self.cols as usize,
+            pixel_width: 0,
+            pixel_height: 0,
+            dpi: 96,
+        };
+        let config: Arc<dyn TerminalConfiguration + Send + Sync> = Arc::new(SimpleConfig::new());
+        self.terminal = WezTerminal::new(
+            size,
+            config,
+            "test-terminal",
+            "0.1.0",
+            Box::new(DummyWriter),
+        );
     }
 }
 
-impl Perform for TerminalBuffer {
-    fn print(&mut self, c: char) {
-        self.put_char(c);
-    }
-
-    fn execute(&mut self, byte: u8) {
-        match byte {
-            0x08 => {
-                // Backspace
-                if self.cursor_col > 0 {
-                    self.cursor_col -= 1;
-                }
-            }
-            0x09 => {
-                // Tab - move to next tab stop (every 8 columns)
-                self.cursor_col = ((self.cursor_col / 8) + 1) * 8;
-                if self.cursor_col >= self.cols {
-                    self.cursor_col = self.cols - 1;
-                }
-            }
-            0x0A | 0x0B | 0x0C => {
-                // LF, VT, FF - newline
-                self.newline();
-            }
-            0x0D => {
-                // CR
-                self.carriage_return();
-            }
-            _ => {}
+/// Convert wezterm color to RGB
+fn convert_color(color: ColorAttribute) -> (u8, u8, u8) {
+    match color {
+        ColorAttribute::TrueColorWithPaletteFallback(rgb, _) => {
+            // rgb is SrgbaTuple(f32, f32, f32, f32) - convert to u8
+            (
+                (rgb.0 * 255.0) as u8,
+                (rgb.1 * 255.0) as u8,
+                (rgb.2 * 255.0) as u8,
+            )
         }
-    }
-
-    fn csi_dispatch(
-        &mut self,
-        params: &Params,
-        _intermediates: &[u8],
-        _ignore: bool,
-        action: char,
-    ) {
-        let first_param = params.iter().next().and_then(|p| p.first().copied());
-        let second_param = params.iter().nth(1).and_then(|p| p.first().copied());
-
-        match action {
-            'A' => {
-                // Cursor Up
-                let n = first_param.unwrap_or(1).max(1) as u16;
-                self.cursor_row = self.cursor_row.saturating_sub(n);
-            }
-            'B' => {
-                // Cursor Down
-                let n = first_param.unwrap_or(1).max(1) as u16;
-                self.cursor_row = (self.cursor_row + n).min(self.rows - 1);
-            }
-            'C' => {
-                // Cursor Forward
-                let n = first_param.unwrap_or(1).max(1) as u16;
-                self.cursor_col = (self.cursor_col + n).min(self.cols - 1);
-            }
-            'D' => {
-                // Cursor Back
-                let n = first_param.unwrap_or(1).max(1) as u16;
-                self.cursor_col = self.cursor_col.saturating_sub(n);
-            }
-            'E' => {
-                // Cursor Next Line
-                let n = first_param.unwrap_or(1).max(1) as u16;
-                self.cursor_row = (self.cursor_row + n).min(self.rows - 1);
-                self.cursor_col = 0;
-            }
-            'F' => {
-                // Cursor Previous Line
-                let n = first_param.unwrap_or(1).max(1) as u16;
-                self.cursor_row = self.cursor_row.saturating_sub(n);
-                self.cursor_col = 0;
-            }
-            'G' => {
-                // Cursor Horizontal Absolute
-                let col = first_param.unwrap_or(1).max(1) as u16;
-                self.cursor_col = (col - 1).min(self.cols - 1);
-            }
-            'H' | 'f' => {
-                // Cursor Position
-                let row = first_param.unwrap_or(1).max(1) as u16;
-                let col = second_param.unwrap_or(1).max(1) as u16;
-                self.cursor_row = (row - 1).min(self.rows - 1);
-                self.cursor_col = (col - 1).min(self.cols - 1);
-            }
-            'J' => {
-                // Erase in Display
-                let mode = first_param.unwrap_or(0);
-                match mode {
-                    0 => {
-                        // Clear from cursor to end of screen
-                        for col in self.cursor_col..self.cols {
-                            self.grid[self.cursor_row as usize][col as usize] = Cell::default();
-                        }
-                        for row in (self.cursor_row + 1)..self.rows {
-                            for col in 0..self.cols {
-                                self.grid[row as usize][col as usize] = Cell::default();
-                            }
-                        }
-                    }
-                    1 => {
-                        // Clear from start to cursor
-                        for row in 0..self.cursor_row {
-                            for col in 0..self.cols {
-                                self.grid[row as usize][col as usize] = Cell::default();
-                            }
-                        }
-                        for col in 0..=self.cursor_col {
-                            self.grid[self.cursor_row as usize][col as usize] = Cell::default();
-                        }
-                    }
-                    2 | 3 => {
-                        // Clear entire screen
-                        for row in 0..self.rows {
-                            for col in 0..self.cols {
-                                self.grid[row as usize][col as usize] = Cell::default();
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            'K' => {
-                // Erase in Line
-                let mode = first_param.unwrap_or(0);
-                match mode {
-                    0 => {
-                        // Clear from cursor to end of line
-                        for col in self.cursor_col..self.cols {
-                            self.grid[self.cursor_row as usize][col as usize] = Cell::default();
-                        }
-                    }
-                    1 => {
-                        // Clear from start to cursor
-                        for col in 0..=self.cursor_col {
-                            self.grid[self.cursor_row as usize][col as usize] = Cell::default();
-                        }
-                    }
-                    2 => {
-                        // Clear entire line
-                        for col in 0..self.cols {
-                            self.grid[self.cursor_row as usize][col as usize] = Cell::default();
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            'L' => {
-                // Insert Lines
-                let n = first_param.unwrap_or(1).max(1) as usize;
-                let row = self.cursor_row as usize;
-                for _ in 0..n {
-                    if row < self.grid.len() {
-                        self.grid
-                            .insert(row, (0..self.cols).map(|_| Cell::default()).collect());
-                        if self.grid.len() > self.rows as usize {
-                            self.grid.pop();
-                        }
-                    }
-                }
-            }
-            'M' => {
-                // Delete Lines
-                let n = first_param.unwrap_or(1).max(1) as usize;
-                let row = self.cursor_row as usize;
-                for _ in 0..n {
-                    if row < self.grid.len() {
-                        self.grid.remove(row);
-                        self.grid
-                            .push((0..self.cols).map(|_| Cell::default()).collect());
-                    }
-                }
-            }
-            'P' => {
-                // Delete Characters
-                let n = first_param.unwrap_or(1).max(1) as usize;
-                let row = &mut self.grid[self.cursor_row as usize];
-                let col = self.cursor_col as usize;
-                for _ in 0..n {
-                    if col < row.len() {
-                        row.remove(col);
-                        row.push(Cell::default());
-                    }
-                }
-            }
-            '@' => {
-                // Insert Characters
-                let n = first_param.unwrap_or(1).max(1) as usize;
-                let row = &mut self.grid[self.cursor_row as usize];
-                let col = self.cursor_col as usize;
-                for _ in 0..n {
-                    if col < row.len() {
-                        row.insert(col, Cell::default());
-                        row.pop();
-                    }
-                }
-            }
-            'm' => {
-                // SGR - Select Graphic Rendition
-                self.parse_sgr(params);
-            }
-            'r' => {
-                // Set Scrolling Region
-                let top = first_param.unwrap_or(1).max(1) as u16;
-                let bottom = second_param.unwrap_or(self.rows as u16).max(1) as u16;
-                self.scroll_top = (top - 1).min(self.rows - 1);
-                self.scroll_bottom = (bottom - 1).min(self.rows - 1);
-            }
-            's' => {
-                // Save Cursor Position
-                self.saved_cursor = Some((self.cursor_row, self.cursor_col));
-            }
-            'u' => {
-                // Restore Cursor Position
-                if let Some((row, col)) = self.saved_cursor {
-                    self.cursor_row = row;
-                    self.cursor_col = col;
-                }
-            }
-            'd' => {
-                // Cursor Vertical Absolute
-                let row = first_param.unwrap_or(1).max(1) as u16;
-                self.cursor_row = (row - 1).min(self.rows - 1);
-            }
-            _ => {}
+        ColorAttribute::TrueColorWithDefaultFallback(rgb) => {
+            // rgb is SrgbaTuple(f32, f32, f32, f32) - convert to u8
+            (
+                (rgb.0 * 255.0) as u8,
+                (rgb.1 * 255.0) as u8,
+                (rgb.2 * 255.0) as u8,
+            )
         }
+        ColorAttribute::PaletteIndex(idx) => ansi_to_rgb(idx),
+        ColorAttribute::Default => (255, 255, 255), // Default to white
     }
-
-    fn esc_dispatch(&mut self, _intermediates: &[u8], _ignore: bool, byte: u8) {
-        match byte {
-            b'7' => {
-                // Save Cursor (DECSC)
-                self.saved_cursor = Some((self.cursor_row, self.cursor_col));
-            }
-            b'8' => {
-                // Restore Cursor (DECRC)
-                if let Some((row, col)) = self.saved_cursor {
-                    self.cursor_row = row;
-                    self.cursor_col = col;
-                }
-            }
-            b'c' => {
-                // Full Reset (RIS)
-                *self = Self::new(self.rows, self.cols);
-            }
-            b'D' => {
-                // Index (IND)
-                self.newline();
-            }
-            b'E' => {
-                // Next Line (NEL)
-                self.carriage_return();
-                self.newline();
-            }
-            b'M' => {
-                // Reverse Index (RI)
-                if self.cursor_row > self.scroll_top {
-                    self.cursor_row -= 1;
-                } else {
-                    // Scroll down
-                    if self.scroll_bottom > self.scroll_top {
-                        self.grid.remove(self.scroll_bottom as usize);
-                        self.grid.insert(
-                            self.scroll_top as usize,
-                            (0..self.cols).map(|_| Cell::default()).collect(),
-                        );
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
-
-    fn hook(&mut self, _params: &Params, _intermediates: &[u8], _ignore: bool, _action: char) {}
-    fn put(&mut self, _byte: u8) {}
-    fn unhook(&mut self) {}
-    fn osc_dispatch(&mut self, _params: &[&[u8]], _bell_terminated: bool) {}
 }
 
-impl PartialEq for TerminalBuffer {
-    fn eq(&self, other: &Self) -> bool {
-        self.grid == other.grid
+/// Convert ANSI 256 color index to RGB
+fn ansi_to_rgb(idx: u8) -> (u8, u8, u8) {
+    match idx {
+        0..=7 => {
+            // Standard colors
+            let intensity = if idx == 0 { 0 } else { 128 };
+            match idx {
+                0 => (0, 0, 0),
+                1 => (intensity, 0, 0),
+                2 => (0, intensity, 0),
+                3 => (intensity, intensity, 0),
+                4 => (0, 0, intensity),
+                5 => (intensity, 0, intensity),
+                6 => (0, intensity, intensity),
+                7 => (intensity, intensity, intensity),
+                _ => unreachable!(),
+            }
+        }
+        8..=15 => {
+            // High intensity colors
+            let val = 255;
+            match idx {
+                8 => (64, 64, 64),
+                9 => (val, 64, 64),
+                10 => (64, val, 64),
+                11 => (val, val, 64),
+                12 => (64, 64, val),
+                13 => (val, 64, val),
+                14 => (64, val, val),
+                15 => (val, val, val),
+                _ => unreachable!(),
+            }
+        }
+        16..=231 => {
+            // 6x6x6 color cube
+            let idx = idx - 16;
+            let r = (idx / 36) as u8;
+            let g = ((idx % 36) / 6) as u8;
+            let b = (idx % 6) as u8;
+            (
+                if r == 0 { 0 } else { r * 40 + 55 },
+                if g == 0 { 0 } else { g * 40 + 55 },
+                if b == 0 { 0 } else { b * 40 + 55 },
+            )
+        }
+        232..=255 => {
+            // Grayscale
+            let gray = (idx - 232) as u8 * 10 + 8;
+            (gray, gray, gray)
+        }
     }
 }
