@@ -121,16 +121,65 @@ impl TestEnvironment {
     }
 
     /// Find a tmux session by name (query API)
+    ///
+    /// Returns the session if it exists in the tmux server.
+    /// Works for both registry-created sessions and externally-created sessions.
+    /// For external sessions, queries tmux for the working directory.
     pub fn find_tmux_session(&self, name: &str) -> Option<TmuxSessionRef<'_>> {
-        self.context
-            .registry()
-            .borrow()
-            .get_tmux_session(name)
-            .map(|info| TmuxSessionRef {
-                name: info.name.clone(),
-                working_dir: info.working_dir.clone(),
-                env: self,
+        // First check if it actually exists in tmux
+        if !self.tmux_socket.session_exists(name) {
+            return None;
+        }
+
+        // Try to get info from registry first (more reliable)
+        let working_dir = {
+            let registry = self.context.registry().borrow();
+            if let Some(info) = registry.get_tmux_session(name) {
+                info.working_dir.clone()
+            } else {
+                // Fall back to querying tmux for external sessions
+                self.tmux_socket.get_session_path(name)?
+            }
+        };
+
+        Some(TmuxSessionRef {
+            name: name.to_string(),
+            working_dir,
+            env: self,
+        })
+    }
+
+    /// List all tmux sessions that exist in the tmux server
+    ///
+    /// Returns sessions by querying the actual tmux server via TmuxSocket.
+    /// Includes both registry-created sessions and externally-created sessions.
+    /// For external sessions, queries tmux for the working directory.
+    pub fn list_tmux_sessions(&self) -> Vec<TmuxSessionRef<'_>> {
+        let session_names = match self.tmux_socket.list_sessions() {
+            Ok(names) => names,
+            Err(_) => return vec![],
+        };
+
+        let registry = self.context.registry().borrow();
+
+        session_names
+            .into_iter()
+            .filter_map(|name| {
+                // Try registry first for working dir
+                let working_dir = if let Some(info) = registry.get_tmux_session(&name) {
+                    info.working_dir.clone()
+                } else {
+                    // Fall back to querying tmux for external sessions
+                    self.tmux_socket.get_session_path(&name)?
+                };
+
+                Some(TmuxSessionRef {
+                    name,
+                    working_dir,
+                    env: self,
+                })
             })
+            .collect()
     }
 
     /// Find a git worktree by repository name and branch (query API)

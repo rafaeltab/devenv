@@ -1,4 +1,5 @@
 use super::error::CreateError;
+use std::path::PathBuf;
 use std::process::Command;
 use uuid::Uuid;
 
@@ -59,6 +60,24 @@ impl TmuxSocket {
         // Try to kill server, ignore errors if no server is running
         let _ = self.run_tmux(&["kill-server"]);
         Ok(())
+    }
+
+    /// Get the working directory (session_path) for a tmux session
+    ///
+    /// Returns None if the session doesn't exist.
+    pub fn get_session_path(&self, name: &str) -> Option<PathBuf> {
+        match self.run_tmux(&["list-sessions", "-F", "#{session_name}|#{session_path}"]) {
+            Ok(output) => {
+                for line in output.lines() {
+                    let parts: Vec<&str> = line.split('|').collect();
+                    if parts.len() >= 2 && parts[0] == name {
+                        return Some(PathBuf::from(parts[1]));
+                    }
+                }
+                None
+            }
+            Err(_) => None,
+        }
     }
 }
 
