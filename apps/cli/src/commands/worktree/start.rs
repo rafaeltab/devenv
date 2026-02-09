@@ -549,4 +549,71 @@ mod tests {
         assert!(merged.on_create.contains(&"npm ci".to_string()));
         assert!(merged.on_create.contains(&"pnpm install".to_string()));
     }
+
+    #[test]
+    fn test_empty_workspace_config_merges_with_global() {
+        // Setup workspace without worktree config
+        let workspace_storage = MockWorkspaceStorage {
+            data: vec![Workspace {
+                id: "no-config-workspace".to_string(),
+                root: "~/test".to_string(),
+                name: "No Config Workspace".to_string(),
+                tags: None,
+                worktree: None,
+            }],
+        };
+
+        let workspace_repository = ImplWorkspaceRepository {
+            workspace_storage: &workspace_storage,
+        };
+
+        // Setup global config
+        let global_config = WorktreeConfig {
+            symlink_files: vec![".env".to_string()],
+            on_create: vec!["npm install".to_string()],
+        };
+
+        // Merge with no workspace config
+        let ws_config =
+            find_workspace_worktree_config("no-config-workspace", &workspace_repository);
+        let merged = MergedWorktreeConfig::merge(Some(&global_config), ws_config.as_ref());
+
+        // Should only have global config
+        assert_eq!(merged.symlink_files.len(), 1);
+        assert_eq!(merged.symlink_files[0], ".env");
+        assert_eq!(merged.on_create.len(), 1);
+        assert_eq!(merged.on_create[0], "npm install");
+    }
+
+    #[test]
+    fn test_no_global_config_uses_workspace_only() {
+        let workspace_config = WorkspaceWorktreeConfig {
+            symlink_files: vec!["package.json".to_string()],
+            on_create: vec!["yarn install".to_string()],
+        };
+
+        let workspace_storage = MockWorkspaceStorage {
+            data: vec![Workspace {
+                id: "workspace-only".to_string(),
+                root: "~/test".to_string(),
+                name: "Workspace Only".to_string(),
+                tags: None,
+                worktree: Some(workspace_config),
+            }],
+        };
+
+        let workspace_repository = ImplWorkspaceRepository {
+            workspace_storage: &workspace_storage,
+        };
+
+        // Merge with no global config
+        let ws_config = find_workspace_worktree_config("workspace-only", &workspace_repository);
+        let merged = MergedWorktreeConfig::merge(None, ws_config.as_ref());
+
+        // Should only have workspace config
+        assert_eq!(merged.symlink_files.len(), 1);
+        assert_eq!(merged.symlink_files[0], "package.json");
+        assert_eq!(merged.on_create.len(), 1);
+        assert_eq!(merged.on_create[0], "yarn install");
+    }
 }

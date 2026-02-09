@@ -87,8 +87,6 @@ importers:
 
   packages/test-utils: {}
 
-  packages/tui-test: {}
-
   scripts: {}
 
 packages:
