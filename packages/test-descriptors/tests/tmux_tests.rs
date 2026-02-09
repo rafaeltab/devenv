@@ -42,6 +42,19 @@ fn test_tmux_socket_session_exists_false() {
 }
 
 #[test]
+fn test_tmux_socket_session_exists_true() {
+    let socket = TmuxSocket::new();
+
+    // Create a session
+    let _ = socket.run_tmux(&["new-session", "-d", "-s", "test-session"]);
+
+    // Verify session_exists returns true for existing session
+    assert!(socket.session_exists("test-session"));
+
+    let _ = socket.kill_server();
+}
+
+#[test]
 fn test_tmux_socket_kill_server() {
     let socket = TmuxSocket::new();
 
