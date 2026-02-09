@@ -58,10 +58,9 @@ let mut tui = run_cli_tui(&["tmux", "switch"], ...);
 
 ### Solution Strategy
 
-1. **Keep tmux server running** (start empty session if needed)
+1. **Add a single tmux session via `tmux_session`** in the test environment descriptor to ensure tmux server is running
 2. **Remove `tmux start` calls** from all tests
-3. **Add new test** to verify switch creates sessions when tmux isn't running
-4. **Verify sessions are created by switch command** in each test
+3. **Verify sessions are created by switch command** in each test
 
 ---
 
@@ -142,185 +141,126 @@ let mut tui = run_cli_tui(&["tmux", "switch"], ...);
 
 ---
 
-### TC-ST-06: Switch works when tmux not running (NEW TEST)
-
-**New Test:** Verify switch can start tmux if needed
-
-- **Given:** Workspace configured, tmux server not running
-- **When:** User runs `tmux switch` and selects workspace
-- **Then:**
-  - Tmux server starts
-  - Session is created
-  - User is switched to session
-
-**Test:** `test_tmux_switch_starts_tmux_if_needed` (NEW)  
-**Status:** ❌ Doesn't exist
-
----
-
 ## Implementation Plan
 
-### Step 1: Update Test Helper (if needed)
-
-**File:** `apps/cli/tests/common/mod.rs`
-
-Verify/add helper to start empty tmux session:
-
-```rust
-/// Start an empty tmux server without creating any workspace sessions.
-/// This is needed for TUI tests that require tmux to be running.
-pub fn start_empty_tmux_server(socket: &str) {
-    // Create a detached dummy session just to start the server
-    std::process::Command::new("tmux")
-        .args(["-L", socket, "new-session", "-d", "-s", "dummy"])
-        .output()
-        .ok(); // Ignore errors if already running
-}
-```
-
----
-
-### Step 2: Update Existing Tests
+### Step 1: Update Existing Tests
 
 **File:** `apps/cli/tests/tui_tmux_switch_tests.rs`
 
 #### Test 1: test_tmux_switch_displays_sessions
 
-**REMOVE** (lines 35-41):
+**UPDATE** the environment descriptor to add a single tmux session:
 
 ```rust
-// Start the sessions first
-let (_, _, success) = common::run_cli_with_tmux(
-    &["tmux", "start"],
-    config_path.to_str().unwrap(),
-    env.tmux_socket(),
-);
-assert!(success, "Failed to start tmux sessions");
+let env = TestEnvironment::describe(|root| {
+    root.rafaeltab_config(|c| {
+        c.tmux_session("project-a", Some("Project A"), &[("shell", None)]);
+        c.tmux_session("project-b", Some("Project B"), &[("shell", None)]);
+        c.tmux_session("project-c", Some("Project C"), &[("shell", None)]);
+        // Add a dummy session to ensure tmux server is running
+        c.tmux_session("_dummy", Some("_dummy"), &[("shell", None)]);
+    });
+    // ... rest of descriptor
+})
 ```
 
-**ADD** after config_path:
+**REMOVE** the `tmux start` command block (lines 33-39).
+
+**REMOVE** the cancellation at the end and **ADD** session creation verification:
 
 ```rust
-// Start empty tmux server for TUI (don't create workspace sessions)
-common::start_empty_tmux_server(env.tmux_socket());
-```
+// Instead of canceling, select and create a session
+asserter.press_key(Key::Enter);
+let exit_code = asserter.expect_completion();
+assert_eq!(exit_code, 0);
 
-**ADD** before `tui.press_key(Key::Esc)`:
-
-```rust
-// Verify we can select a session (this will create it)
-tui.press_key(Key::Enter);
-tui.wait_for_settle();
-
-// Verify session was created
+// Verify the session was created
 assert!(
     env.tmux().session_exists("Project A"),
     "Session should be created on selection"
 );
 ```
 
-**UPDATE** final assertion:
-
-```rust
-// The test now creates a session, so exit code might be different
-// Or we test cancellation in a separate test
-```
-
 #### Test 2: test_tmux_switch_fuzzy_filtering
 
-**REMOVE** (lines 99-105):
+**UPDATE** the environment descriptor to add a single tmux session:
 
 ```rust
-let (_, _, success) = common::run_cli_with_tmux(
-    &["tmux", "start"],
-    config_path.to_str().unwrap(),
-    env.tmux_socket(),
-);
-assert!(success, "Failed to start tmux sessions");
+root.rafaeltab_config(|c| {
+    c.tmux_session("frontend", Some("Frontend Dev"), &[("shell", None)]);
+    c.tmux_session("backend", Some("Backend API"), &[("shell", None)]);
+    c.tmux_session("database", Some("Database Work"), &[("shell", None)]);
+    // Add a dummy session to ensure tmux server is running
+    c.tmux_session("_dummy", Some("_dummy"), &[("shell", None)]);
+});
 ```
 
-**ADD**:
+**REMOVE** the `tmux start` command block (lines 100-106).
 
-```rust
-common::start_empty_tmux_server(env.tmux_socket());
-```
-
-**KEEP** the rest (filtering doesn't require sessions to exist)
+**KEEP** the rest (filtering doesn't require workspace sessions to exist, only the dummy session)
 
 #### Test 3: test_tmux_switch_navigation
 
-**REMOVE** (lines 172-178):
+**UPDATE** the environment descriptor to add a single tmux session:
 
 ```rust
-let (_, _, success) = common::run_cli_with_tmux(
-    &["tmux", "start"],
-    config_path.to_str().unwrap(),
-    env.tmux_socket(),
-);
-assert!(success, "Failed to start tmux sessions");
+root.rafaeltab_config(|c| {
+    c.tmux_session("first", Some("First Session"), &[("shell", None)]);
+    c.tmux_session("second", Some("Second Session"), &[("shell", None)]);
+    c.tmux_session("third", Some("Third Session"), &[("shell", None)]);
+    // Add a dummy session to ensure tmux server is running
+    c.tmux_session("_dummy", Some("_dummy"), &[("shell", None)]);
+});
 ```
 
-**ADD**:
-
-```rust
-common::start_empty_tmux_server(env.tmux_socket());
-```
+**REMOVE** the `tmux start` command block (lines 176-182).
 
 #### Test 4: test_tmux_switch_cancel_with_q
 
-**REMOVE** (lines 243-249):
+**UPDATE** the environment descriptor to add a single tmux session:
 
 ```rust
-let (_, _, success) = common::run_cli_with_tmux(
-    &["tmux", "start"],
-    config_path.to_str().unwrap(),
-    env.tmux_socket(),
-);
-assert!(success, "Failed to start tmux sessions");
+root.rafaeltab_config(|c| {
+    c.tmux_session("test", Some("Test Session"), &[("shell", None)]);
+    // Add a dummy session to ensure tmux server is running
+    c.tmux_session("_dummy", Some("_dummy"), &[("shell", None)]);
+});
 ```
 
-**ADD**:
+**REMOVE** the `tmux start` command block (lines 242-248).
+
+**ADD** at end (after cancellation):
 
 ```rust
-common::start_empty_tmux_server(env.tmux_socket());
-```
-
-**ADD** at end:
-
-```rust
-// Verify no session was created (canceled before selection)
+// Verify the configured session was NOT created (it only exists in config, not tmux)
+// The dummy session should exist
 assert!(
-    !env.tmux().session_exists("Test Session"),
-    "Session should not be created when canceled"
+    env.tmux().session_exists("_dummy"),
+    "Dummy session should exist to keep tmux running"
 );
 ```
 
 #### Test 5: test_tmux_switch_cancel_with_ctrl_c
 
-**REMOVE** (lines 283-289):
+**UPDATE** the environment descriptor to add a single tmux session:
 
 ```rust
-let (_, _, success) = common::run_cli_with_tmux(
-    &["tmux", "start"],
-    config_path.to_str().unwrap(),
-    env.tmux_socket(),
-);
-assert!(success, "Failed to start tmux sessions");
+root.rafaeltab_config(|c| {
+    c.tmux_session("test", Some("Test Session"), &[("shell", None)]);
+    // Add a dummy session to ensure tmux server is running
+    c.tmux_session("_dummy", Some("_dummy"), &[("shell", None)]);
+});
 ```
 
-**ADD**:
+**REMOVE** the `tmux start` command block (lines 285-291).
+
+**ADD** at end (after cancellation):
 
 ```rust
-common::start_empty_tmux_server(env.tmux_socket());
-```
-
-**ADD** at end:
-
-```rust
-// Verify no session was created (canceled before selection)
+// Verify the dummy session exists (tmux is running)
 assert!(
-    !env.tmux().session_exists("Test Session"),
-    "Session should not be created when canceled"
+    env.tmux().session_exists("_dummy"),
+    "Dummy session should exist to keep tmux running"
 );
 ```
 
@@ -339,6 +279,8 @@ fn test_tmux_switch_creates_session_on_selection() {
         root.rafaeltab_config(|c| {
             c.default_windows(&[("editor", None), ("shell", None)]);
             c.tmux_session("myworkspace", Some("My Workspace"), &[("editor", None)]);
+            // Add a dummy session to ensure tmux server is running
+            c.tmux_session("_dummy", Some("_dummy"), &[("shell", None)]);
         });
 
         root.test_dir(|td| {
@@ -349,33 +291,36 @@ fn test_tmux_switch_creates_session_on_selection() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
-    // Start empty tmux server (don't create workspace sessions)
-    common::start_empty_tmux_server(env.tmux_socket());
-
-    // Verify no session exists yet
+    // Verify no workspace session exists yet (only dummy exists)
     assert!(
         !env.tmux().session_exists("My Workspace"),
-        "Session should not exist before switch"
+        "Workspace session should not exist before switch"
+    );
+    assert!(
+        env.tmux().session_exists("_dummy"),
+        "Dummy session should exist to keep tmux running"
     );
 
-    let mut tui = run_cli_tui(
-        &["tmux", "switch"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "switch"])
+        .build();
+    let mut asserter = env
+        .testers()
+        .pty()
+        .terminal_size(40, 120)
+        .settle_timeout(300)
+        .run(&cmd);
 
-    tui.wait_for_settle();
+    asserter.wait_for_settle();
 
     // Workspace should be displayed
-    tui.find_text("My Workspace").assert_visible();
+    asserter.find_text("My Workspace").assert_visible();
 
     // Select and confirm
-    tui.press_key(Key::Enter);
-
-    // Wait for session creation and switch
-    std::thread::sleep(std::time::Duration::from_millis(500));
+    asserter.press_key(Key::Enter);
+    let exit_code = asserter.expect_completion();
+    assert_eq!(exit_code, 0);
 
     // Verify session was created
     assert!(
@@ -384,102 +329,12 @@ fn test_tmux_switch_creates_session_on_selection() {
     );
 
     // Verify windows were created correctly
-    let windows = env.tmux().list_windows("My Workspace");
+    let session = env
+        .find_tmux_session("My Workspace")
+        .expect("Session should exist");
+    let windows = session.windows();
     assert_eq!(windows.len(), 1, "Should have 1 window from config");
-    assert!(windows[0].contains("editor"), "Should have editor window");
-}
-```
-
-#### NEW Test: test_tmux_switch_starts_tmux_if_needed
-
-```rust
-#[test]
-fn test_tmux_switch_starts_tmux_if_needed() {
-    let env = TestEnvironment::describe(|root| {
-        root.rafaeltab_config(|c| {
-            c.default_windows(&[("shell", None)]);
-        });
-
-        root.test_dir(|td| {
-            td.dir("workspace", |d| {
-                d.rafaeltab_workspace("ws", "TestWorkspace", |_w| {});
-            });
-        });
-    })
-    .create();
-
-    let config_path = env.context().config_path().unwrap();
-
-    // DON'T start tmux server - test should handle this
-    // (Actually, the TUI might require it, so this test might need to be non-TUI)
-
-    // This might need to be a separate integration test without TUI
-    // or we accept that TUI tests require tmux to be running
-
-    // For now, document this as a limitation
-    // TODO: Add non-TUI integration test for this case
-}
-```
-
-**Note:** The last test might not be feasible with TUI tests. Consider making it a separate non-TUI integration test.
-
----
-
-### Step 4: Add Non-TUI Integration Test
-
-**New file:** `apps/cli/tests/tmux_switch_integration_tests.rs`
-
-```rust
-mod common;
-
-use crate::common::{
-    rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabRootMixin},
-    run_cli_with_tmux,
-};
-use test_descriptors::TestEnvironment;
-
-#[test]
-fn test_switch_creates_session_without_tmux_running() {
-    let env = TestEnvironment::describe(|root| {
-        root.rafaeltab_config(|c| {
-            c.default_windows(&[("editor", None), ("shell", None)]);
-        });
-
-        root.test_dir(|td| {
-            td.dir("workspace", |d| {
-                d.rafaeltab_workspace("ws", "MyWorkspace", |_w| {});
-            });
-        });
-    })
-    .create();
-
-    let config_path = env.context().config_path().unwrap();
-
-    // Ensure tmux is NOT running
-    std::process::Command::new("tmux")
-        .args(["-L", env.tmux_socket(), "kill-server"])
-        .output()
-        .ok();
-
-    // Verify no sessions exist
-    let sessions_before = env.tmux().list_sessions();
-    assert_eq!(sessions_before.len(), 0, "No sessions should exist before switch");
-
-    // This test is challenging because switch requires interactive TUI
-    // Instead, test that tmux start works without tmux running
-    let (_, _, success) = run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
-
-    assert!(success, "Should be able to start tmux when not running");
-
-    // Verify session was created
-    assert!(
-        env.tmux().session_exists("MyWorkspace"),
-        "Session should be created"
-    );
+    assert!(windows.iter().any(|w| w.contains("editor")), "Should have editor window");
 }
 ```
 
@@ -489,11 +344,9 @@ fn test_switch_creates_session_without_tmux_running() {
 
 ### Phase 1: Verify Test Infrastructure
 
-- [ ] Check if `start_empty_tmux_server()` helper exists in `common/mod.rs`
-- [ ] If not, add the helper function
 - [ ] Verify `env.tmux().session_exists()` works
-- [ ] Verify `env.tmux().list_windows()` works
-- [ ] Test that TUI tests can run with empty tmux server
+- [ ] Verify `env.find_tmux_session().windows()` works
+- [ ] Test that TUI tests can run with a dummy tmux session
 
 ### Phase 2: Update Existing Tests
 
@@ -506,16 +359,12 @@ fn test_switch_creates_session_without_tmux_running() {
 ### Phase 3: Add New Tests
 
 - [ ] Add `test_tmux_switch_creates_session_on_selection`
-- [ ] Create `tmux_switch_integration_tests.rs`
-- [ ] Add `test_switch_creates_session_without_tmux_running`
 
 ### Phase 4: Validation
 
 - [ ] Run: `cargo test --test tui_tmux_switch_tests`
 - [ ] Verify all existing tests still pass
 - [ ] Verify new tests pass
-- [ ] Run: `cargo test --test tmux_switch_integration_tests`
-- [ ] Manual test: Run switch without tmux running
 
 ### Phase 5: Cleanup
 
@@ -527,17 +376,15 @@ fn test_switch_creates_session_without_tmux_running() {
 
 ## Files Modified
 
-1. 🔧 **MODIFIED:** `apps/cli/tests/common/mod.rs` - Add `start_empty_tmux_server()` helper
-2. 🔧 **MODIFIED:** `apps/cli/tests/tui_tmux_switch_tests.rs` - Update all 5 tests + add 1 new
-3. ✨ **NEW:** `apps/cli/tests/tmux_switch_integration_tests.rs` - Non-TUI integration test
+1. 🔧 **MODIFIED:** `apps/cli/tests/tui_tmux_switch_tests.rs` - Update all 5 tests + add 1 new
 
 ---
 
 ## Known Limitations
 
-1. **TUI tests require tmux running:** The `run_cli_tui` helper likely needs a tmux server to be active for I/O. We start an empty server but can't test "switch when tmux not running" via TUI.
+1. **TUI tests require tmux running:** The `run_cli_tui` helper needs a tmux server to be active for I/O. We use a dummy session in the config to ensure tmux is running.
 
-2. **Testing session creation in TUI:** Some tests cancel before selection, so they now verify NO session was created. This is correct behavior but different from before.
+2. **Testing session creation in TUI:** Some tests cancel before selection, so they verify the workspace session was NOT created (only the dummy session exists). This is correct behavior.
 
 3. **Timing issues:** Session creation might take a moment. Tests might need small sleeps after Enter key press.
 
@@ -545,10 +392,8 @@ fn test_switch_creates_session_without_tmux_running() {
 
 ## Success Criteria
 
-- [ ] All 5 existing tests updated to NOT pre-create sessions
+- [ ] All 5 existing tests updated to NOT pre-create sessions via `tmux start`
 - [ ] All updated tests pass
 - [ ] New test `test_tmux_switch_creates_session_on_selection` passes
-- [ ] Non-TUI integration test for tmux not running passes (if feasible)
 - [ ] Tests now verify session creation behavior
 - [ ] No regressions in other test suites
-- [ ] Documentation updated if TUI/tmux limitations discovered

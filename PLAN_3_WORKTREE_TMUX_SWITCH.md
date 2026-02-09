@@ -419,9 +419,9 @@ mod common;
 
 use crate::common::{
     rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabGitMixin, RafaeltabRootMixin},
-    run_cli_with_tmux,
+    CliCommandBuilder,
 };
-use std::process::Command;
+use std::process::Command as StdCommand;
 use test_descriptors::TestEnvironment;
 
 #[test]
@@ -446,15 +446,13 @@ fn test_switch_to_workspace_without_worktrees() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
     // Use tmux start (which will now also create worktree sessions)
-    let (_, _, success) = run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
-    assert!(success, "Failed to start tmux sessions");
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "start"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
+    assert!(result.success, "Failed to start tmux sessions");
 
     // Verify only main session exists (no worktrees)
     assert!(
@@ -491,12 +489,11 @@ fn test_switch_creates_sessions_for_worktrees() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
     let repo_path = env.root_path().join("project/repo");
 
     // Create worktrees
     let worktree_path_1 = repo_path.parent().unwrap().join("feat-login");
-    Command::new("git")
+    StdCommand::new("git")
         .args([
             "worktree",
             "add",
@@ -509,7 +506,7 @@ fn test_switch_creates_sessions_for_worktrees() {
         .expect("Failed to create worktree 1");
 
     let worktree_path_2 = repo_path.parent().unwrap().join("fix-bug");
-    Command::new("git")
+    StdCommand::new("git")
         .args([
             "worktree",
             "add",
@@ -522,12 +519,12 @@ fn test_switch_creates_sessions_for_worktrees() {
         .expect("Failed to create worktree 2");
 
     // Start sessions - this should trigger worktree session creation
-    let (_, _, success) = run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
-    assert!(success, "Failed to start tmux sessions");
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "start"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
+    assert!(result.success, "Failed to start tmux sessions");
 
     // Verify main session exists
     assert!(
@@ -553,12 +550,12 @@ fn test_switch_creates_sessions_for_worktrees() {
     );
 
     // Cleanup worktrees
-    Command::new("git")
+    StdCommand::new("git")
         .args(["worktree", "remove", "--force", worktree_path_1.to_str().unwrap()])
         .current_dir(&repo_path)
         .output()
         .ok();
-    Command::new("git")
+    StdCommand::new("git")
         .args(["worktree", "remove", "--force", worktree_path_2.to_str().unwrap()])
         .current_dir(&repo_path)
         .output()
@@ -594,12 +591,11 @@ fn test_switch_uses_workspace_windows_for_worktrees() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
     let repo_path = env.root_path().join("project/repo");
 
     // Create a worktree
     let worktree_path = repo_path.parent().unwrap().join("feat-test");
-    Command::new("git")
+    StdCommand::new("git")
         .args([
             "worktree",
             "add",
@@ -612,11 +608,11 @@ fn test_switch_uses_workspace_windows_for_worktrees() {
         .expect("Failed to create worktree");
 
     // Start sessions
-    run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "start"])
+        .build();
+    let _result = env.testers().cmd().run(&cmd);
 
     // Verify worktree session exists
     assert!(
@@ -625,7 +621,10 @@ fn test_switch_uses_workspace_windows_for_worktrees() {
     );
 
     // Verify windows match workspace config (not default)
-    let windows = env.tmux().list_windows("TestProj-feat/test");
+    let session = env
+        .find_tmux_session("TestProj-feat/test")
+        .expect("Session should exist");
+    let windows = session.windows();
     assert_eq!(windows.len(), 3, "Should have 3 windows from workspace config");
     assert!(windows.iter().any(|w| w.contains("nvim")), "Should have nvim window");
     assert!(windows.iter().any(|w| w.contains("terminal")), "Should have terminal window");
@@ -635,7 +634,7 @@ fn test_switch_uses_workspace_windows_for_worktrees() {
     assert!(!windows.iter().any(|w| w.contains("default")), "Should not use default windows");
 
     // Cleanup
-    Command::new("git")
+    StdCommand::new("git")
         .args(["worktree", "remove", "--force", worktree_path.to_str().unwrap()])
         .current_dir(&repo_path)
         .output()
@@ -664,12 +663,11 @@ fn test_switch_skips_existing_worktree_sessions() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
     let repo_path = env.root_path().join("project/repo");
 
     // Create a worktree
     let worktree_path = repo_path.parent().unwrap().join("feat-test");
-    Command::new("git")
+    StdCommand::new("git")
         .args([
             "worktree",
             "add",
@@ -682,30 +680,30 @@ fn test_switch_skips_existing_worktree_sessions() {
         .expect("Failed to create worktree");
 
     // Start sessions first time
-    run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "start"])
+        .build();
+    let _result = env.testers().cmd().run(&cmd);
 
     // Verify sessions exist
     assert!(env.tmux().session_exists("TestProj"));
     assert!(env.tmux().session_exists("TestProj-feat/test"));
 
     // Run start again - should be idempotent
-    let (_, _, success) = run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
-    assert!(success, "Second start should succeed");
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "start"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
+    assert!(result.success, "Second start should succeed");
 
     // Still should have exactly 2 sessions (no duplicates)
     let sessions = env.tmux().list_sessions();
     assert_eq!(sessions.len(), 2, "Should still have 2 sessions (no duplicates)");
 
     // Cleanup
-    Command::new("git")
+    StdCommand::new("git")
         .args(["worktree", "remove", "--force", worktree_path.to_str().unwrap()])
         .current_dir(&repo_path)
         .output()
@@ -728,18 +726,16 @@ fn test_switch_handles_non_git_workspace() {
     })
     .create();
 
-    let config_path = env.context().config_path().unwrap();
-
     // Start sessions - should not error even though workspace is not a git repo
-    let (_, stderr, success) = run_cli_with_tmux(
-        &["tmux", "start"],
-        config_path.to_str().unwrap(),
-        env.tmux_socket(),
-    );
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .args(&["tmux", "start"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
 
-    assert!(success, "Should succeed even for non-git workspace");
+    assert!(result.success, "Should succeed even for non-git workspace");
     assert!(
-        !stderr.contains("error") && !stderr.contains("Error"),
+        !result.stderr.contains("error") && !result.stderr.contains("Error"),
         "Should not show errors for non-git workspace"
     );
 
