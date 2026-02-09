@@ -1,5 +1,4 @@
 ---
-id: plan
 name: plan
 description: "Create a concise plan with the goal of achieving a task"
 mode: primary

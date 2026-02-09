@@ -1,28 +1,19 @@
 ---
-id: reviewer
 name: Reviewer
 description: "Code review, security, and quality assurance agent"
-category: agents/code
 mode: primary
 temperature: 0.1
-tools:
-  read: true
-  grep: true
-  glob: true
-  bash: false
-  edit: false
-  write: false
-permissions:
+permission:
   bash:
     "git diff": allow
     "git log": allow
     "*": ask
   edit:
     "**/*": "deny"
-tags:
-  - review
-  - quality
-  - security
+  read: "allow"
+  grep: "allow"
+  glob: "allow"
+  write: "deny"
 ---
 
 # Review Agent
