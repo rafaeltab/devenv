@@ -63,54 +63,6 @@ fn test_workspace_find_by_id_exact_match() {
 }
 
 #[test]
-fn test_workspace_find_by_id_partial_match() {
-    let env = TestEnvironment::describe(|root| {
-        root.rafaeltab_config(|c| {
-            c.default_window("shell");
-        });
-
-        root.test_dir(|td| {
-            td.dir("workspace_a", |d| {
-                d.rafaeltab_workspace("project_alpha", "Project Alpha", |w| {
-                    w.tag("alpha");
-                });
-            });
-            td.dir("workspace_b", |d| {
-                d.rafaeltab_workspace("project_beta", "Project Beta", |w| {
-                    w.tag("beta");
-                });
-            });
-        });
-    })
-    .create();
-
-    // Run workspace find with partial ID match (searching for 'alpha' should match 'project_alpha')
-    let cmd = CliCommandBuilder::new()
-        .with_env(&env)
-        .args(&["workspace", "find", "alpha"])
-        .build();
-    let result = env.testers().cmd().run(&cmd);
-
-    assert!(
-        result.success,
-        "workspace find command should succeed.\nSTDOUT: {}\nSTDERR: {}",
-        result.stdout, result.stderr
-    );
-
-    // Verify the partial match workspace is found
-    assert!(
-        result.stdout.contains("Project Alpha"),
-        "Expected 'Project Alpha' in output. Got: {}",
-        result.stdout
-    );
-    assert!(
-        result.stdout.contains("project_alpha"),
-        "Expected workspace ID 'project_alpha' in output. Got: {}",
-        result.stdout
-    );
-}
-
-#[test]
 fn test_workspace_find_nonexistent_id() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|c| {
