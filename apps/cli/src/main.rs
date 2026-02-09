@@ -259,6 +259,7 @@ fn main() -> Result<(), io::Error> {
                         tmux_storage: &storage,
                     },
                     session_repository,
+                    tmux_storage: &storage,
                 })
             }
             TmuxCommands::Switch => {
@@ -276,6 +277,7 @@ fn main() -> Result<(), io::Error> {
                     },
                     session_repository: tmux_repository,
                     client_repository: tmux_repository,
+                    tmux_storage: &storage,
                 })
             }
         },

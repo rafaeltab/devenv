@@ -14,6 +14,7 @@ use crate::domain::tmux_workspaces::aggregates::tmux::description::session::Sess
 use crate::domain::tmux_workspaces::repositories::tmux::client_repository::{
     SwitchClientTarget, TmuxClientRepository,
 };
+use crate::storage::tmux::TmuxStorage;
 use crate::utils::with_terminal;
 use crate::{
     commands::command::RafaeltabCommand,
@@ -30,6 +31,7 @@ pub struct TmuxSwitchOptions<'a> {
     pub session_description_repository: &'a dyn SessionDescriptionRepository,
     pub session_repository: &'a dyn TmuxSessionRepository,
     pub client_repository: &'a dyn TmuxClientRepository,
+    pub tmux_storage: &'a dyn TmuxStorage,
 }
 
 impl RafaeltabCommand<TmuxSwitchOptions<'_>> for TmuxSwitchCommand {
@@ -39,6 +41,7 @@ impl RafaeltabCommand<TmuxSwitchOptions<'_>> for TmuxSwitchCommand {
             session_description_repository,
             session_repository,
             client_repository,
+            tmux_storage,
         }: TmuxSwitchOptions,
     ) {
         let descriptions = session_description_repository.get_session_descriptions();
@@ -57,6 +60,16 @@ impl RafaeltabCommand<TmuxSwitchOptions<'_>> for TmuxSwitchCommand {
             };
 
             client_repository.switch_client(None, SwitchClientTarget::Session(session));
+
+            // Create worktree sessions if this is a workspace session
+            use crate::domain::tmux_workspaces::aggregates::tmux::description::session::SessionKind;
+            if let SessionKind::Workspace(workspace) = &selected_session.kind {
+                crate::commands::tmux::session_utils::create_worktree_sessions(
+                    workspace,
+                    session_repository,
+                    tmux_storage,
+                );
+            }
         } else {
             println!("You didn't make a selection :/");
         }

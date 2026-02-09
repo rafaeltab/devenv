@@ -2,8 +2,77 @@
 
 use crate::{
     domain::tmux_workspaces::aggregates::tmux::description::window::WindowDescription,
+    domain::tmux_workspaces::repositories::tmux::session_repository::TmuxSessionRepository,
     storage::tmux::{Session, TmuxStorage},
 };
+
+/// Create tmux sessions for all worktrees in a workspace.
+/// This runs after the main workspace session has been created.
+/// Errors are silently ignored (TODO: add logging when available).
+pub fn create_worktree_sessions(
+    workspace: &crate::domain::tmux_workspaces::aggregates::workspaces::workspace::Workspace,
+    session_repository: &dyn TmuxSessionRepository,
+    tmux_storage: &dyn TmuxStorage,
+) {
+    use crate::domain::tmux_workspaces::aggregates::tmux::description::session::{
+        PathSessionDescription, SessionDescription, SessionKind,
+    };
+    use crate::domain::tmux_workspaces::aggregates::tmux::include_fields_builder::IncludeFieldsBuilder;
+    use crate::infrastructure::git;
+    use crate::utils::path::expand_path;
+    use std::path::Path;
+    use uuid::{uuid, Uuid};
+
+    let workspace_path = expand_path(&workspace.path);
+    let workspace_path = Path::new(&workspace_path);
+
+    // Try to discover worktrees (silently fail if not a git repo)
+    let worktrees = match git::discover_worktrees_for_workspace(workspace_path) {
+        Ok(wts) => wts,
+        Err(_) => {
+            // TODO: Log this error when logging infrastructure is available
+            return;
+        }
+    };
+
+    if worktrees.is_empty() {
+        return; // No worktrees to create sessions for
+    }
+
+    // Get window configuration for this workspace
+    let windows = get_windows_for_workspace(&workspace.id, tmux_storage);
+
+    // Create session for each worktree
+    for worktree_info in worktrees {
+        let session_name = format!("{}-{}", workspace.name, worktree_info.branch);
+
+        // Check if session already exists
+        let existing_sessions =
+            session_repository.get_sessions(None, IncludeFieldsBuilder::new().build_session());
+        let session_exists = existing_sessions.iter().any(|s| s.name == session_name);
+        if session_exists {
+            continue;
+        }
+
+        // Create session description
+        let worktree_namespace = uuid!("f47ac10b-58cc-4372-a567-0e02b2c3d479");
+        let id = Uuid::new_v5(&worktree_namespace, session_name.as_bytes());
+
+        let description = SessionDescription {
+            id: id.to_string(),
+            name: session_name,
+            kind: SessionKind::Path(PathSessionDescription {
+                path: worktree_info.path.to_string_lossy().to_string(),
+            }),
+            windows: windows.clone(),
+            session: None,
+        };
+
+        // Create the session (ignore errors silently for now)
+        // TODO: Log creation errors when logging infrastructure is available
+        let _result = session_repository.new_session(&description);
+    }
+}
 
 /// Get window configuration for a workspace session.
 /// Returns workspace-specific windows if configured, otherwise returns default windows.
