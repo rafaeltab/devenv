@@ -2,6 +2,7 @@
 
 use std::io::{self, BufRead, Write};
 use std::path::{Path, PathBuf};
+use std::process::exit;
 
 use crate::{
     commands::command::RafaeltabCommand,
@@ -83,6 +84,7 @@ impl RafaeltabCommand<WorktreeCompleteOptions<'_>> for WorktreeCompleteCommand {
             }
             WorktreeCompleteResult::Failed(err) => {
                 eprintln!("Error: {}", err);
+                exit(1);
             }
         }
     }
