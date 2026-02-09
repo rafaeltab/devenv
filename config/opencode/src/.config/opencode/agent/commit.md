@@ -1,10 +1,8 @@
 ---
 description: An agent that specializes in making good git commits.
 mode: subagent
-category: subagent/code
-tools: 
-    bash: true
-permissions:
+permission:
+  bash:
     "*": deny
     "git *": allow
     "git push": deny

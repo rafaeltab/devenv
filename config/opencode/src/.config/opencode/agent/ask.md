@@ -2,9 +2,6 @@
 id: ask
 name: ask
 description: "Answer the users question by exploring the codebase, or doing other research."
-type: agent
-version: 1.0.0
-author: rafaeltab
 mode: primary
 temperature: 0.1
 tools:

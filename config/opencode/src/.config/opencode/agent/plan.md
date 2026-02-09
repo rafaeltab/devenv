@@ -2,9 +2,6 @@
 id: plan
 name: plan
 description: "Create a concise plan with the goal of achieving a task"
-type: agent
-version: 1.0.0
-author: rafaeltab
 mode: primary
 temperature: 0.1
 tools:

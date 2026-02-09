@@ -29,6 +29,10 @@
             "cargo test*": "allow",
             "tree*": "allow",
             "xargs grep*": "allow",
+            "uniq*": "allow",
+            "man*": "allow",
+            "printf*": "allow",
+            "hexdump*": "allow",
         },
     },
     "agent": {

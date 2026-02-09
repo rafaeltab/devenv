@@ -3,9 +3,6 @@ id: reviewer
 name: Reviewer
 description: "Code review, security, and quality assurance agent"
 category: agents/code
-type: agent
-version: 1.0.0
-author: opencode
 mode: primary
 temperature: 0.1
 tools:
