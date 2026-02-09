@@ -1,5 +1,4 @@
 ---
-id: ask
 name: ask
 description: "Answer the users question by exploring the codebase, or doing other research."
 mode: primary
