@@ -3,21 +3,16 @@
 //! This module provides the `CommandCtx` struct which gives commands
 //! access to picker methods and other runtime functionality.
 
-use std::io::{self, Stdout};
-use std::sync::Arc;
+use std::io::{self};
 
-use ratatui::backend::CrosstermBackend;
-use ratatui::Terminal;
-
-use crate::domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository;
-use crate::tui::picker_ctx::{PickerCtx, StaticSuggestionProvider, SuggestionProvider};
+use crate::tui::picker_ctx::{PickerCtx, SuggestionProvider};
 use crate::tui::pickers::SimpleItem;
 
 /// Context for executing commands in the command palette.
 ///
 /// `CommandCtx` provides commands with access to:
 /// - Picker methods (select, input, confirm, etc.)
-/// - Workspace repository for data access
+/// - Workspace repository for data access (optional)
 /// - Terminal for TUI operations
 ///
 /// # Example
@@ -39,18 +34,14 @@ use crate::tui::pickers::SimpleItem;
 /// ```
 pub struct CommandCtx {
     picker_ctx: PickerCtx,
-    workspace_repo: Arc<dyn WorkspaceRepository>,
 }
 
 impl CommandCtx {
     /// Create a new command context.
-    pub fn new(workspace_repo: Arc<dyn WorkspaceRepository>) -> io::Result<Self> {
+    pub fn new() -> io::Result<Self> {
         let picker_ctx = PickerCtx::new()?;
 
-        Ok(Self {
-            picker_ctx,
-            workspace_repo,
-        })
+        Ok(Self { picker_ctx })
     }
 
     /// Display a select picker and return the selected item.
@@ -114,11 +105,6 @@ impl CommandCtx {
     /// This runs a command in the shell and returns control when complete.
     pub fn execute(&self, command: &str) -> io::Result<()> {
         self.picker_ctx.execute(command)
-    }
-
-    /// Access the workspace repository.
-    pub fn workspace_repo(&self) -> &Arc<dyn WorkspaceRepository> {
-        &self.workspace_repo
     }
 
     /// Restore the terminal to its original state.
