@@ -221,3 +221,68 @@ mod tests {
         assertion.assert(ColorMatcher::RedIsh);
     }
 }
+
+// New grayscale assertion tests (TDD Phase 1)
+#[cfg(test)]
+mod color_grayscale_tests {
+    use super::ColorAssertion;
+
+    #[test]
+    fn assert_grayscale_passes_for_pure_gray() {
+        let color = ColorAssertion::from_rgb(128, 128, 128);
+        color.assert_grayscale(); // Should pass
+    }
+
+    #[test]
+    fn assert_grayscale_passes_for_near_gray() {
+        let color = ColorAssertion::from_rgb(100, 105, 102);
+        color.assert_grayscale(); // Should pass (within tolerance)
+    }
+
+    #[test]
+    #[should_panic(expected = "Expected color to be grayscale")]
+    fn assert_grayscale_fails_for_red() {
+        let color = ColorAssertion::from_rgb(255, 0, 0);
+        color.assert_grayscale(); // Should panic
+    }
+
+    #[test]
+    #[should_panic(expected = "Expected color to be grayscale")]
+    fn assert_grayscale_fails_for_yellow() {
+        let color = ColorAssertion::from_rgb(255, 255, 0);
+        color.assert_grayscale(); // Should panic
+    }
+
+    #[test]
+    fn assert_not_grayscale_passes_for_red() {
+        let color = ColorAssertion::from_rgb(255, 0, 0);
+        color.assert_not_grayscale(); // Should pass
+    }
+
+    #[test]
+    fn assert_not_grayscale_passes_for_yellow() {
+        let color = ColorAssertion::from_rgb(255, 255, 0);
+        color.assert_not_grayscale(); // Should pass
+    }
+
+    #[test]
+    #[should_panic(expected = "Expected color to NOT be grayscale")]
+    fn assert_not_grayscale_fails_for_gray() {
+        let color = ColorAssertion::from_rgb(128, 128, 128);
+        color.assert_not_grayscale(); // Should panic
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot check color: text not found on screen")]
+    fn assert_grayscale_fails_when_not_found() {
+        let color = ColorAssertion::not_found();
+        color.assert_grayscale(); // Should panic
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot check color: text not found on screen")]
+    fn assert_not_grayscale_fails_when_not_found() {
+        let color = ColorAssertion::not_found();
+        color.assert_not_grayscale(); // Should panic
+    }
+}
