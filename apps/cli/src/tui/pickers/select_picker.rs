@@ -99,9 +99,9 @@ impl<T: PickerItem> SelectPicker<T> {
 
         loop {
             // Create a copy of the data needed for rendering
-            let query = self.query.clone();
             let selected = self.selected;
             let filtered_indices = self.filtered_indices.clone();
+            let items_ref = &self.items;
 
             // Draw the picker
             terminal
@@ -121,6 +121,7 @@ impl<T: PickerItem> SelectPicker<T> {
                         filtered_indices.iter().enumerate().take(max_visible)
                     {
                         let is_selected = display_idx == selected;
+                        let item = &items_ref[item_idx];
 
                         // Calculate the area for this item
                         let item_area = Rect {
@@ -132,12 +133,12 @@ impl<T: PickerItem> SelectPicker<T> {
 
                         if is_selected {
                             // Show that something is selected with yellow
-                            let highlighted = Paragraph::new(format!("> Item {}", item_idx))
+                            let highlighted = Paragraph::new(format!("> {}", item.search_text()))
                                 .style(Style::default().fg(Color::Yellow));
                             highlighted.render(item_area, frame.buffer_mut());
                         } else {
                             // Render unselected item normally
-                            let normal = Paragraph::new(format!("  Item {}", item_idx));
+                            let normal = Paragraph::new(format!("  {}", item.search_text()));
                             normal.render(item_area, frame.buffer_mut());
                         }
                     }
