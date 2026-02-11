@@ -1,14 +1,12 @@
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
-use ratatui::backend::{Backend, CrosstermBackend};
-use ratatui::layout::Rect;
-use ratatui::style::{Color, Style};
-use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{List, ListItem, Paragraph, Widget, WidgetRef};
-use ratatui::{Frame as RatatuiFrame, Terminal};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use ratatui::backend::CrosstermBackend;
+use ratatui::Terminal;
 use std::io::{self, Stdout};
 
-use super::frame::Frame;
-use super::picker_item::PickerItem;
+use crate::tui::picker_item::PickerItem;
+use crate::tui::pickers::{
+    ConfirmPicker, SelectPicker, SimpleItem, TextPicker, TextPickerWithSuggestions,
+};
 
 /// Context for running pickers in the terminal.
 ///
@@ -31,7 +29,6 @@ use super::picker_item::PickerItem;
 /// ```
 pub struct PickerCtx {
     terminal: Terminal<CrosstermBackend<Stdout>>,
-    frame: Frame,
 }
 
 impl PickerCtx {
@@ -43,36 +40,23 @@ impl PickerCtx {
         let backend = CrosstermBackend::new(io::stdout());
         let terminal = Terminal::new(backend)?;
 
-        Ok(Self {
-            terminal,
-            frame: Frame::default(),
-        })
-    }
-
-    /// Set the frame for subsequent picker operations.
-    pub fn with_frame(mut self, frame: Frame) -> Self {
-        self.frame = frame;
-        self
+        Ok(Self { terminal })
     }
 
     /// Display a select picker and return the selected item.
-    ///
-    /// # Type Parameters
-    /// * `T` - The type of items to display (must implement `PickerItem`)
     ///
     /// # Arguments
     /// * `items` - The list of items to display
     /// * `prompt` - The prompt text to display
     ///
     /// # Returns
-    /// * `Some(&T)` - The selected item
+    /// * `Some(SimpleItem)` - The selected item
     /// * `None` - If the user cancels (Esc or Ctrl+C)
-    pub fn select<T: PickerItem>(&mut self, items: &[T], prompt: &str) -> Option<&T> {
-        // For now, return None as a placeholder
-        // This will be fully implemented in Phase 4
-        let _ = items;
-        let _ = prompt;
-        None
+    pub fn select(&mut self, items: &[SimpleItem], _prompt: &str) -> Option<SimpleItem> {
+        // Clone items to own them
+        let simple_items: Vec<SimpleItem> = items.to_vec();
+        let mut picker = SelectPicker::new(simple_items);
+        picker.run(&mut self.terminal).cloned()
     }
 
     /// Display a text input picker and return the entered text.
@@ -84,10 +68,8 @@ impl PickerCtx {
     /// * `Some(String)` - The entered text
     /// * `None` - If the user cancels (Esc or Ctrl+C)
     pub fn input(&mut self, prompt: &str) -> Option<String> {
-        // For now, return None as a placeholder
-        // This will be fully implemented in Phase 4
-        let _ = prompt;
-        None
+        let mut picker = TextPicker::new(prompt);
+        picker.run(&mut self.terminal)
     }
 
     /// Display a text input picker with suggestions.
@@ -102,13 +84,10 @@ impl PickerCtx {
     pub fn input_with_suggestions(
         &mut self,
         prompt: &str,
-        provider: &dyn SuggestionProvider,
+        provider: Box<dyn SuggestionProvider>,
     ) -> Option<String> {
-        // For now, return None as a placeholder
-        // This will be fully implemented in Phase 4
-        let _ = prompt;
-        let _ = provider;
-        None
+        let mut picker = TextPickerWithSuggestions::new(prompt, provider);
+        picker.run(&mut self.terminal)
     }
 
     /// Display a confirm picker and return the user's choice.
@@ -122,11 +101,8 @@ impl PickerCtx {
     /// * `Some(false)` - If the user selects No
     /// * `None` - If the user cancels (Esc or Ctrl+C)
     pub fn confirm(&mut self, prompt: &str, default: bool) -> Option<bool> {
-        // For now, return None as a placeholder
-        // This will be fully implemented in Phase 4
-        let _ = prompt;
-        let _ = default;
-        None
+        let mut picker = ConfirmPicker::new(prompt).with_default(default);
+        picker.run(&mut self.terminal)
     }
 
     /// Execute a shell command and return to the terminal.
