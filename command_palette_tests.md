@@ -4,7 +4,13 @@
 
 This document contains comprehensive test cases for the command palette system, designed for Test-Driven Development (TDD).
 
-**Test Mode**: All TUI tests run with `TEST_MODE=1` environment variable enabled, which exposes test commands and output formats for verification.
+**Test Mode**: All TUI tests run with `TEST_MODE=1` environment variable enabled, which registers test commands in the command palette for verification.
+
+**Critical Concept**: Test commands are **command-palette commands**, not CLI subcommands. Tests access them by:
+
+1. Running `rafaeltab command-palette show`
+2. Typing the test command name (e.g., "test picker")
+3. Pressing Enter to select it
 
 ## Test Categories
 
@@ -25,14 +31,22 @@ This document contains comprehensive test cases for the command palette system, 
 **When** the select picker is shown  
 **Then** all items should be visible in the middle panel
 
-**Test Command**: `test picker` (reads items from `TEST_PICKER_ITEMS` env var, comma-separated)  
+**Test Flow**:
+
+1. Run `rafaeltab command-palette show`
+2. Type "test picker" in palette
+3. Press Enter
+4. Test picker displays with items from `TEST_PICKER_ITEMS`
+
 **Verification**: `asserter.find_text("<item>").assert_visible()` for each item
+
+**Environment**: `TEST_PICKER_ITEMS` env var contains comma-separated items
 
 #### SP-002: Fuzzy Search Filtering
 
 **Type**: TUI  
 **Given** items: ["Apple", "Banana", "Cherry"] via `TEST_PICKER_ITEMS`  
-**When** user types "ap"  
+**When** user types "ap" in the picker  
 **Then** only "Apple" should be visible  
 **And** it should be highlighted (yellow color)
 
@@ -185,12 +199,20 @@ assert_eq!(output.trim(), "Some(\"Item2\")");
 #### TP-001: Basic Text Input
 
 **Type**: TUI  
-**Test Command**: `test text input` (prompt from `TEST_TEXT_PROMPT` env var)  
 **Given** empty text picker with prompt "Enter name:"  
 **When** user types "Hello"  
 **Then** input panel should show "Enter name: Hello"
 
+**Test Flow**:
+
+1. Run `rafaeltab command-palette show`
+2. Type "test text input" in palette
+3. Press Enter
+4. Type "Hello" in the text picker
+
 **Verification**: `asserter.find_text("Enter name: Hello").assert_visible()`
+
+**Environment**: `TEST_TEXT_PROMPT` env var sets the prompt
 
 #### TP-002: Text Input - Backspace
 
@@ -264,11 +286,17 @@ asserter.find_text("Enter name: Hello").assert_not_visible();
 #### TPS-001: Suggestions Display
 
 **Type**: TUI  
-**Test Command**: `test text input suggestions`  
 **Given** text picker with suggestions provider returning ["apple", "application", "apply"]  
 **When** user types "app"  
 **Then** middle panel should show all three suggestions  
 **And** "apple" should be highlighted (top match)
+
+**Test Flow**:
+
+1. Run `rafaeltab command-palette show`
+2. Type "test text input suggestions" in palette
+3. Press Enter
+4. Type "app" in the text picker
 
 **Verification**:
 
@@ -393,10 +421,15 @@ asserter.find_text("apple").assert_not_visible();
 #### CP-001: Confirm Display - Default Yes
 
 **Type**: TUI  
-**Test Command**: `test confirm` (reads prompt from `TEST_CONFIRM_PROMPT`, default from `TEST_CONFIRM_DEFAULT`)  
 **Given** confirm picker with prompt "Continue?" and default `true`  
 **Then** "Yes" should be highlighted  
 **And** "No" should be visible but not highlighted
+
+**Test Flow**:
+
+1. Run `rafaeltab command-palette show`
+2. Type "test confirm" in palette
+3. Press Enter
 
 **Verification**:
 
@@ -406,6 +439,8 @@ let no = asserter.find_text("No");
 yes.fg.assert_not_grayscale(); // highlighted
 no.fg.assert_grayscale();        // not highlighted
 ```
+
+**Environment**: `TEST_CONFIRM_PROMPT` and `TEST_CONFIRM_DEFAULT` env vars
 
 #### CP-002: Confirm Display - Default No
 
@@ -520,19 +555,22 @@ asserter.find_text("Open Workspace").assert_not_visible();
 **Type**: TUI  
 **Setup:**
 
-- Workspace storage is empty
-- Existing tags: ["rust", "typescript", "go"] in config
+- One existing workspace in storage:
+  - "existing-project" with tags: ["rust", "typescript", "go"]
+- These workspace tags should be used for tag suggestions
 
 **Flow:**
 
 1. **Command Palette Display**
 
+   - Run: `rafaeltab command-palette show`
    - Command palette shows with "Add Workspace" command visible
    - Description shows: "Create a workspace in the current directory"
 
 2. **Select Add Workspace**
 
-   - User selects "Add Workspace"
+   - User types "add workspace"
+   - User presses Enter
    - Control transfers to `AddWorkspaceCommand`
 
 3. **Name Input (No Suggestions)**
@@ -647,12 +685,13 @@ asserter.find_text("Open Workspace").assert_not_visible();
 **Type**: TUI  
 **Setup:**
 
-- Existing workspace with tags: ["python", "django"] in config
+- Existing workspace: "web-project" with tags: ["python", "django"]
 
 **Flow:**
 
-- User types "dj" in tags input
-- Suggestions should include "django" from existing tags
+- Run palette, select "add workspace"
+- At tags input, user types "dj"
+- Suggestions should include "django" from existing workspace's tags
 
 **Verification**: `asserter.find_text("django").assert_visible()`
 
@@ -661,12 +700,15 @@ asserter.find_text("Open Workspace").assert_not_visible();
 **Type**: TUI  
 **Setup:**
 
-- Existing tags: ["rust", "ruby", "react"] in config
+- Existing workspaces:
+  - "backend" with tags: ["rust", "ruby"]
+  - "frontend" with tags: ["react", "typescript"]
+- Note: "rust" and "ruby" come from different workspaces
 
 **Flow:**
 
-- User types "ru" in tags input
-- Suggestions should include "rust", "ruby"
+- At tags input, user types "ru"
+- Suggestions should include "rust", "ruby" (merged from both workspaces)
 - User types "rus"
 - Suggestions should only include "rust"
 
@@ -677,12 +719,12 @@ asserter.find_text("Open Workspace").assert_not_visible();
 **Type**: TUI  
 **Setup:**
 
-- Existing tags: ["Rust", "TypeScript"] in config
+- Existing workspace: "ProjectA" with tags: ["Rust", "TypeScript"]
 
 **Flow:**
 
-- User types "rust" in tags input
-- Suggestions should include "Rust" (case-insensitive match)
+- At tags input, user types "rust"
+- Suggestions should include "Rust" (case-insensitive match from workspace)
 
 **Verification**: `asserter.find_text("Rust").assert_visible()`
 
@@ -804,10 +846,14 @@ assert_eq!(exit_code, 0);
 
 2. **Test Commands** (enabled by `TEST_MODE=1`):
 
+   **IMPORTANT**: These are **command-palette commands**, NOT CLI subcommands.
+
    - `test picker` - Test select picker with items from `TEST_PICKER_ITEMS` env var
    - `test text input` - Test text picker with prompt from `TEST_TEXT_PROMPT`
    - `test text input suggestions` - Test text picker with suggestions
    - `test confirm` - Test confirm picker with prompt from `TEST_CONFIRM_PROMPT` and default from `TEST_CONFIRM_DEFAULT`
+
+   **Access Pattern**: `rafaeltab command-palette show` → type "test picker" → Enter
 
 3. **Test Output Format**:
 
@@ -815,8 +861,15 @@ assert_eq!(exit_code, 0);
    - Text picker: `Some("<input>")` or `None`
    - Confirm picker: `Some(true)`, `Some(false)`, or `None`
 
-4. **Environment Variables**:
-   - `TEST_MODE=1` - Enable test commands and output
+4. **Tag Suggestions Design**:
+
+   - Tag suggestions come from **existing workspaces**, not a global tags list
+   - `ExistingTagsSuggestionProvider` collects tags from all workspaces via `workspace_repo.list_all()`
+   - Tags are merged and deduplicated across workspaces
+   - When no workspaces exist, no tag suggestions are provided
+
+5. **Environment Variables**:
+   - `TEST_MODE=1` - Enable test commands in palette and special output format
    - `TEST_PICKER_ITEMS=item1,item2,item3` - Items for select picker
    - `TEST_TEXT_PROMPT=Enter name:` - Prompt for text picker
    - `TEST_CONFIRM_PROMPT=Continue?` - Prompt for confirm picker
@@ -836,7 +889,7 @@ fn test_select_picker_fuzzy_search_scoring() {
         .with_env(&env)
         .env("TEST_MODE", "1")
         .env("TEST_PICKER_ITEMS", "application,Apple,pineapple")
-        .args(&["test", "picker"])
+        .args(&["command-palette", "show"])  // Open palette, NOT CLI subcommand
         .build();
 
     let mut asserter = env.testers().pty()
@@ -845,7 +898,13 @@ fn test_select_picker_fuzzy_search_scoring() {
 
     asserter.wait_for_settle();
 
-    // Type search query
+    // Find and select "test picker" command from palette
+    asserter.type_text("test picker");
+    asserter.wait_for_settle();
+    asserter.press_key(Key::Enter);
+    asserter.wait_for_settle();
+
+    // Now we're in the test picker - type search query
     asserter.type_text("app");
     asserter.wait_for_settle();
 
@@ -868,7 +927,7 @@ fn test_text_input_confirm() {
         .with_env(&env)
         .env("TEST_MODE", "1")
         .env("TEST_TEXT_PROMPT", "Enter name:")
-        .args(&["test", "text", "input"])
+        .args(&["command-palette", "show"])  // Open palette
         .build();
 
     let mut asserter = env.testers().pty()
@@ -876,12 +935,84 @@ fn test_text_input_confirm() {
         .run(&cmd);
 
     asserter.wait_for_settle();
+
+    // Select "test text input" from palette
+    asserter.type_text("test text input");
+    asserter.wait_for_settle();
+    asserter.press_key(Key::Enter);
+    asserter.wait_for_settle();
+
+    // Now in text picker - type and confirm
     asserter.type_text("Test");
     asserter.wait_for_settle();
     asserter.press_key(Key::Enter);
 
     let output = asserter.expect_completion_and_get_output();
     assert_eq!(output.trim(), "Some(\"Test\")");
+}
+
+// Example: AW-001 Add Workspace Happy Path (simplified)
+#[test]
+fn test_add_workspace_happy_path() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            // Create existing workspace with tags for suggestions
+            c.with_workspace(|w| {
+                w.name("existing-project");
+                w.tags(vec!["rust", "typescript", "go"]);
+            });
+        });
+    }).create();
+
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .env("TEST_MODE", "1")
+        .args(&["command-palette", "show"])  // Open palette
+        .build();
+
+    let mut asserter = env.testers().pty()
+        .terminal_size(40, 120)
+        .run(&cmd);
+
+    asserter.wait_for_settle();
+
+    // Select "add workspace" from palette
+    asserter.type_text("add workspace");
+    asserter.wait_for_settle();
+    asserter.press_key(Key::Enter);
+    asserter.wait_for_settle();
+
+    // Step 1: Name input
+    asserter.find_text("Workspace name:").assert_visible();
+    asserter.type_text("my-project");
+    asserter.press_key(Key::Enter);
+    asserter.wait_for_settle();
+
+    // Step 2: Tags input with suggestions
+    asserter.find_text("Tags (comma-separated):").assert_visible();
+    asserter.type_text("rus");
+    asserter.wait_for_settle();
+    asserter.find_text("rust").assert_visible();
+    asserter.press_key(Key::Tab);  // Complete "rust"
+    asserter.wait_for_settle();
+
+    asserter.type_text(", ty");
+    asserter.wait_for_settle();
+    asserter.find_text("typescript").assert_visible();
+    asserter.press_key(Key::Tab);  // Complete "typescript"
+    asserter.wait_for_settle();
+
+    asserter.press_key(Key::Enter);
+    asserter.wait_for_settle();
+
+    // Step 3: Confirmation
+    asserter.find_text("Create this workspace?").assert_visible();
+    asserter.find_text("my-project").assert_visible();
+    asserter.press_key(Key::Enter);  // Confirm
+
+    // Verify workspace created in config
+    let config = env.read_rafaeltab_config();
+    assert!(config.workspaces.iter().any(|w| w.name == "my-project"));
 }
 ```
 
@@ -892,7 +1023,7 @@ fn test_text_input_confirm() {
 ### Phase 1: Test Infrastructure
 
 1. Add `TEST_MODE` environment variable support
-2. Implement test commands (test picker, test text input, test text input suggestions, test confirm)
+2. Implement test commands as **command-palette commands** (not CLI subcommands)
 3. Add TUI asserter extensions (assert_vertical_order, expect_completion_and_get_output, color assertions)
 
 ### Phase 2: Core Picker TUI Tests
