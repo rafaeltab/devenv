@@ -12,6 +12,6 @@ pub mod text_picker;
 pub mod text_picker_with_suggestions;
 
 pub use confirm_picker::ConfirmPicker;
-pub use select_picker::SelectPicker;
+pub use select_picker::{SelectPicker, SimpleItem};
 pub use text_picker::TextPicker;
 pub use text_picker_with_suggestions::TextPickerWithSuggestions;
