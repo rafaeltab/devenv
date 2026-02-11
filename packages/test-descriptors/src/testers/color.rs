@@ -80,6 +80,53 @@ impl ColorAssertion {
             _ => None,
         }
     }
+
+    /// Assert that the color is grayscale (R, G, B are equal or nearly equal)
+    pub fn assert_grayscale(&self) {
+        if !self.found {
+            panic!("Cannot check color: text not found on screen");
+        }
+
+        let r = self.r.expect("Color RGB values should be set when found");
+        let g = self.g.expect("Color RGB values should be set when found");
+        let b = self.b.expect("Color RGB values should be set when found");
+
+        let max = r.max(g).max(b);
+        let min = r.min(g).min(b);
+        let is_grayscale = max - min <= 20; // Within tolerance
+
+        if !is_grayscale {
+            panic!(
+                "Expected color to be grayscale, but got ({}, {}, {}) (difference: {})",
+                r,
+                g,
+                b,
+                max - min
+            );
+        }
+    }
+
+    /// Assert that the color is NOT grayscale
+    pub fn assert_not_grayscale(&self) {
+        if !self.found {
+            panic!("Cannot check color: text not found on screen");
+        }
+
+        let r = self.r.expect("Color RGB values should be set when found");
+        let g = self.g.expect("Color RGB values should be set when found");
+        let b = self.b.expect("Color RGB values should be set when found");
+
+        let max = r.max(g).max(b);
+        let min = r.min(g).min(b);
+        let is_grayscale = max - min <= 20;
+
+        if is_grayscale {
+            panic!(
+                "Expected color to NOT be grayscale, but got ({}, {}, {})",
+                r, g, b
+            );
+        }
+    }
 }
 
 /// Color matcher for fuzzy color matching in TUI output.

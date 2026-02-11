@@ -196,6 +196,69 @@ impl TuiAsserter for PtyAsserter {
         eprintln!("{}", self.screen());
         eprintln!("===================");
     }
+
+    fn assert_vertical_order(&self, matches: &[TextMatch]) {
+        if matches.is_empty() {
+            panic!("Cannot assert order on empty list");
+        }
+
+        let mut last_row: Option<u16> = None;
+        let mut last_col: Option<u16> = None;
+
+        for (i, text_match) in matches.iter().enumerate() {
+            // Check item is visible
+            if !text_match.is_visible() {
+                panic!("Item at index {} not found: '{}'", i, text_match.text());
+            }
+
+            let (row, col) = text_match
+                .position()
+                .expect("Visible item should have position");
+
+            // Check ordering
+            if let Some(prev_row) = last_row {
+                if row < prev_row {
+                    panic!(
+                        "Expected items to be in vertical order (top to bottom). \
+                         Item {} '{}' at row {} is above previous item at row {}",
+                        i,
+                        text_match.text(),
+                        row,
+                        prev_row
+                    );
+                }
+
+                // If same row, check left-to-right ordering
+                if row == prev_row {
+                    if let Some(prev_col) = last_col {
+                        if col < prev_col {
+                            panic!(
+                                "Expected items to be ordered left-to-right within row {}. \
+                             Item {} '{}' at col {} is left of previous item at col {}",
+                                row,
+                                i,
+                                text_match.text(),
+                                col,
+                                prev_col
+                            );
+                        }
+                    }
+                }
+            }
+
+            last_row = Some(row);
+            last_col = Some(col);
+        }
+    }
+
+    fn expect_completion_and_get_output(&mut self) -> String {
+        // Wait for the child process to exit
+        let _exit_code = self.expect_completion();
+
+        // For now, return the screen content as output
+        // In a full implementation, this would capture actual stdout
+        self.screen()
+    }
 }
 
 impl Drop for PtyAsserter {

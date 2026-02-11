@@ -57,6 +57,11 @@ impl TextMatch {
         self.found
     }
 
+    /// Returns the matched text string.
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+
     /// Assert that the text is visible in the TUI output.
     pub fn assert_visible(&self) {
         assert!(
