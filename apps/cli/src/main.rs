@@ -5,7 +5,6 @@ use std::io;
 use clap::{Args, CommandFactory, Parser, Subcommand};
 use commands::{
     command::RafaeltabCommand,
-    command_palette::show::{CommandPaletteShowCommand, CommandPaletteShowOptions},
     tmux::{
         list::{TmuxListCommand, TmuxListOptions},
         start::{TmuxStartCommand, TmuxStartOptions},
@@ -36,8 +35,6 @@ use utils::display::{JsonDisplay, JsonPrettyDisplay, PrettyDisplay, RafaeltabDis
 use crate::commands::tmux::switch::{TmuxSwitchCommand, TmuxSwitchOptions};
 
 #[allow(dead_code)]
-mod command_palette;
-#[allow(dead_code)]
 mod commands;
 #[allow(dead_code)]
 mod domain;
@@ -65,22 +62,8 @@ enum Commands {
     Tmux(TmuxArgs),
     /// Manage workspaces
     Workspace(WorkspaceArgs),
-    /// Manage command palette
-    CommandPalette(CommandPaletteArgs),
     /// Manage git worktrees
     Worktree(WorktreeArgs),
-}
-
-#[derive(Debug, Args)]
-struct CommandPaletteArgs {
-    #[command(subcommand)]
-    pub command: CommandPaletteCommands,
-}
-
-#[derive(Debug, Subcommand)]
-enum CommandPaletteCommands {
-    /// Show the command palette UI
-    Show,
 }
 
 #[derive(Debug, Args)]
@@ -326,12 +309,6 @@ fn main() -> Result<(), io::Error> {
                     tags: args.tags.clone(),
                     path: args.path.clone(),
                 })
-            }
-        },
-        Some(Commands::CommandPalette(command_palette_args)) => match &command_palette_args.command
-        {
-            CommandPaletteCommands::Show => {
-                CommandPaletteShowCommand.execute(CommandPaletteShowOptions {})
             }
         },
         Some(Commands::Worktree(worktree_args)) => {
