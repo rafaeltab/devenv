@@ -43,6 +43,8 @@ mod infrastructure;
 #[allow(dead_code)]
 mod storage;
 #[allow(dead_code)]
+mod tui;
+#[allow(dead_code)]
 mod utils;
 
 #[derive(Parser, Debug)]
