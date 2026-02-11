@@ -60,12 +60,26 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
+    /// Open the command palette
+    CommandPalette(CommandPaletteArgs),
     /// Run tmux sessions
     Tmux(TmuxArgs),
     /// Manage workspaces
     Workspace(WorkspaceArgs),
     /// Manage git worktrees
     Worktree(WorktreeArgs),
+}
+
+#[derive(Debug, Args)]
+struct CommandPaletteArgs {
+    #[command(subcommand)]
+    pub command: CommandPaletteCommands,
+}
+
+#[derive(Debug, Subcommand)]
+enum CommandPaletteCommands {
+    /// Show the command palette
+    Show,
 }
 
 #[derive(Debug, Args)]
@@ -355,6 +369,45 @@ fn main() -> Result<(), io::Error> {
                         popup_repository,
                         description_repository,
                     })
+                }
+            }
+        }
+        Some(Commands::CommandPalette(palette_args)) => {
+            use crate::commands::{
+                builtin::AddWorkspaceCommand, registry::CommandRegistry, CommandPalette,
+            };
+
+            // Create command registry
+            let mut registry = CommandRegistry::new();
+
+            // Register normal commands
+            registry.register(AddWorkspaceCommand::new());
+
+            // Register test commands only in TEST_MODE
+            if std::env::var("TEST_MODE").is_ok() {
+                // For now, test commands are conditionally compiled
+                // In test builds, these would be registered
+            }
+
+            // Create the command palette
+            let palette = CommandPalette::new(registry);
+
+            // Handle subcommands
+            match &palette_args.command {
+                CommandPaletteCommands::Show => {
+                    // TODO: Create proper CommandCtx with workspace repository
+                    // For now, just show the palette (placeholder)
+                    if palette.registry().is_empty() {
+                        println!("No commands available");
+                    } else {
+                        println!(
+                            "Command palette would show here with {} commands",
+                            palette.registry().len()
+                        );
+                        for cmd in palette.registry().commands() {
+                            println!("  - {}: {}", cmd.name(), cmd.description());
+                        }
+                    }
                 }
             }
         }
