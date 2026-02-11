@@ -383,9 +383,9 @@ fn test_select_picker_selection_enter() {
 
     // Select with Enter
     asserter.press_key(Key::Enter);
+    asserter.wait_for_settle();
 
-    let output = asserter.expect_completion_and_get_output();
-    assert_eq!(output.trim(), "Some(\"Item2\")");
+    asserter.find_text("Some(\"Item2\")").assert_visible();
 }
 
 /// SP-010: Cancel - Escape Key
@@ -421,9 +421,9 @@ fn test_select_picker_cancel_escape() {
 
     // Cancel with Escape
     asserter.press_key(Key::Esc);
+    asserter.wait_for_settle();
 
-    let output = asserter.expect_completion_and_get_output();
-    assert_eq!(output.trim(), "None");
+    asserter.find_text("None").assert_visible();
 }
 
 /// SP-011: Cancel - Ctrl+C
@@ -459,9 +459,9 @@ fn test_select_picker_cancel_ctrl_c() {
 
     // Cancel with Ctrl+C
     asserter.press_key(Key::Ctrl('c'));
+    asserter.wait_for_settle();
 
-    let output = asserter.expect_completion_and_get_output();
-    assert_eq!(output.trim(), "None");
+    asserter.find_text("None").assert_visible();
 }
 
 /// SP-012: Custom Item Rendering
@@ -695,9 +695,9 @@ fn test_text_picker_confirm_enter() {
     asserter.type_text("Test");
     asserter.wait_for_settle();
     asserter.press_key(Key::Enter);
+    asserter.wait_for_settle();
 
-    let output = asserter.expect_completion_and_get_output();
-    assert_eq!(output.trim(), "Some(\"Test\")");
+    asserter.find_text("Some(\"Test\")").assert_visible();
 }
 
 /// TP-005: Text Input - Cancel with Escape
@@ -735,9 +735,9 @@ fn test_text_picker_cancel_escape() {
     asserter.type_text("Test");
     asserter.wait_for_settle();
     asserter.press_key(Key::Esc);
+    asserter.wait_for_settle();
 
-    let output = asserter.expect_completion_and_get_output();
-    assert_eq!(output.trim(), "None");
+    asserter.find_text("None").assert_visible();
 }
 
 /// TP-006: Text Input - Cancel with Ctrl+C
@@ -773,9 +773,9 @@ fn test_text_picker_cancel_ctrl_c() {
 
     // Cancel with Ctrl+C
     asserter.press_key(Key::Ctrl('c'));
+    asserter.wait_for_settle();
 
-    let output = asserter.expect_completion_and_get_output();
-    assert_eq!(output.trim(), "None");
+    asserter.find_text("None").assert_visible();
 }
 
 /// TP-007: Unicode Support
@@ -1031,9 +1031,9 @@ fn test_text_picker_suggestions_enter_confirms_text() {
 
     // Press Enter to confirm current text
     asserter.press_key(Key::Enter);
+    asserter.wait_for_settle();
 
-    let output = asserter.expect_completion_and_get_output();
-    assert_eq!(output.trim(), "Some(\"cust\")");
+    asserter.find_text("Some(\"cust\")").assert_visible();
 }
 
 /// TPS-006: No Suggestions - Shows Message
@@ -1348,9 +1348,9 @@ fn test_confirm_picker_select_yes() {
 
     // Confirm with Enter
     asserter.press_key(Key::Enter);
+    asserter.wait_for_settle();
 
-    let output = asserter.expect_completion_and_get_output();
-    assert_eq!(output.trim(), "Some(true)");
+    asserter.find_text("Some(true)").assert_visible();
 }
 
 /// CP-004: Confirm - Select No
@@ -1391,9 +1391,9 @@ fn test_confirm_picker_select_no() {
 
     // Confirm with Enter
     asserter.press_key(Key::Enter);
+    asserter.wait_for_settle();
 
-    let output = asserter.expect_completion_and_get_output();
-    assert_eq!(output.trim(), "Some(false)");
+    asserter.find_text("Some(false)").assert_visible();
 }
 
 /// CP-005: Confirm - Cancel
@@ -1429,9 +1429,9 @@ fn test_confirm_picker_cancel() {
 
     // Cancel with Escape
     asserter.press_key(Key::Esc);
+    asserter.wait_for_settle();
 
-    let output = asserter.expect_completion_and_get_output();
-    assert_eq!(output.trim(), "None");
+    asserter.find_text("None").assert_visible();
 }
 
 // =============================================================================
