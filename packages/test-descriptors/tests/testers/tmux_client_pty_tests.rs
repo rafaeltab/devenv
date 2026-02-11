@@ -27,7 +27,8 @@ fn tmux_client_pty_captures_pane_output() {
 
     // Use wait_for_text for deterministic waiting
     asserter.wait_for_text("Captured via pane");
-    asserter.find_text("Captured via pane").assert_visible();
+    // Captures both the command itself, and the output
+    assert_eq!(2, asserter.find_all_text("Captured via pane").len());
 }
 
 /// Keys sent via send-keys.

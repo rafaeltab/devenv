@@ -50,8 +50,8 @@ pub trait TuiAsserter {
             self.wait_ms(POLL_INTERVAL_MS);
 
             // Check if text is now visible
-            let match_result = self.find_text(text);
-            if match_result.is_visible() {
+            let match_result = self.find_all_text(text);
+            if !match_result.is_empty() {
                 return;
             }
 
