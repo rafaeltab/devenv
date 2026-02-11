@@ -4,9 +4,38 @@
 //! access to picker methods and other runtime functionality.
 
 use std::io::{self};
+use std::sync::Arc;
 
+use crate::domain::tmux_workspaces::aggregates::workspaces::workspace::{Workspace, WorkspaceTag};
+use crate::domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository;
 use crate::tui::picker_ctx::{PickerCtx, SuggestionProvider};
 use crate::tui::pickers::SimpleItem;
+
+/// A dummy workspace repository for when no real repository is available.
+struct DummyWorkspaceRepository;
+
+impl WorkspaceRepository for DummyWorkspaceRepository {
+    fn get_workspaces(&self) -> Vec<Workspace> {
+        Vec::new()
+    }
+
+    fn create_workspace(
+        &self,
+        _name: String,
+        _tags: Vec<String>,
+        _root: String,
+        _id: String,
+    ) -> Workspace {
+        Workspace {
+            id: String::new(),
+            name: String::new(),
+            path: String::new(),
+            tags: Vec::new(),
+            importance: 0,
+            worktree: None,
+        }
+    }
+}
 
 /// Context for executing commands in the command palette.
 ///
@@ -34,14 +63,34 @@ use crate::tui::pickers::SimpleItem;
 /// ```
 pub struct CommandCtx {
     picker_ctx: PickerCtx,
+    workspace_repo: Arc<dyn WorkspaceRepository>,
 }
 
 impl CommandCtx {
     /// Create a new command context.
     pub fn new() -> io::Result<Self> {
         let picker_ctx = PickerCtx::new()?;
+        let workspace_repo: Arc<dyn WorkspaceRepository> = Arc::new(DummyWorkspaceRepository);
 
-        Ok(Self { picker_ctx })
+        Ok(Self {
+            picker_ctx,
+            workspace_repo,
+        })
+    }
+
+    /// Create a new command context with a workspace repository.
+    pub fn with_repository(workspace_repo: Arc<dyn WorkspaceRepository>) -> io::Result<Self> {
+        let picker_ctx = PickerCtx::new()?;
+
+        Ok(Self {
+            picker_ctx,
+            workspace_repo,
+        })
+    }
+
+    /// Access the workspace repository.
+    pub fn workspace_repo(&self) -> &dyn WorkspaceRepository {
+        self.workspace_repo.as_ref()
     }
 
     /// Display a select picker and return the selected item.

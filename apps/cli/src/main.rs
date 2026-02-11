@@ -399,21 +399,12 @@ fn main() -> Result<(), io::Error> {
             // Handle subcommands
             match &palette_args.command {
                 CommandPaletteCommands::Show => {
-                    // Create the workspace repository
-                    let workspace_repository = ImplWorkspaceRepository {
-                        workspace_storage: &storage,
-                    };
-
-                    // Create the command context and run the palette
-                    // Note: For now we use a simplified approach that doesn't require Arc
-                    // The full implementation would need to handle lifetimes properly
+                    // Run the command palette
                     if palette.registry().is_empty() {
                         println!("No commands available");
                     } else {
-                        // Run the command palette
+                        // Create command context and run
                         use crate::commands::Command;
-
-                        // Create a simple context - in full implementation this would use the repository
                         let mut ctx = crate::commands::CommandCtx::new()
                             .expect("Failed to create command context");
                         palette.run(&mut ctx);
