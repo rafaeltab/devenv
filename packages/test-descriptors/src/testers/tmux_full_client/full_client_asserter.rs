@@ -238,4 +238,16 @@ impl TuiAsserter for FullClientAsserter {
         eprintln!("{}", self.screen());
         eprintln!("===================");
     }
+
+    fn assert_vertical_order(&self, _matches: &[TextMatch]) {
+        // Stub implementation for full client asserter
+        // Full implementation deferred to later phase
+        unimplemented!("assert_vertical_order not yet implemented for FullClientAsserter")
+    }
+
+    fn expect_completion_and_get_output(&mut self) -> String {
+        // Stub implementation - returns screen content as output
+        self.expect_completion();
+        self.screen()
+    }
 }
