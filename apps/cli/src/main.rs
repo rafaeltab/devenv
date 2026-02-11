@@ -375,6 +375,8 @@ fn main() -> Result<(), io::Error> {
         Some(Commands::CommandPalette(palette_args)) => {
             use crate::commands::{
                 builtin::AddWorkspaceCommand, registry::CommandRegistry, CommandPalette,
+                TestConfirmCommand, TestPickerCommand, TestTextInputCommand,
+                TestTextInputSuggestionsCommand,
             };
 
             // Create command registry
@@ -385,8 +387,10 @@ fn main() -> Result<(), io::Error> {
 
             // Register test commands only in TEST_MODE
             if std::env::var("TEST_MODE").is_ok() {
-                // For now, test commands are conditionally compiled
-                // In test builds, these would be registered
+                registry.register(TestPickerCommand::new());
+                registry.register(TestTextInputCommand::new());
+                registry.register(TestTextInputSuggestionsCommand::new());
+                registry.register(TestConfirmCommand::new());
             }
 
             // Create the command palette
@@ -395,18 +399,24 @@ fn main() -> Result<(), io::Error> {
             // Handle subcommands
             match &palette_args.command {
                 CommandPaletteCommands::Show => {
-                    // TODO: Create proper CommandCtx with workspace repository
-                    // For now, just show the palette (placeholder)
+                    // Create the workspace repository
+                    let workspace_repository = ImplWorkspaceRepository {
+                        workspace_storage: &storage,
+                    };
+
+                    // Create the command context and run the palette
+                    // Note: For now we use a simplified approach that doesn't require Arc
+                    // The full implementation would need to handle lifetimes properly
                     if palette.registry().is_empty() {
                         println!("No commands available");
                     } else {
-                        println!(
-                            "Command palette would show here with {} commands",
-                            palette.registry().len()
-                        );
-                        for cmd in palette.registry().commands() {
-                            println!("  - {}: {}", cmd.name(), cmd.description());
-                        }
+                        // Run the command palette
+                        use crate::commands::Command;
+
+                        // Create a simple context - in full implementation this would use the repository
+                        let mut ctx = crate::commands::CommandCtx::new()
+                            .expect("Failed to create command context");
+                        palette.run(&mut ctx);
                     }
                 }
             }
