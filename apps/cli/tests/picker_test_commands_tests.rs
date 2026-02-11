@@ -22,6 +22,8 @@ fn test_select_picker_display_items() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_PICKER_ITEMS", "Item1,Item2,Item3")
         .args(&["command-palette", "show"])
         .build();
@@ -57,7 +59,11 @@ fn test_select_picker_fuzzy_search_filtering() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
-        .with_env_var("TEST_PICKER_ITEMS", "Apple,Banana,Cherry")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
+        .with_env_var("TEST_PICKER_ITEMS", "Item1,Item2,Item3")
         .args(&["command-palette", "show"])
         .build();
 
@@ -97,6 +103,8 @@ fn test_select_picker_fuzzy_search_scoring() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_PICKER_ITEMS", "application,Apple,pineapple")
         .args(&["command-palette", "show"])
         .build();
@@ -137,6 +145,8 @@ fn test_select_picker_empty_search_shows_all() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_PICKER_ITEMS", "Item1,Item2,Item3")
         .args(&["command-palette", "show"])
         .build();
@@ -173,6 +183,8 @@ fn test_select_picker_no_matches_display() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_PICKER_ITEMS", "Apple,Banana")
         .args(&["command-palette", "show"])
         .build();
@@ -209,6 +221,8 @@ fn test_select_picker_navigation_down() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_PICKER_ITEMS", "Item1,Item2,Item3")
         .args(&["command-palette", "show"])
         .build();
@@ -252,6 +266,8 @@ fn test_select_picker_navigation_up_wrap() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_PICKER_ITEMS", "Item1,Item2")
         .args(&["command-palette", "show"])
         .build();
@@ -295,6 +311,8 @@ fn test_select_picker_navigation_down_wrap() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_PICKER_ITEMS", "Item1,Item2")
         .args(&["command-palette", "show"])
         .build();
@@ -343,6 +361,8 @@ fn test_select_picker_selection_enter() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_PICKER_ITEMS", "Item1,Item2,Item3")
         .args(&["command-palette", "show"])
         .build();
@@ -383,6 +403,8 @@ fn test_select_picker_cancel_escape() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_PICKER_ITEMS", "Item1,Item2")
         .args(&["command-palette", "show"])
         .build();
@@ -419,6 +441,8 @@ fn test_select_picker_cancel_ctrl_c() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_PICKER_ITEMS", "Item1,Item2")
         .args(&["command-palette", "show"])
         .build();
@@ -454,6 +478,8 @@ fn test_select_picker_custom_item_rendering() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_PICKER_ITEMS", "CustomItem1,CustomItem2")
         .args(&["command-palette", "show"])
         .build();
@@ -488,6 +514,8 @@ fn test_select_picker_item_constraints() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_PICKER_ITEMS", "Item1,Item2,Item3")
         .args(&["command-palette", "show"])
         .build();
@@ -527,6 +555,8 @@ fn test_text_picker_basic_input() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_TEXT_PROMPT", "Enter name:")
         .args(&["command-palette", "show"])
         .build();
@@ -563,6 +593,8 @@ fn test_text_picker_backspace() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_TEXT_PROMPT", "Enter name:")
         .args(&["command-palette", "show"])
         .build();
@@ -604,6 +636,8 @@ fn test_text_picker_empty_backspace() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_TEXT_PROMPT", "Enter name:")
         .args(&["command-palette", "show"])
         .build();
@@ -641,6 +675,8 @@ fn test_text_picker_confirm_enter() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_TEXT_PROMPT", "Enter name:")
         .args(&["command-palette", "show"])
         .build();
@@ -679,6 +715,8 @@ fn test_text_picker_cancel_escape() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_TEXT_PROMPT", "Enter name:")
         .args(&["command-palette", "show"])
         .build();
@@ -717,6 +755,8 @@ fn test_text_picker_cancel_ctrl_c() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_TEXT_PROMPT", "Enter name:")
         .args(&["command-palette", "show"])
         .build();
@@ -752,6 +792,8 @@ fn test_text_picker_unicode() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_TEXT_PROMPT", "Enter name:")
         .args(&["command-palette", "show"])
         .build();
@@ -793,6 +835,8 @@ fn test_text_picker_suggestions_display() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_SUGGESTIONS", "apple,application,apply")
         .args(&["command-palette", "show"])
         .build();
@@ -836,6 +880,8 @@ fn test_text_picker_suggestions_top_highlighted() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_SUGGESTIONS", "apple,banana,cherry")
         .args(&["command-palette", "show"])
         .build();
@@ -873,6 +919,8 @@ fn test_text_picker_suggestions_tab_completion() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_SUGGESTIONS", "apple,application,apply")
         .args(&["command-palette", "show"])
         .build();
@@ -914,6 +962,8 @@ fn test_text_picker_suggestions_arrow_navigation() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_SUGGESTIONS", "apple,banana,cherry")
         .args(&["command-palette", "show"])
         .build();
@@ -959,6 +1009,8 @@ fn test_text_picker_suggestions_enter_confirms_text() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_SUGGESTIONS", "custom,customer")
         .args(&["command-palette", "show"])
         .build();
@@ -1002,6 +1054,8 @@ fn test_text_picker_suggestions_no_suggestions_message() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         // Empty suggestions - provider returns None
         .with_env_var("TEST_SUGGESTIONS", "")
         .args(&["command-palette", "show"])
@@ -1044,6 +1098,8 @@ fn test_text_picker_suggestions_empty_suggestions_message() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_SUGGESTIONS", "apple,banana")
         .args(&["command-palette", "show"])
         .build();
@@ -1083,6 +1139,8 @@ fn test_text_picker_suggestions_update_on_input_change() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_SUGGESTIONS", "apple,apricot,banana,blueberry")
         .args(&["command-palette", "show"])
         .build();
@@ -1129,6 +1187,8 @@ fn test_text_picker_suggestions_ctrl_j_k_navigation() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_SUGGESTIONS", "apple,banana,cherry")
         .args(&["command-palette", "show"])
         .build();
@@ -1188,6 +1248,8 @@ fn test_confirm_picker_default_yes() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_CONFIRM_PROMPT", "Continue?")
         .with_env_var("TEST_CONFIRM_DEFAULT", "true")
         .args(&["command-palette", "show"])
@@ -1224,6 +1286,8 @@ fn test_confirm_picker_default_no() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_CONFIRM_PROMPT", "Delete?")
         .with_env_var("TEST_CONFIRM_DEFAULT", "false")
         .args(&["command-palette", "show"])
@@ -1261,6 +1325,8 @@ fn test_confirm_picker_select_yes() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_CONFIRM_PROMPT", "Continue?")
         .with_env_var("TEST_CONFIRM_DEFAULT", "false") // Start with No selected
         .args(&["command-palette", "show"])
@@ -1302,6 +1368,8 @@ fn test_confirm_picker_select_no() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_CONFIRM_PROMPT", "Continue?")
         .with_env_var("TEST_CONFIRM_DEFAULT", "true") // Start with Yes selected
         .args(&["command-palette", "show"])
@@ -1342,6 +1410,8 @@ fn test_confirm_picker_cancel() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
+        .with_env_var("COLORTERM", "truecolor")
         .with_env_var("TEST_CONFIRM_PROMPT", "Continue?")
         .with_env_var("TEST_CONFIRM_DEFAULT", "true")
         .args(&["command-palette", "show"])

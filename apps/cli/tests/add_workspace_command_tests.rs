@@ -59,6 +59,7 @@ fn test_add_workspace_happy_path() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
         .args(&["command-palette", "show"])
         .build();
 
@@ -193,6 +194,7 @@ fn test_add_workspace_cancel_at_name_input() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
         .args(&["command-palette", "show"])
         .build();
 
@@ -249,6 +251,7 @@ fn test_add_workspace_cancel_at_tags_input() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
         .args(&["command-palette", "show"])
         .build();
 
@@ -314,6 +317,7 @@ fn test_add_workspace_cancel_at_confirmation() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
         .args(&["command-palette", "show"])
         .build();
 
@@ -375,6 +379,7 @@ fn test_add_workspace_empty_name_validation() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
         .args(&["command-palette", "show"])
         .build();
 
@@ -425,6 +430,7 @@ fn test_add_workspace_special_characters_slugified() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
         .args(&["command-palette", "show"])
         .build();
 
@@ -491,6 +497,7 @@ fn test_add_workspace_duplicate_tag_handling() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
         .args(&["command-palette", "show"])
         .build();
 
@@ -566,6 +573,7 @@ fn test_add_workspace_empty_tags() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
         .args(&["command-palette", "show"])
         .build();
 
@@ -647,6 +655,7 @@ fn test_add_workspace_tag_suggestion_from_existing() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
         .args(&["command-palette", "show"])
         .build();
 
@@ -717,6 +726,7 @@ fn test_add_workspace_tag_suggestion_partial_match() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
         .args(&["command-palette", "show"])
         .build();
 
@@ -787,6 +797,7 @@ fn test_add_workspace_tag_suggestion_case_insensitive() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
         .args(&["command-palette", "show"])
         .build();
 
@@ -834,6 +845,7 @@ fn test_add_workspace_multi_word_tag_input() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_env_var("TEST_MODE", "1")
+        .with_env_var("TERM", "xterm-256color")
         .args(&["command-palette", "show"])
         .build();
 
