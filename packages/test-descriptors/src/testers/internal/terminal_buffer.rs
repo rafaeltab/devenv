@@ -153,7 +153,37 @@ impl TerminalBuffer {
     }
 
     pub(crate) fn process_bytes(&mut self, bytes: &[u8]) {
-        self.terminal.advance_bytes(bytes);
+        let canonicalized = Self::canonicalize_bytes(bytes);
+        self.terminal.advance_bytes(canonicalized);
+    }
+
+    fn canonicalize_bytes(bytes: &[u8]) -> Box<[u8]> {
+        let mut res = Vec::<u8>::with_capacity(bytes.len());
+
+        let mut iter = bytes.iter().peekable();
+
+        while let Some(&byte) = iter.next() {
+            if byte == b'\r' {
+                res.push(byte);
+                if let Some(next_char) = iter.peek()
+                    && **next_char == b'\n'
+                {
+                    res.push(b'\n');
+                    iter.next();
+                }
+                continue;
+            }
+            if byte == b'\n' {
+                // This one was not preceded by a \r so we must add it
+                res.push(b'\r');
+                res.push(byte);
+                continue;
+            }
+
+            res.push(byte);
+        }
+
+        res.into_boxed_slice()
     }
 
     pub(crate) fn render(&self) -> String {

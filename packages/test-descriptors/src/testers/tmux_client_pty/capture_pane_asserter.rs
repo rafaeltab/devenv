@@ -30,7 +30,7 @@ impl CapturePaneAsserter {
         Self {
             socket,
             session_name,
-            terminal: TerminalBuffer::new(rows, cols),
+            terminal: TerminalBuffer::new(rows + 1, cols),
             settle_timeout_ms,
         }
     }

@@ -110,12 +110,12 @@ fn press_key_backspace() {
     let mut asserter = env.testers().pty().run(&cmd);
 
     asserter.wait_for_settle();
-    asserter.type_text("abc");
+    asserter.type_text("abcdefghijklmnopqrstuvwxyz");
     asserter.press_key(Key::Backspace);
     asserter.wait_for_settle();
 
     // "ab" should be visible, "abc" should not
-    asserter.find_text("ab").assert_visible();
+    asserter.find_text("abcdefghijklmnopqrstuvwxy").assert_visible();
 }
 
 /// Ctrl+C interrupts running process.
