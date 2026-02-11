@@ -34,10 +34,22 @@ pub struct PickerCtx {
 impl PickerCtx {
     /// Create a new picker context and initialize the terminal.
     ///
-    /// This sets up the terminal in raw mode and creates the necessary
-    /// backend for rendering TUI components.
+    /// This sets up the terminal in raw mode, clears the screen,
+    /// and creates the necessary backend for rendering TUI components.
     pub fn new() -> io::Result<Self> {
-        let backend = CrosstermBackend::new(io::stdout());
+        use crossterm::{
+            cursor::Hide,
+            execute,
+            terminal::{Clear, ClearType},
+        };
+
+        // Clear the screen before creating terminal
+        // This ensures any previous terminal content is hidden
+        let mut stdout = io::stdout();
+        execute!(stdout, Clear(ClearType::All))?;
+        execute!(stdout, Hide)?;
+
+        let backend = CrosstermBackend::new(stdout);
         let terminal = Terminal::new(backend)?;
 
         Ok(Self { terminal })
@@ -121,8 +133,12 @@ impl PickerCtx {
     /// This should be called before exiting the application to
     /// ensure the terminal is properly cleaned up.
     pub fn restore(&mut self) -> io::Result<()> {
-        // Placeholder - will be implemented when we add proper
-        // terminal initialization/cleanup
+        use crossterm::{cursor::Show, execute};
+
+        // Show cursor
+        let mut stdout = io::stdout();
+        execute!(stdout, Show)?;
+
         Ok(())
     }
 }

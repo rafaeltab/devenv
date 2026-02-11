@@ -1433,3 +1433,53 @@ fn test_confirm_picker_cancel() {
     let output = asserter.expect_completion_and_get_output();
     assert_eq!(output.trim(), "None");
 }
+
+// =============================================================================
+// Screen Clearing Test
+// =============================================================================
+
+/// TUI-SC-001: Command palette clears previous terminal content
+/// Given the terminal has content printed ("hello" repeated 20 times with newlines)
+/// When the command palette is opened
+/// Then the previous content ("hello") should no longer be visible
+#[test]
+fn test_command_palette_clears_screen() {
+    use test_descriptors::testers::Command;
+
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
+    })
+    .create();
+
+    // Create a command that first prints "hello" 20 times, then runs the palette
+    // We use sh -c to execute a command that fills the terminal with content
+    let rafaeltab_path = env!("CARGO_BIN_EXE_rafaeltab");
+    let shell_command = format!(
+        "for i in $(seq 1 20); do echo 'hello'; done; \"{}\" --config \"{}\" command-palette show",
+        rafaeltab_path,
+        env.context().config_path().unwrap().to_string_lossy()
+    );
+
+    let cmd = Command::new("sh")
+        .args(&["-c", &shell_command])
+        .env("TEST_MODE", "1")
+        .env("TERM", "xterm-256color")
+        .env("COLORTERM", "truecolor")
+        .env("TEST_PICKER_ITEMS", "TestItem1,TestItem2")
+        .env("RAFAELTAB_TMUX_SOCKET", env.tmux_socket());
+
+    let mut asserter = env.testers().pty().terminal_size(40, 120).run(&cmd);
+
+    asserter.wait_for_settle();
+
+    // The "hello" text that was printed before the palette opened
+    // should NOT be visible because the palette should clear the screen
+    asserter.find_text("hello").assert_not_visible();
+
+    // But the palette content should be visible
+    asserter.find_text("test picker").assert_visible();
+
+    // Cancel to exit cleanly
+    asserter.press_key(Key::Esc);
+    let _ = asserter.expect_completion_and_get_output();
+}
