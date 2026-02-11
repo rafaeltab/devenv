@@ -177,3 +177,43 @@ impl SuggestionProvider for StaticSuggestionProvider {
         }
     }
 }
+
+/// A suggestion provider that sources tags from existing workspaces.
+///
+/// This provider queries the workspace repository to collect all unique tags
+/// across workspaces and provides them as suggestions.
+pub struct ExistingTagsSuggestionProvider {
+    /// The list of all unique tags collected from workspaces
+    all_tags: Vec<String>,
+}
+
+impl ExistingTagsSuggestionProvider {
+    /// Create a new provider with the given workspace repository.
+    ///
+    /// This will collect all unique tags from existing workspaces.
+    pub fn new(all_tags: Vec<String>) -> Self {
+        Self { all_tags }
+    }
+}
+
+impl SuggestionProvider for ExistingTagsSuggestionProvider {
+    fn suggestions(&self, input: &str) -> Option<Vec<String>> {
+        if input.is_empty() {
+            return None;
+        }
+
+        // Return fuzzy matches from all workspace tags
+        let matches: Vec<String> = self
+            .all_tags
+            .iter()
+            .filter(|tag| tag.to_lowercase().contains(&input.to_lowercase()))
+            .cloned()
+            .collect();
+
+        if matches.is_empty() {
+            None
+        } else {
+            Some(matches)
+        }
+    }
+}
