@@ -61,9 +61,7 @@ fn test_select_picker_fuzzy_search_filtering() {
         .with_env_var("TEST_MODE", "1")
         .with_env_var("TERM", "xterm-256color")
         .with_env_var("COLORTERM", "truecolor")
-        .with_env_var("TERM", "xterm-256color")
-        .with_env_var("COLORTERM", "truecolor")
-        .with_env_var("TEST_PICKER_ITEMS", "Item1,Item2,Item3")
+        .with_env_var("TEST_PICKER_ITEMS", "Apple,Banana,Cherry")
         .args(&["command-palette", "show"])
         .build();
 
@@ -247,7 +245,9 @@ fn test_select_picker_navigation_down() {
     asserter.press_key(Key::Down);
     asserter.wait_for_settle();
 
-    // Now Item2 highlighted, Item1 not
+    // Now Item2 highlighted, Item1 not - re-find to get current colors
+    let item2 = asserter.find_text("Item2");
+    let item1 = asserter.find_text("Item1");
     item2.fg.assert_not_grayscale();
     item1.fg.assert_grayscale();
 }
@@ -292,7 +292,9 @@ fn test_select_picker_navigation_up_wrap() {
     asserter.press_key(Key::Up);
     asserter.wait_for_settle();
 
-    // Now Item2 highlighted, Item1 not
+    // Now Item2 highlighted, Item1 not - re-find to get current colors
+    let item2 = asserter.find_text("Item2");
+    let item1 = asserter.find_text("Item1");
     item2.fg.assert_not_grayscale();
     item1.fg.assert_grayscale();
 }
@@ -341,7 +343,9 @@ fn test_select_picker_navigation_down_wrap() {
     asserter.press_key(Key::Down);
     asserter.wait_for_settle();
 
-    // Now Item1 highlighted, Item2 not
+    // Now Item1 highlighted, Item2 not - re-find to get current colors
+    let item1 = asserter.find_text("Item1");
+    let item2 = asserter.find_text("Item2");
     item1.fg.assert_not_grayscale();
     item2.fg.assert_grayscale();
 }
@@ -385,7 +389,10 @@ fn test_select_picker_selection_enter() {
     asserter.press_key(Key::Enter);
     asserter.wait_for_settle();
 
-    asserter.find_text("Some(\"Item2\")").assert_visible();
+    // Wait for result screen
+    asserter.wait_for_settle();
+
+    asserter.find_text("Result: Some(Item2)").assert_visible();
 }
 
 /// SP-010: Cancel - Escape Key
@@ -423,7 +430,10 @@ fn test_select_picker_cancel_escape() {
     asserter.press_key(Key::Esc);
     asserter.wait_for_settle();
 
-    asserter.find_text("None").assert_visible();
+    // Wait for result screen
+    asserter.wait_for_settle();
+
+    asserter.find_text("Result: None").assert_visible();
 }
 
 /// SP-011: Cancel - Ctrl+C
@@ -461,7 +471,10 @@ fn test_select_picker_cancel_ctrl_c() {
     asserter.press_key(Key::Ctrl('c'));
     asserter.wait_for_settle();
 
-    asserter.find_text("None").assert_visible();
+    // Wait for result screen
+    asserter.wait_for_settle();
+
+    asserter.find_text("Result: None").assert_visible();
 }
 
 /// SP-012: Custom Item Rendering
@@ -557,7 +570,7 @@ fn test_text_picker_basic_input() {
         .with_env_var("TEST_MODE", "1")
         .with_env_var("TERM", "xterm-256color")
         .with_env_var("COLORTERM", "truecolor")
-        .with_env_var("TEST_TEXT_PROMPT", "Enter name:")
+        .with_env_var("TEST_TEXT_PROMPT", "Enter name")
         .args(&["command-palette", "show"])
         .build();
 
@@ -595,7 +608,7 @@ fn test_text_picker_backspace() {
         .with_env_var("TEST_MODE", "1")
         .with_env_var("TERM", "xterm-256color")
         .with_env_var("COLORTERM", "truecolor")
-        .with_env_var("TEST_TEXT_PROMPT", "Enter name:")
+        .with_env_var("TEST_TEXT_PROMPT", "Enter name")
         .args(&["command-palette", "show"])
         .build();
 
@@ -638,7 +651,7 @@ fn test_text_picker_empty_backspace() {
         .with_env_var("TEST_MODE", "1")
         .with_env_var("TERM", "xterm-256color")
         .with_env_var("COLORTERM", "truecolor")
-        .with_env_var("TEST_TEXT_PROMPT", "Enter name:")
+        .with_env_var("TEST_TEXT_PROMPT", "Enter name")
         .args(&["command-palette", "show"])
         .build();
 
@@ -677,7 +690,7 @@ fn test_text_picker_confirm_enter() {
         .with_env_var("TEST_MODE", "1")
         .with_env_var("TERM", "xterm-256color")
         .with_env_var("COLORTERM", "truecolor")
-        .with_env_var("TEST_TEXT_PROMPT", "Enter name:")
+        .with_env_var("TEST_TEXT_PROMPT", "Enter name")
         .args(&["command-palette", "show"])
         .build();
 
@@ -697,7 +710,10 @@ fn test_text_picker_confirm_enter() {
     asserter.press_key(Key::Enter);
     asserter.wait_for_settle();
 
-    asserter.find_text("Some(\"Test\")").assert_visible();
+    // Wait for result screen
+    asserter.wait_for_settle();
+
+    asserter.find_text("Result: Some(Test)").assert_visible();
 }
 
 /// TP-005: Text Input - Cancel with Escape
@@ -717,7 +733,7 @@ fn test_text_picker_cancel_escape() {
         .with_env_var("TEST_MODE", "1")
         .with_env_var("TERM", "xterm-256color")
         .with_env_var("COLORTERM", "truecolor")
-        .with_env_var("TEST_TEXT_PROMPT", "Enter name:")
+        .with_env_var("TEST_TEXT_PROMPT", "Enter name")
         .args(&["command-palette", "show"])
         .build();
 
@@ -737,7 +753,10 @@ fn test_text_picker_cancel_escape() {
     asserter.press_key(Key::Esc);
     asserter.wait_for_settle();
 
-    asserter.find_text("None").assert_visible();
+    // Wait for result screen
+    asserter.wait_for_settle();
+
+    asserter.find_text("Result: None").assert_visible();
 }
 
 /// TP-006: Text Input - Cancel with Ctrl+C
@@ -757,7 +776,7 @@ fn test_text_picker_cancel_ctrl_c() {
         .with_env_var("TEST_MODE", "1")
         .with_env_var("TERM", "xterm-256color")
         .with_env_var("COLORTERM", "truecolor")
-        .with_env_var("TEST_TEXT_PROMPT", "Enter name:")
+        .with_env_var("TEST_TEXT_PROMPT", "Enter name")
         .args(&["command-palette", "show"])
         .build();
 
@@ -775,7 +794,10 @@ fn test_text_picker_cancel_ctrl_c() {
     asserter.press_key(Key::Ctrl('c'));
     asserter.wait_for_settle();
 
-    asserter.find_text("None").assert_visible();
+    // Wait for result screen
+    asserter.wait_for_settle();
+
+    asserter.find_text("Result: None").assert_visible();
 }
 
 /// TP-007: Unicode Support
@@ -794,7 +816,7 @@ fn test_text_picker_unicode() {
         .with_env_var("TEST_MODE", "1")
         .with_env_var("TERM", "xterm-256color")
         .with_env_var("COLORTERM", "truecolor")
-        .with_env_var("TEST_TEXT_PROMPT", "Enter name:")
+        .with_env_var("TEST_TEXT_PROMPT", "Enter name")
         .args(&["command-palette", "show"])
         .build();
 
@@ -1033,7 +1055,10 @@ fn test_text_picker_suggestions_enter_confirms_text() {
     asserter.press_key(Key::Enter);
     asserter.wait_for_settle();
 
-    asserter.find_text("Some(\"cust\")").assert_visible();
+    // Wait for result screen
+    asserter.wait_for_settle();
+
+    asserter.find_text("Result: Some(cust)").assert_visible();
 }
 
 /// TPS-006: No Suggestions - Shows Message
@@ -1126,7 +1151,7 @@ fn test_text_picker_suggestions_empty_suggestions_message() {
 
 /// TPS-008: Suggestions Update on Input Change
 /// Given text picker with dynamic suggestions
-/// When user types "a" (suggestions: ["apple", "apricot"])
+/// When user types "ap" (suggestions: ["apple", "apricot"])
 /// And user types "b" (suggestions: ["banana", "blueberry"])
 /// Then middle panel should update to show new suggestions
 #[test]
@@ -1155,20 +1180,25 @@ fn test_text_picker_suggestions_update_on_input_change() {
     asserter.press_key(Key::Enter);
     asserter.wait_for_settle();
 
-    // After typing "a"
-    asserter.type_text("a");
+    // After typing "ap"
+    asserter.type_text("ap");
     asserter.wait_for_settle();
     asserter.find_text("apple").assert_visible();
+    asserter.find_text("apricot").assert_visible();
+    // banana and blueberry don't contain "ap"
     asserter.find_text("banana").assert_not_visible();
+    asserter.find_text("blueberry").assert_not_visible();
 
-    // Clear and type "b"
+    // Clear and type "b" to match both banana and blueberry
     asserter.press_key(Key::Ctrl('u')); // Clear line (common TUI pattern)
     asserter.type_text("b");
     asserter.wait_for_settle();
 
-    // Now banana visible, apple not
+    // Now banana and blueberry visible, apple not
     asserter.find_text("banana").assert_visible();
+    asserter.find_text("blueberry").assert_visible();
     asserter.find_text("apple").assert_not_visible();
+    asserter.find_text("apricot").assert_not_visible();
 }
 
 /// TPS-009: Ctrl+J/Ctrl+K Navigation
@@ -1217,7 +1247,9 @@ fn test_text_picker_suggestions_ctrl_j_k_navigation() {
     asserter.press_key(Key::Ctrl('j'));
     asserter.wait_for_settle();
 
-    // Now banana highlighted
+    // Now banana highlighted - re-find to get current colors
+    let banana = asserter.find_text("banana");
+    let apple = asserter.find_text("apple");
     banana.fg.assert_not_grayscale();
     apple.fg.assert_grayscale();
 
@@ -1225,7 +1257,9 @@ fn test_text_picker_suggestions_ctrl_j_k_navigation() {
     asserter.press_key(Key::Ctrl('k'));
     asserter.wait_for_settle();
 
-    // Now apple highlighted again
+    // Now apple highlighted again - re-find to get current colors
+    let apple = asserter.find_text("apple");
+    let banana = asserter.find_text("banana");
     apple.fg.assert_not_grayscale();
     banana.fg.assert_grayscale();
 }
@@ -1342,15 +1376,18 @@ fn test_confirm_picker_select_yes() {
     asserter.press_key(Key::Enter);
     asserter.wait_for_settle();
 
-    // Navigate to Yes
-    asserter.press_key(Key::Right);
+    // Navigate to Yes (Left arrow selects Yes)
+    asserter.press_key(Key::Left);
     asserter.wait_for_settle();
 
     // Confirm with Enter
     asserter.press_key(Key::Enter);
     asserter.wait_for_settle();
 
-    asserter.find_text("Some(true)").assert_visible();
+    // Wait for result screen
+    asserter.wait_for_settle();
+
+    asserter.find_text("Result: Some(true)").assert_visible();
 }
 
 /// CP-004: Confirm - Select No
@@ -1393,7 +1430,10 @@ fn test_confirm_picker_select_no() {
     asserter.press_key(Key::Enter);
     asserter.wait_for_settle();
 
-    asserter.find_text("Some(false)").assert_visible();
+    // Wait for result screen
+    asserter.wait_for_settle();
+
+    asserter.find_text("Result: Some(false)").assert_visible();
 }
 
 /// CP-005: Confirm - Cancel
@@ -1431,7 +1471,10 @@ fn test_confirm_picker_cancel() {
     asserter.press_key(Key::Esc);
     asserter.wait_for_settle();
 
-    asserter.find_text("None").assert_visible();
+    // Wait for result screen
+    asserter.wait_for_settle();
+
+    asserter.find_text("Result: None").assert_visible();
 }
 
 // =============================================================================

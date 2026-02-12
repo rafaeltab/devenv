@@ -46,14 +46,17 @@ impl Command for TestTextInputCommand {
 
     fn run(&self, ctx: &mut CommandCtx) {
         // Get prompt from environment
-        let prompt = env::var("TEST_TEXT_PROMPT").unwrap_or_else(|_| "Input:".to_string());
+        let prompt = env::var("TEST_TEXT_PROMPT").unwrap_or_else(|_| "Input".to_string());
 
         let input = ctx.input(&prompt);
 
-        // Output result for test verification
-        match input {
-            Some(text) => println!("Some({:?})", text),
-            None => println!("None"),
-        }
+        // Show result in a confirmation screen before exiting
+        let result_text = match input {
+            Some(text) => format!("Some({})", text),
+            None => "None".to_string(),
+        };
+
+        // Display result in the picker so it's captured by PTY
+        ctx.confirm(&format!("Result: {}", result_text), true);
     }
 }

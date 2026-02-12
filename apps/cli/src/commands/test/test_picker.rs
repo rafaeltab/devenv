@@ -2,7 +2,7 @@ use std::env;
 
 use crate::commands::{Command, CommandCtx};
 use crate::tui::picker_item::PickerItem;
-use crate::tui::pickers::{SimpleItem};
+use crate::tui::pickers::SimpleItem;
 
 /// Test command for the select picker.
 ///
@@ -46,12 +46,15 @@ impl Command for TestPickerCommand {
             .collect();
 
         // Show picker
-        let selection = ctx.select(&items, "Select an item:");
+        let selection = ctx.select(&items, "Select an item");
 
-        // Output result for test verification
-        match selection {
-            Some(item) => println!("Some({:?})", item.search_text()),
-            None => println!("None"),
-        }
+        // Show result in a confirmation screen before exiting
+        let result_text = match selection {
+            Some(item) => format!("Some({})", item.search_text()),
+            None => "None".to_string(),
+        };
+
+        // Display result in the picker so it's captured by PTY
+        ctx.confirm(&format!("Result: {}", result_text), true);
     }
 }
