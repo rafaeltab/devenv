@@ -1,15 +1,17 @@
+use color_eyre::owo_colors::OwoColorize;
 use crossterm::cursor::Show;
 use crossterm::execute;
 use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
-use ratatui::backend::CrosstermBackend;
+use itertools::Itertools;
 use ratatui::Terminal;
+use ratatui::backend::CrosstermBackend;
 use std::io::{self, Stdout};
 
 use crate::tui::{
-    pickers::{ConfirmPicker, SelectPicker, TextPicker, TextPickerWithSuggestions},
     PickerItem,
+    pickers::{ConfirmPicker, SelectPicker, TextPicker, TextPickerWithSuggestions},
 };
 
 /// Context for running pickers in the terminal.
@@ -229,12 +231,24 @@ impl SuggestionProvider for ExistingTagsSuggestionProvider {
             return Some(self.all_tags.to_vec());
         }
 
+        let elements: Vec<&str> = input.split(",").collect();
+        let last_input = elements.last().expect("Somehow no last");
+        let preentered_tags = elements.iter().rev().skip(1).rev().join(",");
+
         // Return fuzzy matches from all workspace tags
         let matches: Vec<String> = self
             .all_tags
             .iter()
-            .filter(|tag| tag.to_lowercase().contains(&input.to_lowercase()))
-            .cloned()
+            .filter(|tag| {
+                tag.to_lowercase()
+                    .contains(&last_input.trim().to_lowercase())
+            })
+            .map(|x| {
+                if preentered_tags.is_empty() {
+                    return x.clone();
+                }
+                format!("{}, {}", preentered_tags, x)
+            })
             .collect();
 
         if matches.is_empty() {

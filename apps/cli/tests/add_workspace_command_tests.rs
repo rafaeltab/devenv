@@ -118,7 +118,7 @@ fn test_add_workspace_happy_path() {
 
     // Step 5: Confirmation Display
     asserter
-        .find_text("Create this workspace?")
+        .find_text("Create workspace 'my-project' with tags [rust, typescript]?")
         .assert_visible();
     asserter.find_text("my-project").assert_visible();
     asserter.find_text("rust").assert_visible();
@@ -347,7 +347,7 @@ fn test_add_workspace_cancel_at_confirmation() {
 
     // At confirmation step, select "No"
     asserter
-        .find_text("Create this workspace?")
+        .find_text("Create workspace 'my-project' with tags [(none)]?")
         .assert_visible();
     // Navigate to "No"
     asserter.press_key(Key::Right);
@@ -529,7 +529,7 @@ fn test_add_workspace_duplicate_tag_handling() {
 
     // Confirm creation
     asserter
-        .find_text("Create this workspace?")
+        .find_text("Create workspace 'my-project' with tags [typescript, rust]?")
         .assert_visible();
     asserter.press_key(Key::Enter);
     asserter.wait_for_settle();
@@ -603,7 +603,7 @@ fn test_add_workspace_empty_tags() {
 
     // Confirm creation
     asserter
-        .find_text("Create this workspace?")
+        .find_text("Create workspace 'my-project' with tags [(none)]?")
         .assert_visible();
     asserter.press_key(Key::Enter);
     asserter.wait_for_settle();
