@@ -227,17 +227,31 @@ impl TerminalBuffer {
         let visible_lines = &all_lines[start_idx..];
 
         for (row, line) in visible_lines.iter().enumerate() {
-            let line_text: String = line
-                .visible_cells()
-                .map(|cell| cell.str().to_string())
-                .collect();
+            let cells: Vec<_> = line.visible_cells().collect();
+            let mut line_text = String::new();
+            let mut byte_to_cell_idx = Vec::new(); // Map each byte position to cell index
+            
+            for (col, cell) in cells.iter().enumerate() {
+                let cell_str = cell.str();
+                for _char in cell_str.chars() {
+                    line_text.push(_char);
+                    // For each byte in the UTF-8 encoding of this char, record the cell index
+                    let char_bytes = _char.len_utf8();
+                    for _ in 0..char_bytes {
+                        byte_to_cell_idx.push(col as u16);
+                    }
+                }
+            }
 
             // Search for all occurrences in this line
-            let mut start = 0;
-            while let Some(pos) = line_text[start..].find(text) {
-                let absolute_col = start + pos;
-                positions.push((row as u16, absolute_col as u16));
-                start = absolute_col + 1;
+            // NOTE: find() returns BYTE position, not character position
+            let mut start_byte = 0;
+            while let Some(pos) = line_text[start_byte..].find(text) {
+                let byte_pos = start_byte + pos;
+                // Convert byte position to cell index
+                let cell_idx = byte_to_cell_idx[byte_pos] as usize;
+                positions.push((row as u16, cell_idx as u16));
+                start_byte = byte_pos + text.len(); // Skip past this occurrence (in bytes)
             }
         }
 

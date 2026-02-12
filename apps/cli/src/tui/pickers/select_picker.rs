@@ -52,18 +52,29 @@ impl<T: PickerItem> SelectPicker<T> {
             self.filtered_indices = (0..self.items.len()).map(|i| (i, 0)).collect();
         } else {
             // Filter and score items using fuzzy matching
+            let query_lower = self.query.to_lowercase();
             let mut matches: Vec<(usize, isize)> = self
                 .items
                 .iter()
                 .enumerate()
                 .filter_map(|(idx, item)| {
                     let search_text = item.search_text();
+                    let search_lower = search_text.to_lowercase();
                     let scoring = Scoring::default();
-                    let result = FuzzySearch::new(&self.query, search_text)
+
+                    // Use case-insensitive matching by lowercasing both query and text
+                    let result = FuzzySearch::new(&query_lower, &search_lower)
                         .score_with(&scoring)
                         .best_match();
 
-                    result.map(|m| (idx, m.score()))
+                    // Apply length penalty - shorter matches with same prefix should rank higher
+                    result.map(|m| {
+                        let base_score = m.score();
+                        // Small bonus for shorter text (better match density)
+                        let length_bonus = (100.0 / search_text.len() as f64) as isize;
+                        let adjusted_score = base_score + length_bonus;
+                        (idx, adjusted_score)
+                    })
                 })
                 .collect();
 

@@ -45,11 +45,19 @@ impl Command for TestConfirmCommand {
         // Show confirm picker
         let confirmed = ctx.confirm(&prompt, default);
 
-        // Output result for test verification
-        match confirmed {
-            Some(true) => println!("Some(true)"),
-            Some(false) => println!("Some(false)"),
-            None => println!("None"),
-        }
+        // Show result in a final confirmation screen before exiting
+        // This ensures the result is visible in the PTY buffer
+        let result_text = match confirmed {
+            Some(true) => "Some(true)",
+            Some(false) => "Some(false)",
+            None => "None",
+        };
+
+        // Display result in a picker that auto-closes after a short delay
+        // This ensures the result is captured by PTY before exiting
+        ctx.confirm(&format!("Result: {}", result_text), true);
+
+        // Give the test framework time to capture the screen
+        std::thread::sleep(std::time::Duration::from_millis(100));
     }
 }

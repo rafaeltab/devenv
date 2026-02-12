@@ -44,12 +44,15 @@ impl Command for TestTextInputSuggestionsCommand {
         let provider = StaticSuggestionProvider::new(suggestions);
 
         // Show picker with suggestions
-        let input = ctx.input_with_suggestions("Query:", Box::new(provider));
+        let input = ctx.input_with_suggestions("Query", Box::new(provider));
 
-        // Output result for test verification
-        match input {
-            Some(text) => println!("Some({:?})", text),
-            None => println!("None"),
-        }
+        // Show result in a confirmation screen before exiting
+        let result_text = match input {
+            Some(text) => format!("Some({})", text),
+            None => "None".to_string(),
+        };
+
+        // Display result in the picker so it's captured by PTY
+        ctx.confirm(&format!("Result: {}", result_text), true);
     }
 }
