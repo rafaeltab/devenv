@@ -1,22 +1,28 @@
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Style};
-use ratatui::text::Line;
-use ratatui::widgets::{Paragraph, Widget, WidgetRef};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, Borders, Paragraph, Widget, WidgetRef};
 
 use crate::tui::picker_ctx::SuggestionProvider;
+use crate::tui::theme::Theme;
 
 /// A picker for text input with autocomplete suggestions.
 ///
 /// This picker provides a text input field with tab completion and
 /// suggestion navigation using arrow keys.
+///
+/// The layout matches the tmux switch command style:
+/// - Input area with query display
+/// - Suggestions list with selection highlight
+/// - Help footer with colored key hints
 pub struct TextPickerWithSuggestions {
     prompt: String,
     input: String,
     suggestions: Vec<String>,
     selected_suggestion: usize,
     provider: Box<dyn SuggestionProvider>,
+    theme: Theme,
 }
 
 impl TextPickerWithSuggestions {
@@ -28,6 +34,7 @@ impl TextPickerWithSuggestions {
             suggestions: Vec::new(),
             selected_suggestion: 0,
             provider,
+            theme: Theme::default(),
         };
         picker.update_suggestions();
         picker
@@ -72,58 +79,10 @@ impl TextPickerWithSuggestions {
         terminal.clear().ok()?;
 
         loop {
-            // Create a copy of the data needed for rendering
-            let input = self.input.clone();
-            let suggestions = self.suggestions.clone();
-            let selected_suggestion = self.selected_suggestion;
-
-            // Draw the picker
             terminal
                 .draw(|frame| {
                     let area = frame.area();
-
-                    // Split area into input and suggestions
-                    let chunks = Layout::default()
-                        .direction(Direction::Vertical)
-                        .constraints([Constraint::Length(1), Constraint::Min(1)])
-                        .split(area);
-
-                    // Render input line
-                    let input_text = format!("Query: {}", input);
-                    let input_paragraph = Paragraph::new(Line::from(input_text));
-                    input_paragraph.render(chunks[0], frame.buffer_mut());
-
-                    // Render suggestions
-                    let suggestions_area = chunks[1];
-                    let max_visible = suggestions_area.height as usize;
-
-                    if suggestions.is_empty() && !input.is_empty() {
-                        // Show "No suggestions available" when input exists but no matches
-                        let no_suggestions = Paragraph::new("No suggestions available")
-                            .style(Style::default().fg(Color::Gray));
-                        no_suggestions.render(suggestions_area, frame.buffer_mut());
-                    } else {
-                        for (i, suggestion) in suggestions.iter().enumerate().take(max_visible) {
-                            let is_selected = i == selected_suggestion;
-
-                            let suggestion_area = Rect {
-                                x: suggestions_area.x,
-                                y: suggestions_area.y + i as u16,
-                                width: suggestions_area.width,
-                                height: 1,
-                            };
-
-                            if is_selected {
-                                // Highlight selected suggestion
-                                let style = Style::default().fg(Color::Yellow);
-                                let highlighted = Paragraph::new(suggestion.clone()).style(style);
-                                highlighted.render(suggestion_area, frame.buffer_mut());
-                            } else {
-                                let normal = Paragraph::new(suggestion.clone());
-                                normal.render(suggestion_area, frame.buffer_mut());
-                            }
-                        }
-                    }
+                    self.render_ui(frame.buffer_mut(), area);
                 })
                 .ok()?;
 
@@ -209,6 +168,87 @@ impl TextPickerWithSuggestions {
             }
         }
     }
+
+    /// Render the UI with three-section layout matching tmux switch style.
+    fn render_ui(&self, buf: &mut Buffer, area: Rect) {
+        let theme = &self.theme;
+
+        // Layout: input (3 lines), suggestions (min 3), help (1 line)
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3), // Input area
+                Constraint::Min(3),    // Suggestions list
+                Constraint::Length(1), // Help footer
+            ])
+            .split(area);
+
+        // Input area with prompt label
+        let input_text = Line::from(vec![
+            Span::styled(format!("{}: ", self.prompt), theme.primary_style()),
+            Span::raw(&self.input),
+        ]);
+        let input_widget = Paragraph::new(input_text).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Input")
+                .border_style(theme.border_style()),
+        );
+        input_widget.render(chunks[0], buf);
+
+        // Suggestions list
+        let list_area = chunks[1];
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title("Suggestions")
+            .border_style(theme.border_style());
+        let inner_area = block.inner(list_area);
+        block.render(list_area, buf);
+
+        // Render suggestions manually with selection highlighting
+        if self.suggestions.is_empty() && !self.input.is_empty() {
+            // Show "No suggestions available" when input exists but no matches
+            let no_suggestions =
+                Paragraph::new("No suggestions available").style(theme.muted_style());
+            no_suggestions.render(inner_area, buf);
+        } else {
+            let max_visible = inner_area.height as usize;
+            for (i, suggestion) in self.suggestions.iter().enumerate().take(max_visible) {
+                let is_selected = i == self.selected_suggestion;
+
+                let suggestion_area = Rect {
+                    x: inner_area.x,
+                    y: inner_area.y + i as u16,
+                    width: inner_area.width,
+                    height: 1,
+                };
+
+                if is_selected {
+                    // Highlight selected suggestion
+                    let highlighted =
+                        Paragraph::new(suggestion.clone()).style(theme.selected_style());
+                    highlighted.render(suggestion_area, buf);
+                } else {
+                    let normal = Paragraph::new(suggestion.clone());
+                    normal.render(suggestion_area, buf);
+                }
+            }
+        }
+
+        // Help footer
+        let help = Line::from(vec![
+            Span::styled("Enter", theme.success_style()),
+            Span::raw(" confirm  "),
+            Span::styled("Esc", theme.danger_style()),
+            Span::raw(" cancel  "),
+            Span::styled("Tab", theme.info_style()),
+            Span::raw(" complete  "),
+            Span::styled("↑/↓", theme.primary_style()),
+            Span::raw(" navigate"),
+        ]);
+        let help_widget = Paragraph::new(help);
+        help_widget.render(chunks[2], buf);
+    }
 }
 
 impl Widget for TextPickerWithSuggestions {
@@ -219,47 +259,6 @@ impl Widget for TextPickerWithSuggestions {
 
 impl WidgetRef for TextPickerWithSuggestions {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        // Split area into input and suggestions
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(1), Constraint::Min(1)])
-            .split(area);
-
-        // Render input line
-        let input_text = format!("Query: {}", self.input);
-        let input_paragraph = Paragraph::new(Line::from(input_text));
-        input_paragraph.render(chunks[0], buf);
-
-        // Render suggestions
-        let suggestions_area = chunks[1];
-        let max_visible = suggestions_area.height as usize;
-
-        if self.suggestions.is_empty() && !self.input.is_empty() {
-            // Show "No suggestions available" when input exists but no matches
-            let no_suggestions =
-                Paragraph::new("No suggestions available").style(Style::default().fg(Color::Gray));
-            no_suggestions.render(suggestions_area, buf);
-        } else {
-            for (i, suggestion) in self.suggestions.iter().enumerate().take(max_visible) {
-                let is_selected = i == self.selected_suggestion;
-
-                let suggestion_area = Rect {
-                    x: suggestions_area.x,
-                    y: suggestions_area.y + i as u16,
-                    width: suggestions_area.width,
-                    height: 1,
-                };
-
-                if is_selected {
-                    // Highlight selected suggestion
-                    let style = Style::default().fg(Color::Yellow);
-                    let highlighted = Paragraph::new(suggestion.clone()).style(style);
-                    highlighted.render(suggestion_area, buf);
-                } else {
-                    let normal = Paragraph::new(suggestion.clone());
-                    normal.render(suggestion_area, buf);
-                }
-            }
-        }
+        self.render_ui(buf, area);
     }
 }

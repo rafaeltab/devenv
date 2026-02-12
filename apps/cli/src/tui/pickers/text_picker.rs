@@ -1,17 +1,23 @@
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
-use ratatui::style::Style;
-use ratatui::text::Line;
-use ratatui::widgets::{Paragraph, Widget, WidgetRef};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, Borders, Paragraph, Widget, WidgetRef};
+
+use crate::tui::theme::Theme;
 
 /// A picker for text input.
 ///
 /// This picker provides a simple text input field with backspace support
 /// and Unicode handling.
+///
+/// The layout matches the tmux switch command style:
+/// - Input area with prompt display
+/// - Help footer with colored key hints
 pub struct TextPicker {
     prompt: String,
     input: String,
+    theme: Theme,
 }
 
 impl TextPicker {
@@ -20,6 +26,7 @@ impl TextPicker {
         Self {
             prompt: prompt.into(),
             input: String::new(),
+            theme: Theme::default(),
         }
     }
 
@@ -31,17 +38,10 @@ impl TextPicker {
         terminal.clear().ok()?;
 
         loop {
-            // Create a copy of the data needed for rendering
-            let prompt = self.prompt.clone();
-            let input = self.input.clone();
-
-            // Draw the picker
             terminal
                 .draw(|frame| {
                     let area = frame.area();
-                    let text = format!("{}: {}", prompt, input);
-                    let paragraph = Paragraph::new(Line::from(text)).style(Style::default());
-                    paragraph.render(area, frame.buffer_mut());
+                    self.render_ui(frame.buffer_mut(), area);
                 })
                 .ok()?;
 
@@ -92,6 +92,43 @@ impl TextPicker {
             }
         }
     }
+
+    /// Render the UI with two-section layout matching tmux switch style.
+    fn render_ui(&self, buf: &mut Buffer, area: Rect) {
+        let theme = &self.theme;
+
+        // Layout: input (3 lines), help (1 line)
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3), // Input area
+                Constraint::Length(1), // Help footer
+            ])
+            .split(area);
+
+        // Input area with prompt label
+        let input_text = Line::from(vec![
+            Span::styled(format!("{}: ", self.prompt), theme.primary_style()),
+            Span::raw(&self.input),
+        ]);
+        let input_widget = Paragraph::new(input_text).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Input")
+                .border_style(theme.border_style()),
+        );
+        input_widget.render(chunks[0], buf);
+
+        // Help footer
+        let help = Line::from(vec![
+            Span::styled("Enter", theme.success_style()),
+            Span::raw(" confirm  "),
+            Span::styled("Esc", theme.danger_style()),
+            Span::raw(" cancel"),
+        ]);
+        let help_widget = Paragraph::new(help);
+        help_widget.render(chunks[1], buf);
+    }
 }
 
 impl Widget for TextPicker {
@@ -102,8 +139,6 @@ impl Widget for TextPicker {
 
 impl WidgetRef for TextPicker {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        let text = format!("{}: {}", self.prompt, self.input);
-        let paragraph = Paragraph::new(Line::from(text)).style(Style::default());
-        paragraph.render(area, buf);
+        self.render_ui(buf, area);
     }
 }
