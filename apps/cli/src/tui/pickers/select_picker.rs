@@ -1,21 +1,28 @@
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
-use ratatui::prelude::*;
-use ratatui::widgets::{Paragraph, Widget, WidgetRef};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, Borders, Paragraph, Widget, WidgetRef};
 use sublime_fuzzy::{FuzzySearch, Scoring};
 
 use crate::tui::picker_item::PickerItem;
+use crate::tui::theme::Theme;
 
 /// A picker for selecting items from a list with fuzzy search.
 ///
 /// This picker displays a list of items that can be filtered using
 /// fuzzy search. Users can navigate with arrow keys and select with Enter.
+///
+/// The layout matches the tmux switch command style:
+/// - Input area with query display
+/// - Scrollable matches list with selection highlight
+/// - Help footer with colored key hints
 pub struct SelectPicker<T: PickerItem> {
     items: Vec<T>,
     selected: usize,
     query: String,
     filtered_indices: Vec<(usize, isize)>, // (index, score) pairs sorted by score
+    theme: Theme,
 }
 
 impl<T: PickerItem> SelectPicker<T> {
@@ -27,6 +34,7 @@ impl<T: PickerItem> SelectPicker<T> {
             selected: 0,
             query: String::new(),
             filtered_indices,
+            theme: Theme::default(),
         }
     }
 
@@ -96,41 +104,10 @@ impl<T: PickerItem> SelectPicker<T> {
         terminal.clear().ok()?;
 
         loop {
-            // Create a copy of the data needed for rendering
-            let selected = self.selected;
-            let filtered_indices = self.filtered_indices.clone();
-            let items_ref = &self.items;
-
-            // Draw the picker
             terminal
                 .draw(|frame| {
                     let area = frame.area();
-                    let max_visible = area.height as usize;
-
-                    if filtered_indices.is_empty() {
-                        // Show "No matches" message
-                        let no_matches =
-                            Paragraph::new("No matches").style(Style::default().fg(Color::Gray));
-                        no_matches.render(area, frame.buffer_mut());
-                        return;
-                    }
-
-                    for (display_idx, &(item_idx, _score)) in
-                        filtered_indices.iter().enumerate().take(max_visible)
-                    {
-                        let is_selected = display_idx == selected;
-                        let item = &items_ref[item_idx];
-
-                        // Calculate the area for this item
-                        let item_area = Rect {
-                            x: area.x,
-                            y: area.y + display_idx as u16,
-                            width: area.width,
-                            height: 1,
-                        };
-
-                        item.render(is_selected).render_ref(item_area, frame.buffer_mut());
-                    }
+                    self.render_ui(frame.buffer_mut(), area);
                 })
                 .ok()?;
 
@@ -212,6 +189,82 @@ impl<T: PickerItem> SelectPicker<T> {
             }
         }
     }
+
+    /// Render the UI with three-section layout matching tmux switch style.
+    fn render_ui(&self, buf: &mut Buffer, area: Rect) {
+        let theme = &self.theme;
+
+        // Layout: input (3 lines), list (min 3), help (1 line)
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3), // Input area
+                Constraint::Min(3),    // Matches list
+                Constraint::Length(1), // Help footer
+            ])
+            .split(area);
+
+        // Input area with "Query:" label
+        let input_text = Line::from(vec![
+            Span::styled("Query: ", theme.primary_style()),
+            Span::raw(&self.query),
+        ]);
+        let input_widget = Paragraph::new(input_text).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Fuzzy Picker")
+                .border_style(theme.border_style()),
+        );
+        input_widget.render(chunks[0], buf);
+
+        // Matches list
+        let list_area = chunks[1];
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title("Matches")
+            .border_style(theme.border_style());
+        let inner_area = block.inner(list_area);
+        block.render(list_area, buf);
+
+        // Render items manually with selection highlighting
+        if self.filtered_indices.is_empty() && !self.query.is_empty() {
+            // Show "No matches" message
+            let no_matches = Paragraph::new("No matches").style(theme.muted_style());
+            no_matches.render(inner_area, buf);
+        } else {
+            let max_visible = inner_area.height as usize;
+            for (display_idx, &(item_idx, _score)) in
+                self.filtered_indices.iter().enumerate().take(max_visible)
+            {
+                let is_selected = display_idx == self.selected;
+                let item = &self.items[item_idx];
+
+                let item_area = Rect {
+                    x: inner_area.x,
+                    y: inner_area.y + display_idx as u16,
+                    width: inner_area.width,
+                    height: 1,
+                };
+
+                // Render the item widget with selection state
+                item.render(is_selected).render_ref(item_area, buf);
+            }
+        }
+
+        // Help footer
+        let help = Line::from(vec![
+            Span::styled("Enter", theme.success_style()),
+            Span::raw(" confirm  "),
+            Span::styled("Esc", theme.danger_style()),
+            Span::raw(" cancel  "),
+            Span::styled("↑/↓", theme.primary_style()),
+            Span::raw(" navigate  "),
+            Span::styled("Type", theme.info_style()),
+            Span::raw(" to filter"),
+        ]);
+        let help_widget = Paragraph::new(help);
+        help_widget.render(chunks[2], buf);
+    }
 }
 
 impl<T: PickerItem> Widget for SelectPicker<T> {
@@ -223,31 +276,7 @@ impl<T: PickerItem> Widget for SelectPicker<T> {
 
 impl<T: PickerItem> WidgetRef for SelectPicker<T> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        let max_visible = area.height as usize;
-
-        if self.filtered_indices.is_empty() {
-            // Show "No matches" message
-            let no_matches = Paragraph::new("No matches").style(Style::default().fg(Color::Gray));
-            no_matches.render(area, buf);
-            return;
-        }
-
-        for (display_idx, &(item_idx, _score)) in
-            self.filtered_indices.iter().enumerate().take(max_visible)
-        {
-            let item = &self.items[item_idx];
-            let is_selected = display_idx == self.selected;
-
-            // Calculate the area for this item
-            let item_area = Rect {
-                x: area.x,
-                y: area.y + display_idx as u16,
-                width: area.width,
-                height: 1,
-            };
-
-            item.render(is_selected).render_ref(item_area, buf);
-        }
+        self.render_ui(buf, area);
     }
 }
 
@@ -290,9 +319,10 @@ struct SimpleItemWidget {
 
 impl WidgetRef for SimpleItemWidget {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
+        let theme = Theme::default();
         let mut para = Paragraph::new(self.text.clone());
         if self.selected {
-            para = para.fg(Color::Yellow);
+            para = para.style(theme.selected_style());
         }
 
         para.render(area, buf);

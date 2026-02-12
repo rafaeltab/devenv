@@ -12,6 +12,7 @@ use ratatui::widgets::{Paragraph, WidgetRef};
 use crate::commands::registry::CommandRegistry;
 use crate::commands::{Command, CommandCtx};
 use crate::tui::picker_item::PickerItem;
+use crate::tui::theme::Theme;
 
 /// The main command palette command.
 ///
@@ -117,6 +118,7 @@ struct CommandItemWidget {
 
 impl WidgetRef for CommandItemWidget {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
+        let theme = Theme::default();
         let layout = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(vec![
@@ -127,7 +129,7 @@ impl WidgetRef for CommandItemWidget {
             .split(area);
         let mut name_widget = Paragraph::new(self.name.clone());
         if self.selected {
-            name_widget = name_widget.fg(Color::Yellow);
+            name_widget = name_widget.style(theme.selected_style());
         }
         name_widget.render(layout[0], buf);
 

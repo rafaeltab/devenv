@@ -1,13 +1,16 @@
 use crossterm::cursor::Show;
 use crossterm::execute;
-use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode};
-use ratatui::{backend::CrosstermBackend};
+use crossterm::terminal::{
+    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+};
+use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::io::{self, Stdout};
 
-use crate::tui::{PickerItem, pickers::{
-    ConfirmPicker, SelectPicker, TextPicker, TextPickerWithSuggestions,
-}};
+use crate::tui::{
+    pickers::{ConfirmPicker, SelectPicker, TextPicker, TextPickerWithSuggestions},
+    PickerItem,
+};
 
 /// Context for running pickers in the terminal.
 ///
@@ -39,10 +42,7 @@ impl PickerCtx {
     /// This sets up the terminal in raw mode, clears the screen,
     /// and creates the necessary backend for rendering TUI components.
     pub fn new() -> io::Result<Self> {
-        use crossterm::{
-            cursor::Hide,
-            execute,
-        };
+        use crossterm::{cursor::Hide, execute};
 
         enable_raw_mode()?;
 
@@ -55,7 +55,10 @@ impl PickerCtx {
         let mut terminal = Terminal::new(backend)?;
         terminal.clear()?;
 
-        Ok(Self { terminal, restored: false })
+        Ok(Self {
+            terminal,
+            restored: false,
+        })
     }
 
     /// Display a select picker and return the selected item.

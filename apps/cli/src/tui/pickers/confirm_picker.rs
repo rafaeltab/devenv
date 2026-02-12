@@ -1,18 +1,25 @@
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
-use ratatui::style::{Color, Style};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::style::Style;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Paragraph, Widget, WidgetRef};
+use ratatui::widgets::{Block, Borders, Paragraph, Widget, WidgetRef};
+
+use crate::tui::theme::Theme;
 
 /// A picker for yes/no confirmation.
 ///
 /// This picker displays a prompt with Yes/No options and allows
 /// the user to select one using arrow keys or Left/Right.
+///
+/// The layout matches the tmux switch command style:
+/// - Prompt area with Yes/No selection
+/// - Help footer with colored key hints
 pub struct ConfirmPicker {
     prompt: String,
     default: bool,
     selected: bool,
+    theme: Theme,
 }
 
 impl ConfirmPicker {
@@ -22,6 +29,7 @@ impl ConfirmPicker {
             prompt: prompt.into(),
             default: true,
             selected: true,
+            theme: Theme::default(),
         }
     }
 
@@ -60,35 +68,10 @@ impl ConfirmPicker {
         terminal.clear().ok()?;
 
         loop {
-            // Create a copy of the data needed for rendering
-            let prompt = self.prompt.clone();
-            let selected = self.selected;
-
-            // Draw the picker
             terminal
                 .draw(|frame| {
                     let area = frame.area();
-
-                    let yes_style = if selected {
-                        Style::default().fg(Color::Yellow)
-                    } else {
-                        Style::default()
-                    };
-                    let no_style = if !selected {
-                        Style::default().fg(Color::Yellow)
-                    } else {
-                        Style::default()
-                    };
-
-                    let text = vec![
-                        Line::from(prompt),
-                        Line::from(vec![
-                            Span::styled("Yes", yes_style),
-                            Span::raw(" / "),
-                            Span::styled("No", no_style),
-                        ]),
-                    ];
-                    Paragraph::new(text).render(area, frame.buffer_mut());
+                    self.render_ui(frame.buffer_mut(), area);
                 })
                 .ok()?;
 
@@ -141,6 +124,63 @@ impl ConfirmPicker {
             }
         }
     }
+
+    /// Render the UI with two-section layout matching tmux switch style.
+    fn render_ui(&self, buf: &mut Buffer, area: Rect) {
+        let theme = &self.theme;
+
+        // Layout: prompt (3 lines), help (1 line)
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3), // Prompt area
+                Constraint::Length(1), // Help footer
+            ])
+            .split(area);
+
+        // Yes/No styling
+        let yes_style = if self.selected {
+            theme.selected_style()
+        } else {
+            Style::default()
+        };
+        let no_style = if !self.selected {
+            theme.selected_style()
+        } else {
+            Style::default()
+        };
+
+        // Prompt area with Yes/No selection
+        let prompt_text = vec![
+            Line::from(self.prompt.clone()),
+            Line::from(vec![
+                Span::styled("Yes", yes_style),
+                Span::raw(" / "),
+                Span::styled("No", no_style),
+            ]),
+        ];
+        let prompt_widget = Paragraph::new(prompt_text).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Confirm")
+                .border_style(theme.border_style()),
+        );
+        prompt_widget.render(chunks[0], buf);
+
+        // Help footer
+        let help = Line::from(vec![
+            Span::styled("Enter", theme.success_style()),
+            Span::raw(" confirm  "),
+            Span::styled("Esc", theme.danger_style()),
+            Span::raw(" cancel  "),
+            Span::styled("←/→", theme.primary_style()),
+            Span::raw(" or "),
+            Span::styled("Tab", theme.info_style()),
+            Span::raw(" toggle"),
+        ]);
+        let help_widget = Paragraph::new(help);
+        help_widget.render(chunks[1], buf);
+    }
 }
 
 impl Widget for ConfirmPicker {
@@ -151,25 +191,6 @@ impl Widget for ConfirmPicker {
 
 impl WidgetRef for ConfirmPicker {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        let yes_style = if self.selected {
-            Style::default().fg(Color::Yellow)
-        } else {
-            Style::default()
-        };
-        let no_style = if !self.selected {
-            Style::default().fg(Color::Yellow)
-        } else {
-            Style::default()
-        };
-
-        let text = vec![
-            Line::from(self.prompt.clone()),
-            Line::from(vec![
-                Span::styled("Yes", yes_style),
-                Span::raw(" / "),
-                Span::styled("No", no_style),
-            ]),
-        ];
-        Paragraph::new(text).render(area, buf);
+        self.render_ui(buf, area);
     }
 }
