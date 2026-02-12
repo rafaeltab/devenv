@@ -4,7 +4,6 @@ use crate::common::{
     rafaeltab_descriptors::RafaeltabDirMixin, rafaeltab_descriptors::RafaeltabRootMixin,
     CliCommandBuilder,
 };
-use std::process::Command;
 use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
 
@@ -72,7 +71,7 @@ fn test_worktree_start_succeeds_with_force_no_config() {
     // With --force flag, should succeed even without worktree config
     // (but may still fail for other reasons like git worktree issues)
     assert!(
-        result.success || !result.success,
+        result.success,
         "Test should complete without panic. Got: {} {}",
         result.stdout,
         result.stderr
@@ -141,7 +140,7 @@ fn test_worktree_start_handles_existing_branch_local() {
 
     // Should handle existing branch gracefully
     assert!(
-        result.success || !result.success,
+        result.success,
         "Test should complete without panic. Got: {} {}",
         result.stdout,
         result.stderr
@@ -207,7 +206,7 @@ fn test_worktree_start_handles_existing_branch_remote() {
 
     // Should handle remote branch gracefully
     assert!(
-        result.success || !result.success,
+        result.success,
         "Test should complete without panic. Got: {} {}",
         result.stdout,
         result.stderr
@@ -257,7 +256,7 @@ fn test_worktree_start_fails_detached_head() {
 
     // Should handle detached HEAD gracefully (may fail or succeed depending on implementation)
     assert!(
-        result.success || !result.success,
+        result.success,
         "Test should complete without panic. Got: {} {}",
         result.stdout,
         result.stderr
@@ -299,7 +298,7 @@ fn test_worktree_start_creates_symlinks() {
 
     // Test should complete - verify no panic
     assert!(
-        result.success || !result.success,
+        result.success,
         "Test should complete without panic. Got: {} {}",
         result.stdout,
         result.stderr
@@ -340,7 +339,7 @@ fn test_worktree_start_runs_oncreate_commands() {
 
     // Test should complete - verify no panic
     assert!(
-        result.success || !result.success,
+        result.success,
         "Test should complete without panic. Got: {} {}",
         result.stdout,
         result.stderr
@@ -370,7 +369,7 @@ fn test_worktree_start_creates_git_worktree() {
 
     let repo_dir = env.find_dir("create_wt").expect("Dir not found");
     let repo_path = repo_dir.path().join("repo");
-    
+
     // Create a worktree with force flag
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
@@ -381,7 +380,7 @@ fn test_worktree_start_creates_git_worktree() {
 
     // Verify command executed without panic
     assert!(
-        result.success || !result.success,
+        result.success,
         "Test should complete without panic. Got: {} {}",
         result.stdout,
         result.stderr
@@ -412,7 +411,7 @@ fn test_worktree_start_handles_oncreate_failure() {
 
     let repo_dir = env.find_dir("fail_test").expect("Dir not found");
     let repo_path = repo_dir.path().join("repo");
-    
+
     // Create a worktree - onCreate command will fail
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
@@ -423,7 +422,7 @@ fn test_worktree_start_handles_oncreate_failure() {
 
     // Should handle onCreate failure gracefully
     assert!(
-        result.success || !result.success,
+        result.success,
         "Test should complete without panic even with failing onCreate. Got: {} {}",
         result.stdout,
         result.stderr
@@ -455,20 +454,20 @@ fn test_worktree_start_switches_to_session() {
 
     let repo_dir = env.find_dir("switch_ws").expect("Dir not found");
     let repo_path = repo_dir.path().join("repo");
-    
+
     // First start main workspace session
     let start_main = CliCommandBuilder::new()
         .with_env(&env)
         .args(&["tmux", "start"])
         .build();
     let main_result = env.testers().cmd().run(&start_main);
-    
+
     assert!(
         main_result.success,
         "Main session start failed: {}",
         main_result.stderr
     );
-    
+
     // Now create worktree which should switch to new session
     let start_wt = CliCommandBuilder::new()
         .with_env(&env)
@@ -476,9 +475,9 @@ fn test_worktree_start_switches_to_session() {
         .args(&["worktree", "start", "switch-branch", "--force", "--yes"])
         .build();
     let wt_result = env.testers().cmd().run(&start_wt);
-    
+
     assert!(
-        wt_result.success || !wt_result.success,
+        wt_result.success,
         "Worktree start should complete. Got: {} {}",
         wt_result.stdout,
         wt_result.stderr
@@ -506,7 +505,7 @@ fn test_worktree_start_cancel_confirmation() {
 
     let repo_dir = env.find_dir("cancel_test").expect("Dir not found");
     let repo_path = repo_dir.path().join("repo");
-    
+
     // Create worktree without --yes flag (would prompt for confirmation in interactive mode)
     // Since we can't interact with prompts, this test just verifies the command doesn't panic
     let cmd = CliCommandBuilder::new()
@@ -515,11 +514,11 @@ fn test_worktree_start_cancel_confirmation() {
         .args(&["worktree", "start", "cancel-branch", "--force"])
         .build();
     let result = env.testers().cmd().run(&cmd);
-    
+
     // Without --yes flag, the command may wait for input or fail
     // We just verify it doesn't panic
     assert!(
-        result.success || !result.success,
+        result.success,
         "Test should complete without panic (may fail due to interactive prompt). Got: {} {}",
         result.stdout,
         result.stderr

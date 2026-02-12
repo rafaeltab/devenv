@@ -11,7 +11,6 @@ pub mod worktree;
 pub use command::Command;
 pub use command_ctx::CommandCtx;
 pub use command_palette::CommandPalette;
-pub use registry::CommandRegistry;
 pub use test::{
     TestConfirmCommand, TestPickerCommand, TestTextInputCommand, TestTextInputSuggestionsCommand,
 };

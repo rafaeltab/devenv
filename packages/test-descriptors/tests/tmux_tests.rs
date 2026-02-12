@@ -26,7 +26,7 @@ fn test_tmux_socket_run_command() {
 fn test_tmux_socket_list_sessions_empty() {
     let socket = TmuxSocket::new();
 
-    let sessions = socket.list_sessions().unwrap_or(vec![]);
+    let sessions = socket.list_sessions().unwrap_or_default();
     assert_eq!(sessions.len(), 0);
 
     let _ = socket.kill_server();

@@ -45,11 +45,11 @@ use std::io::{self, Write, BufRead};
 fn main() {
     print!("Enter your name: ");
     io::stdout().flush().unwrap();
-    
+
     let stdin = io::stdin();
     let mut line = String::new();
     stdin.lock().read_line(&mut line).unwrap();
-    
+
     println!("Hello, {}!", line.trim());
 }
 "#;
@@ -63,15 +63,15 @@ use std::io::{self, Read, Write};
 fn main() {
     let items = ["Option 1", "Option 2", "Option 3"];
     let mut selected = 0;
-    
+
     // Enable raw mode manually (simplified)
     print!("\x1b[?25l"); // Hide cursor
-    
+
     loop {
         // Clear screen and draw menu
         print!("\x1b[2J\x1b[H");
         println!("Select an option:\n");
-        
+
         for (i, item) in items.iter().enumerate() {
             if i == selected {
                 println!("> {}", item);
@@ -79,13 +79,13 @@ fn main() {
                 println!("  {}", item);
             }
         }
-        
+
         io::stdout().flush().unwrap();
-        
+
         // Read input
         let mut buf = [0u8; 3];
         let n = io::stdin().read(&mut buf).unwrap();
-        
+
         if n == 1 {
             match buf[0] {
                 b'q' => break,
@@ -116,20 +116,20 @@ use std::io::{self, Read, Write};
 fn main() {
     println!("Key Detector - Press keys to see their codes (Ctrl+C to exit)");
     io::stdout().flush().unwrap();
-    
+
     let mut buf = [0u8; 16];
     loop {
         let n = io::stdin().read(&mut buf).unwrap();
         if n == 0 {
             break;
         }
-        
+
         // Check for Ctrl+C
         if n == 1 && buf[0] == 3 {
             println!("\nExiting...");
             break;
         }
-        
+
         // Detect key combinations
         let key_name = match &buf[..n] {
             [0x1b, b'a'] => "Alt+A",
@@ -145,7 +145,7 @@ fn main() {
             [0x7f] => "Backspace",
             _ => "Unknown",
         };
-        
+
         print!("Key: {} (bytes: {:?})\r\n", key_name, &buf[..n]);
         io::stdout().flush().unwrap();
     }
@@ -165,13 +165,13 @@ fn main() {
     println!("\x1b[35mMagenta text\x1b[0m");
     println!("\x1b[36mCyan text\x1b[0m");
     println!("\x1b[90mGray text\x1b[0m");
-    
+
     // 256 colors
     println!("\x1b[38;5;208mOrange 256-color\x1b[0m");
-    
+
     // True color RGB
     println!("\x1b[38;2;255;128;64mRGB Orange\x1b[0m");
-    
+
     // Background colors
     println!("\x1b[41mRed background\x1b[0m");
     println!("\x1b[48;2;64;128;255mRGB Blue background\x1b[0m");
@@ -190,14 +190,14 @@ fn main() {
         "Screen 2: Configuration\nPress Enter to continue...",
         "Screen 3: Complete!\nPress Enter to exit...",
     ];
-    
+
     for (i, screen) in screens.iter().enumerate() {
         // Clear screen
         print!("\x1b[2J\x1b[H");
         println!("=== Page {}/{} ===\n", i + 1, screens.len());
         println!("{}", screen);
         io::stdout().flush().unwrap();
-        
+
         // Wait for Enter
         let mut buf = [0u8; 1];
         loop {
@@ -207,7 +207,7 @@ fn main() {
             }
         }
     }
-    
+
     print!("\x1b[2J\x1b[H");
     println!("Done!");
 }
@@ -307,12 +307,12 @@ fn main() {
     println!("Line 3");
     println!("Line 4");
     println!("Line 5 - Footer");
-    
+
     // Set scroll region to lines 2-4
     print!("\x1b[2;4r");
     print!("\x1b[4;1H"); // Go to line 4
     println!("New scroll line");
-    
+
     // Reset scroll region
     print!("\x1b[r");
     io::stdout().flush().unwrap();
@@ -419,7 +419,7 @@ fn main() {
     println!("\x1b[38;2;0;0;255mPure Blue\x1b[0m");
     println!("\x1b[38;2;255;255;0mPure Yellow\x1b[0m");
     println!("\x1b[38;2;128;128;128mGray\x1b[0m");
-    
+
     // Background RGB
     println!("\x1b[48;2;64;64;64m\x1b[38;2;255;255;255mWhite on dark gray\x1b[0m");
 }

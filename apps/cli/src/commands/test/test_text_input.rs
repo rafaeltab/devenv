@@ -1,12 +1,10 @@
 use std::env;
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Constraint;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Paragraph, Widget, WidgetRef};
 
 use crate::commands::{Command, CommandCtx};
-use crate::tui::picker_item::PickerItem;
 
 /// Test command for the text input picker.
 ///
@@ -15,6 +13,7 @@ use crate::tui::picker_item::PickerItem;
 ///
 /// Environment variables:
 /// - TEST_TEXT_PROMPT: The prompt text (default: "Input:")
+#[derive(Debug)]
 pub struct TestTextInputCommand;
 
 impl TestTextInputCommand {
@@ -27,16 +26,6 @@ impl TestTextInputCommand {
 impl Default for TestTextInputCommand {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl PickerItem for TestTextInputCommand {
-    fn constraint(&self) -> Constraint {
-        Constraint::Length(1)
-    }
-
-    fn search_text(&self) -> &str {
-        "test text input"
     }
 }
 
@@ -55,14 +44,11 @@ impl Command for TestTextInputCommand {
         "Test the text input picker"
     }
 
-    fn run(&self, _ctx: &mut CommandCtx) {
+    fn run(&self, ctx: &mut CommandCtx) {
         // Get prompt from environment
         let prompt = env::var("TEST_TEXT_PROMPT").unwrap_or_else(|_| "Input:".to_string());
 
-        // Show picker and get input
-        // For now, just output a placeholder
-        // The actual picker will be integrated via PickerCtx
-        let input = env::var("TEST_INPUT").ok();
+        let input = ctx.input(&prompt);
 
         // Output result for test verification
         match input {

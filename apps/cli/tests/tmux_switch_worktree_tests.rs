@@ -67,6 +67,7 @@ fn test_switch_to_workspace_without_worktrees() {
 ///   - feature/login
 ///   - fix/bug-123
 ///   - feat/database
+///
 /// When: User runs tmux start
 /// Then: Main session "MyProject" is created, three worktree sessions are created with correct names
 #[test]

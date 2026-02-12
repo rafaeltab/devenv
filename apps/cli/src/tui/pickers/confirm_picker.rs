@@ -57,9 +57,7 @@ impl ConfirmPicker {
         &mut self,
         terminal: &mut ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stdout>>,
     ) -> Option<bool> {
-        use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-
-        enable_raw_mode().ok()?;
+        terminal.clear().ok()?;
 
         loop {
             // Create a copy of the data needed for rendering
@@ -102,14 +100,12 @@ impl ConfirmPicker {
                         code: KeyCode::Enter,
                         ..
                     } => {
-                        disable_raw_mode().ok()?;
                         return Some(self.selected);
                     }
                     // Cancel - Escape
                     KeyEvent {
                         code: KeyCode::Esc, ..
                     } => {
-                        disable_raw_mode().ok()?;
                         return None;
                     }
                     // Cancel - Ctrl+C
@@ -118,7 +114,6 @@ impl ConfirmPicker {
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     } => {
-                        disable_raw_mode().ok()?;
                         return None;
                     }
                     // Navigation - Left (select Yes)

@@ -7,6 +7,7 @@ use crate::common::{
 use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
 
+// TODO let these tests actually verify some behavior
 #[test]
 fn test_workspace_tmux_no_sessions() {
     // This test verifies graceful handling when no tmux sessions exist
@@ -28,7 +29,7 @@ fn test_workspace_tmux_no_sessions() {
         .with_env(&env)
         .args(&["workspace", "tmux"])
         .build();
-    let result = env.testers().cmd().run(&cmd);
+    let _ = env.testers().cmd().run(&cmd);
 
     // The command behavior depends on whether tmux is running
     // If tmux is running, it will list sessions; if not, it may return empty or error
@@ -97,7 +98,7 @@ fn test_workspace_tmux_pretty_output() {
         .with_env(&env)
         .args(&["workspace", "tmux"])
         .build();
-    let result = env.testers().cmd().run(&cmd);
+    let _ = env.testers().cmd().run(&cmd);
 
     // Command should not crash
     // Output format depends on whether tmux is running and what sessions exist
@@ -125,7 +126,7 @@ fn test_workspace_tmux_lists_sessions_with_workspaces() {
         .with_env(&env)
         .args(&["workspace", "tmux"])
         .build();
-    let result = env.testers().cmd().run(&cmd);
+    let _ = env.testers().cmd().run(&cmd);
 
     // Command should complete without crashing
     // Actual session-to-workspace mapping depends on tmux environment variables
@@ -151,7 +152,7 @@ fn test_workspace_tmux_shows_unassociated_sessions() {
         .with_env(&env)
         .args(&["workspace", "tmux"])
         .build();
-    let result = env.testers().cmd().run(&cmd);
+    let _ = env.testers().cmd().run(&cmd);
 
     // Command should complete without crashing
     // Sessions without workspace env var should still be shown
@@ -180,7 +181,7 @@ fn test_workspace_tmux_mixed_sessions() {
         .with_env(&env)
         .args(&["workspace", "tmux"])
         .build();
-    let result = env.testers().cmd().run(&cmd);
+    let _ = env.testers().cmd().run(&cmd);
 
     // Command should complete without crashing
     // Mixed session types should be handled correctly
@@ -206,7 +207,7 @@ fn test_workspace_tmux_session_with_workspace_env() {
         .with_env(&env)
         .args(&["workspace", "tmux"])
         .build();
-    let result = env.testers().cmd().run(&cmd);
+    let _ = env.testers().cmd().run(&cmd);
 
     // Command should complete without crashing
     // Session with TMUX_WORKSPACE env var should be associated with workspace
@@ -232,7 +233,7 @@ fn test_workspace_tmux_multiple_sessions_same_workspace() {
         .with_env(&env)
         .args(&["workspace", "tmux"])
         .build();
-    let result = env.testers().cmd().run(&cmd);
+    let _ = env.testers().cmd().run(&cmd);
 
     // Command should complete without crashing
     // Multiple sessions pointing to same workspace should be handled

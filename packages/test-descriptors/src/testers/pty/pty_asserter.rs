@@ -229,20 +229,19 @@ impl TuiAsserter for PtyAsserter {
                 }
 
                 // If same row, check left-to-right ordering
-                if row == prev_row {
-                    if let Some(prev_col) = last_col {
-                        if col < prev_col {
-                            panic!(
-                                "Expected items to be ordered left-to-right within row {}. \
+                if row == prev_row
+                    && let Some(prev_col) = last_col
+                    && col < prev_col
+                {
+                    panic!(
+                        "Expected items to be ordered left-to-right within row {}. \
                              Item {} '{}' at col {} is left of previous item at col {}",
-                                row,
-                                i,
-                                text_match.text(),
-                                col,
-                                prev_col
-                            );
-                        }
-                    }
+                        row,
+                        i,
+                        text_match.text(),
+                        col,
+                        prev_col
+                    );
                 }
             }
 

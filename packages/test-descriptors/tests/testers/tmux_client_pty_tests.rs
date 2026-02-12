@@ -2,7 +2,7 @@
 //!
 //! Tests for TUI execution inside tmux via capture-pane.
 
-use test_descriptors::testers::{ColorMatcher, Command, Key, TuiAsserter, TuiTester};
+use test_descriptors::testers::{Command, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
 
 /// Output captured via capture-pane.
@@ -112,7 +112,7 @@ fn tmux_client_pty_captures_colors() {
 
     // At least one match should have red foreground color
     let has_red = matches.iter().any(|m| {
-        m.fg.rgb().map_or(false, |(r, g, b)| {
+        m.fg.rgb().is_some_and(|(r, g, b)| {
             // Check if it's reddish (red > green and red > blue by a margin)
             r > g.saturating_add(30) && r > b.saturating_add(30)
         })

@@ -1481,5 +1481,9 @@ fn test_command_palette_clears_screen() {
 
     // Cancel to exit cleanly
     asserter.press_key(Key::Esc);
+    asserter.wait_for_settle();
     let _ = asserter.expect_completion_and_get_output();
+
+    // after restoring it should be visible again
+    assert!(!asserter.find_all_text("hello").is_empty());
 }

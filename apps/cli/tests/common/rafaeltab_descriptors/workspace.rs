@@ -5,7 +5,7 @@ use test_descriptors::{DirBuilder, GitBuilder};
 // Thread-local storage for collecting workspaces during test setup
 // This is automatically cleaned up after config creation or on panic
 thread_local! {
-    pub static WORKSPACES: RefCell<Vec<WorkspaceData>> = RefCell::new(Vec::new());
+    pub static WORKSPACES: RefCell<Vec<WorkspaceData>> = const { RefCell::new(Vec::new()) };
 }
 
 /// Panic guard to ensure WORKSPACES is cleaned up even if test panics

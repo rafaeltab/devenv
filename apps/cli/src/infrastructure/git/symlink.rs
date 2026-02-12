@@ -91,14 +91,13 @@ pub fn create_symlinks(
                     }
 
                     // Create parent directories if needed
-                    if let Some(parent) = target_file.parent() {
-                        if let Err(e) = std::fs::create_dir_all(parent) {
+                    if let Some(parent) = target_file.parent()
+                        && let Err(e) = std::fs::create_dir_all(parent) {
                             return Err(GitError::IoError(format!(
                                 "Failed to create directory {:?}: {}",
                                 parent, e
                             )));
                         }
-                    }
 
                     // Create symlink using absolute path
                     #[cfg(unix)]
@@ -111,22 +110,23 @@ pub fn create_symlinks(
                         }
                     }
 
-                    #[cfg(windows)]
-                    {
-                        // On Windows, we need to determine if it's a file or directory
-                        let result = if source_file.is_dir() {
-                            std::os::windows::fs::symlink_dir(&source_file, &target_file)
-                        } else {
-                            std::os::windows::fs::symlink_file(&source_file, &target_file)
-                        };
-
-                        if let Err(e) = result {
-                            return Err(GitError::IoError(format!(
-                                "Failed to create symlink {:?} -> {:?}: {}",
-                                target_file, source_file, e
-                            )));
-                        }
-                    }
+                    // TODO reactivate
+                    // #[cfg(windows)]
+                    // {
+                    //     // On Windows, we need to determine if it's a file or directory
+                    //     let result = if source_file.is_dir() {
+                    //         std::os::windows::fs::symlink_dir(&source_file, &target_file)
+                    //     } else {
+                    //         std::os::windows::fs::symlink_file(&source_file, &target_file)
+                    //     };
+                    //
+                    //     if let Err(e) = result {
+                    //         return Err(GitError::IoError(format!(
+                    //             "Failed to create symlink {:?} -> {:?}: {}",
+                    //             target_file, source_file, e
+                    //         )));
+                    //     }
+                    // }
 
                     result.created.push(relative.to_path_buf());
                 }

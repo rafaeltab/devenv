@@ -1,7 +1,7 @@
 mod common;
 
 use crate::common::{
-    rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabGitMixin, RafaeltabRootMixin},
+    rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabRootMixin},
     CliCommandBuilder,
 };
 use test_descriptors::testers::CommandTester;
@@ -191,7 +191,7 @@ fn test_json_output_empty_arrays() {
 
         root.test_dir(|td| {
             td.dir("workspace1", |d| {
-                d.rafaeltab_workspace("ws1", "No Tags Workspace", |w| {
+                d.rafaeltab_workspace("ws1", "No Tags Workspace", |_| {
                     // No tags added
                 });
             });

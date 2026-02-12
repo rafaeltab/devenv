@@ -30,7 +30,7 @@ mod tests {
         let screen = term.render();
         let lines: Vec<_> = screen.lines().collect();
         assert!(
-            lines.get(0).map_or(false, |l| l.contains("First Line")),
+            lines.first().is_some_and(|l| l.contains("First Line")),
             "Text at cursor position (0,0) should be on first line. Got: {}",
             screen
         );
@@ -149,7 +149,7 @@ mod tests {
         let screen = term.render();
         let lines: Vec<_> = screen.lines().collect();
         assert!(
-            lines.get(4).map_or(false, |l| l.contains("Positioned")),
+            lines.get(4).is_some_and(|l| l.contains("Positioned")),
             "Text should be at row 5 (index 4), got:\n{}",
             screen
         );
@@ -242,7 +242,7 @@ mod tests {
         let lines: Vec<_> = screen.lines().collect();
         assert!(lines[0].contains("First"), "Should write at (1,1)");
         assert!(
-            lines.get(4).map_or(false, |l| l.contains("Middle")),
+            lines.get(4).is_some_and(|l| l.contains("Middle")),
             "Should write at saved position (5, 10)"
         );
     }

@@ -3,13 +3,11 @@
 //! This command provides an interactive flow for adding a new workspace.
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Constraint;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Paragraph, Widget, WidgetRef};
 
 use crate::commands::{Command, CommandCtx};
 use crate::tui::picker_ctx::ExistingTagsSuggestionProvider;
-use crate::tui::picker_item::PickerItem;
 
 /// Command to add a new workspace.
 ///
@@ -28,6 +26,7 @@ use crate::tui::picker_item::PickerItem;
 /// let mut ctx = CommandCtx::new().expect("Failed to create context");
 /// cmd.run(&mut ctx);
 /// ```
+#[derive(Debug)]
 pub struct AddWorkspaceCommand;
 
 impl AddWorkspaceCommand {
@@ -54,16 +53,6 @@ impl Default for AddWorkspaceCommand {
     }
 }
 
-impl PickerItem for AddWorkspaceCommand {
-    fn constraint(&self) -> Constraint {
-        Constraint::Length(1)
-    }
-
-    fn search_text(&self) -> &str {
-        "add workspace"
-    }
-}
-
 impl WidgetRef for AddWorkspaceCommand {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         Paragraph::new("add workspace").render(area, buf);
@@ -72,7 +61,7 @@ impl WidgetRef for AddWorkspaceCommand {
 
 impl Command for AddWorkspaceCommand {
     fn name(&self) -> &str {
-        "add workspace"
+        "Add Workspace"
     }
 
     fn description(&self) -> &str {
@@ -81,7 +70,7 @@ impl Command for AddWorkspaceCommand {
 
     fn run(&self, ctx: &mut CommandCtx) {
         // Step 1: Get workspace name (no suggestions)
-        let name = match ctx.input("Workspace name:") {
+        let name = match ctx.input("Workspace name") {
             Some(n) if !n.trim().is_empty() => n,
             _ => {
                 // Empty name - cancel
@@ -135,6 +124,7 @@ impl Command for AddWorkspaceCommand {
 
         match ctx.confirm(&confirm_prompt, true) {
             Some(true) => {
+                let _ = ctx.restore();
                 // User confirmed - create the workspace
                 // TODO: Save workspace to storage
                 // For now, just print a success message
@@ -145,7 +135,6 @@ impl Command for AddWorkspaceCommand {
             }
             _ => {
                 // User cancelled or selected No
-                return;
             }
         }
     }

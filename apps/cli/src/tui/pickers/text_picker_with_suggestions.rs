@@ -69,13 +69,10 @@ impl TextPickerWithSuggestions {
         &mut self,
         terminal: &mut ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stdout>>,
     ) -> Option<String> {
-        use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-
-        enable_raw_mode().ok()?;
+        terminal.clear().ok()?;
 
         loop {
             // Create a copy of the data needed for rendering
-            let prompt = self.prompt.clone();
             let input = self.input.clone();
             let suggestions = self.suggestions.clone();
             let selected_suggestion = self.selected_suggestion;
@@ -138,7 +135,6 @@ impl TextPickerWithSuggestions {
                         code: KeyCode::Enter,
                         ..
                     } => {
-                        disable_raw_mode().ok()?;
                         // Return current input (even if empty, as per TPS-005)
                         return Some(self.input.clone());
                     }
@@ -146,7 +142,6 @@ impl TextPickerWithSuggestions {
                     KeyEvent {
                         code: KeyCode::Esc, ..
                     } => {
-                        disable_raw_mode().ok()?;
                         return None;
                     }
                     // Cancel - Ctrl+C
@@ -155,7 +150,6 @@ impl TextPickerWithSuggestions {
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     } => {
-                        disable_raw_mode().ok()?;
                         return None;
                     }
                     // Backspace

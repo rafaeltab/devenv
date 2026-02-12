@@ -1,6 +1,6 @@
 // #![feature(coroutines, coroutine_trait)]
 // #![feature(stmt_expr_attributes)]
-use std::io;
+use std::{io, rc::Rc, sync::Arc};
 
 use clap::{Args, CommandFactory, Parser, Subcommand};
 use commands::{
@@ -32,7 +32,7 @@ use infrastructure::tmux_workspaces::{
 use storage::kinds::json_storage::JsonStorageProvider;
 use utils::display::{JsonDisplay, JsonPrettyDisplay, PrettyDisplay, RafaeltabDisplay};
 
-use crate::commands::tmux::switch::{TmuxSwitchCommand, TmuxSwitchOptions};
+use crate::{commands::tmux::switch::{TmuxSwitchCommand, TmuxSwitchOptions}, domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository};
 
 #[allow(dead_code)]
 mod commands;
@@ -399,13 +399,19 @@ fn main() -> Result<(), io::Error> {
             // Handle subcommands
             match &palette_args.command {
                 CommandPaletteCommands::Show => {
+                    // TODO move to using DI so we don't have to do this guly magic
+                    let storage_leaked = Box::leak(Box::new(storage));
+                    let workspace_repository: Rc<dyn WorkspaceRepository> = Rc::new(ImplWorkspaceRepository {
+                        workspace_storage: storage_leaked,
+                    });
+
                     // Run the command palette
                     if palette.registry().is_empty() {
                         println!("No commands available");
                     } else {
                         // Create command context and run
                         use crate::commands::Command;
-                        let mut ctx = crate::commands::CommandCtx::new()
+                        let mut ctx = crate::commands::CommandCtx::new(workspace_repository)
                             .expect("Failed to create command context");
                         palette.run(&mut ctx);
                     }

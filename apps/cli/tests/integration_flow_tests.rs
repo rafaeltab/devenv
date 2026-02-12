@@ -359,7 +359,7 @@ fn test_tmux_session_idempotency() {
 
     // Should succeed without error
     assert!(
-        result2.success || !result2.success,
+        result2.success,
         "Second tmux start should complete without panic. Got: {} {}",
         result2.stdout,
         result2.stderr
@@ -468,7 +468,7 @@ fn test_full_workflow_worktree_lifecycle() {
 
     let repo_dir = env.find_dir("lifecycle").expect("Dir not found");
     let repo_path = repo_dir.path().join("repo");
-    
+
     // Step 1: Create worktree
     let start_cmd = CliCommandBuilder::new()
         .with_env(&env)
@@ -476,7 +476,7 @@ fn test_full_workflow_worktree_lifecycle() {
         .args(&["worktree", "start", "lifecycle-branch", "--force", "--yes"])
         .build();
     let start_result = env.testers().cmd().run(&start_cmd);
-    
+
     // Step 2: Complete worktree
     let complete_cmd = CliCommandBuilder::new()
         .with_env(&env)
@@ -484,17 +484,17 @@ fn test_full_workflow_worktree_lifecycle() {
         .args(&["worktree", "complete", "lifecycle-branch", "--force", "--yes"])
         .build();
     let complete_result = env.testers().cmd().run(&complete_cmd);
-    
+
     // Both commands should complete without panic
     assert!(
-        start_result.success || !start_result.success,
+        start_result.success,
         "Worktree start should complete. Got: {} {}",
         start_result.stdout,
         start_result.stderr
     );
-    
+
     assert!(
-        complete_result.success || !complete_result.success,
+        complete_result.success,
         "Worktree complete should complete. Got: {} {}",
         complete_result.stdout,
         complete_result.stderr
@@ -528,7 +528,7 @@ fn test_worktree_in_different_workspace() {
 
     let ws_dir = env.find_dir("different_ws").expect("Dir not found");
     let repo_path = ws_dir.path().join("subdir/repo");
-    
+
     // Create worktree from within the repo, while workspace is at parent level
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
@@ -536,9 +536,9 @@ fn test_worktree_in_different_workspace() {
         .args(&["worktree", "start", "diff-branch", "--force", "--yes"])
         .build();
     let result = env.testers().cmd().run(&cmd);
-    
+
     assert!(
-        result.success || !result.success,
+        result.success,
         "Test should complete without panic. Got: {} {}",
         result.stdout,
         result.stderr

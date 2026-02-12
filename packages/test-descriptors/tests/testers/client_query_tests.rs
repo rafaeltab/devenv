@@ -2,7 +2,6 @@
 //!
 //! Tests for querying tmux client state.
 
-use test_descriptors::testers::{Command, CommandTester};
 use test_descriptors::TestEnvironment;
 
 /// Returns true when client exists.
