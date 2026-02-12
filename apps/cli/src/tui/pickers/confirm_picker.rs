@@ -129,11 +129,11 @@ impl ConfirmPicker {
     fn render_ui(&self, buf: &mut Buffer, area: Rect) {
         let theme = &self.theme;
 
-        // Layout: prompt (3 lines), help (1 line)
+        // Layout: prompt (4 lines to fit 2 content lines + borders), help (1 line)
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(3), // Prompt area
+                Constraint::Length(4), // Prompt area: 2 content lines + 2 border lines
                 Constraint::Length(1), // Help footer
             ])
             .split(area);

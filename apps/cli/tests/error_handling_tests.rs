@@ -286,7 +286,7 @@ fn test_malformed_workspace_in_config() {
     let config_path = env.root_path().join(".rafaeltab.json");
     fs::write(
         &config_path,
-        r#"{"workspaces": [{"name": "Test", "root": "/some/path"}], "tmux": {}}"#,
+        r#"{"workspaces": [{"name": "Test", "root": "/some/path"}], "tmux": {"defaultWindows": []}}"#,
     )
     .expect("Failed to write malformed config");
 
@@ -298,13 +298,13 @@ fn test_malformed_workspace_in_config() {
         .build();
     let result = env.testers().cmd().run(&cmd);
 
-    // The command may succeed (skipping malformed entries) or fail
-    // We're testing that it doesn't panic
+    // The command will fail because the workspace is missing the required 'id' field
+    // We're testing that it provides a helpful error message rather than panicking
+    let output = format!("{} {}", result.stdout, result.stderr);
     assert!(
-        result.success,
-        "Test should run without panic. Result: {} {}",
-        result.stdout,
-        result.stderr
+        output.contains("id") || output.contains("missing field"),
+        "Should provide helpful error about missing 'id' field. Output: {}",
+        output
     );
 }
 
