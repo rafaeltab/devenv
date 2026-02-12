@@ -1,6 +1,6 @@
 // #![feature(coroutines, coroutine_trait)]
 // #![feature(stmt_expr_attributes)]
-use std::{io, rc::Rc, sync::Arc};
+use std::{io, rc::Rc};
 
 use clap::{Args, CommandFactory, Parser, Subcommand};
 use commands::{

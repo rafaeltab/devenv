@@ -2,12 +2,15 @@
 //!
 //! This command provides an interactive flow for adding a new workspace.
 
+use std::env::current_dir;
+
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Paragraph, Widget, WidgetRef};
 
 use crate::commands::{Command, CommandCtx};
 use crate::tui::picker_ctx::ExistingTagsSuggestionProvider;
+use crate::utils::display::{PrettyDisplay, RafaeltabDisplay};
 
 /// Command to add a new workspace.
 ///
@@ -53,9 +56,16 @@ impl Default for AddWorkspaceCommand {
     }
 }
 
-impl WidgetRef for AddWorkspaceCommand {
-    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        Paragraph::new("add workspace").render(area, buf);
+impl AddWorkspaceCommand {
+    fn inquire_name(&self, ctx: &mut CommandCtx) -> Option<String> {
+        loop {
+            let name = ctx.input("Workspace name")?;
+
+            if !name.trim().is_empty()
+            {
+                return Some(name);
+            }
+        }
     }
 }
 
@@ -70,8 +80,8 @@ impl Command for AddWorkspaceCommand {
 
     fn run(&self, ctx: &mut CommandCtx) {
         // Step 1: Get workspace name (no suggestions)
-        let name = match ctx.input("Workspace name") {
-            Some(n) if !n.trim().is_empty() => n,
+        let name = match self.inquire_name(ctx) {
+            Some(n) => n,
             _ => {
                 // Empty name - cancel
                 return;
@@ -96,7 +106,7 @@ impl Command for AddWorkspaceCommand {
 
         let tags_provider = ExistingTagsSuggestionProvider::new(all_tags);
         let tags_input =
-            match ctx.input_with_suggestions("Tags (comma-separated):", Box::new(tags_provider)) {
+            match ctx.input_with_suggestions("Tags (comma-separated)", Box::new(tags_provider)) {
                 Some(t) => t,
                 None => {
                     // User cancelled
@@ -125,13 +135,15 @@ impl Command for AddWorkspaceCommand {
         match ctx.confirm(&confirm_prompt, true) {
             Some(true) => {
                 let _ = ctx.restore();
-                // User confirmed - create the workspace
-                // TODO: Save workspace to storage
-                // For now, just print a success message
-                println!(
-                    "Workspace '{}' created with ID '{}' and tags: {:?}",
-                    name, id, tags
+
+                let workspace = &ctx.workspace_repo().create_workspace(
+                    name,
+                    tags,
+                    current_dir().unwrap().to_str().unwrap().to_string(),
+                    id,
                 );
+
+                PrettyDisplay {}.display(workspace);
             }
             _ => {
                 // User cancelled or selected No

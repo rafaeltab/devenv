@@ -53,9 +53,6 @@ impl TextPicker {
                         code: KeyCode::Enter,
                         ..
                     } => {
-                        if self.input.is_empty() {
-                            return None; // Empty input treated as cancel
-                        }
                         return Some(self.input.clone());
                     }
                     // Cancel - Escape
