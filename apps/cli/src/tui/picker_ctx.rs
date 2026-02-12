@@ -1,17 +1,16 @@
-use color_eyre::owo_colors::OwoColorize;
 use crossterm::cursor::Show;
 use crossterm::execute;
 use crossterm::terminal::{
-    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
+    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use itertools::Itertools;
-use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
+use ratatui::Terminal;
 use std::io::{self, Stdout};
 
 use crate::tui::{
-    PickerItem,
     pickers::{ConfirmPicker, SelectPicker, TextPicker, TextPickerWithSuggestions},
+    PickerItem,
 };
 
 /// Context for running pickers in the terminal.
@@ -245,9 +244,9 @@ impl SuggestionProvider for ExistingTagsSuggestionProvider {
             })
             .map(|x| {
                 if preentered_tags.is_empty() {
-                    return x.clone();
+                    return x.to_lowercase();
                 }
-                format!("{}, {}", preentered_tags, x)
+                format!("{}, {}", preentered_tags, x.to_lowercase())
             })
             .collect();
 

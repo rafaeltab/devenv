@@ -4,10 +4,6 @@
 
 use std::env::current_dir;
 
-use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
-use ratatui::widgets::{Paragraph, Widget, WidgetRef};
-
 use crate::commands::{Command, CommandCtx};
 use crate::tui::picker_ctx::ExistingTagsSuggestionProvider;
 use crate::utils::display::{PrettyDisplay, RafaeltabDisplay};
@@ -61,8 +57,7 @@ impl AddWorkspaceCommand {
         loop {
             let name = ctx.input("Workspace name")?;
 
-            if !name.trim().is_empty()
-            {
+            if !name.trim().is_empty() {
                 return Some(name);
             }
         }
@@ -114,14 +109,15 @@ impl Command for AddWorkspaceCommand {
                 }
             };
 
-        // Parse and deduplicate tags
-        let tags: Vec<String> = tags_input
+        // Parse, deduplicate, and sort tags
+        let mut tags: Vec<String> = tags_input
             .split(',')
-            .map(|s| s.trim().to_string())
+            .map(|s| s.trim().to_lowercase())
             .filter(|s| !s.is_empty())
             .collect::<std::collections::HashSet<_>>() // Deduplicate
             .into_iter()
             .collect();
+        tags.sort(); // Sort alphabetically for consistent ordering
 
         // Step 3: Confirm creation
         let tags_display = if tags.is_empty() {

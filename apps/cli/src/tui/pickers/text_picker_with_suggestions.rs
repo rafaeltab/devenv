@@ -119,6 +119,15 @@ impl TextPickerWithSuggestions {
                         let _ = self.input.pop();
                         self.update_suggestions();
                     }
+                    // Clear line - Ctrl+U (common TUI pattern)
+                    KeyEvent {
+                        code: KeyCode::Char('u'),
+                        modifiers: KeyModifiers::CONTROL,
+                        ..
+                    } => {
+                        self.input.clear();
+                        self.update_suggestions();
+                    }
                     // Tab completion
                     KeyEvent {
                         code: KeyCode::Tab, ..
