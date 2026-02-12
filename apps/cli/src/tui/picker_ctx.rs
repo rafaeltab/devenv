@@ -1,12 +1,13 @@
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
-use ratatui::backend::CrosstermBackend;
+use crossterm::cursor::Show;
+use crossterm::execute;
+use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode};
+use ratatui::{backend::CrosstermBackend};
 use ratatui::Terminal;
 use std::io::{self, Stdout};
 
-use crate::tui::picker_item::PickerItem;
-use crate::tui::pickers::{
-    ConfirmPicker, SelectPicker, SimpleItem, TextPicker, TextPickerWithSuggestions,
-};
+use crate::tui::{PickerItem, pickers::{
+    ConfirmPicker, SelectPicker, TextPicker, TextPickerWithSuggestions,
+}};
 
 /// Context for running pickers in the terminal.
 ///
@@ -29,6 +30,7 @@ use crate::tui::pickers::{
 /// ```
 pub struct PickerCtx {
     terminal: Terminal<CrosstermBackend<Stdout>>,
+    restored: bool,
 }
 
 impl PickerCtx {
@@ -40,19 +42,20 @@ impl PickerCtx {
         use crossterm::{
             cursor::Hide,
             execute,
-            terminal::{Clear, ClearType},
         };
 
-        // Clear the screen before creating terminal
-        // This ensures any previous terminal content is hidden
+        enable_raw_mode()?;
+
+        // Switch to an alternate screen before creating terminal
+        // This ensures any previous terminal content is hidden, and restored once complete
         let mut stdout = io::stdout();
-        execute!(stdout, Clear(ClearType::All))?;
-        execute!(stdout, Hide)?;
+        execute!(stdout, EnterAlternateScreen, Hide)?;
 
         let backend = CrosstermBackend::new(stdout);
-        let terminal = Terminal::new(backend)?;
+        let mut terminal = Terminal::new(backend)?;
+        terminal.clear()?;
 
-        Ok(Self { terminal })
+        Ok(Self { terminal, restored: false })
     }
 
     /// Display a select picker and return the selected item.
@@ -64,10 +67,9 @@ impl PickerCtx {
     /// # Returns
     /// * `Some(SimpleItem)` - The selected item
     /// * `None` - If the user cancels (Esc or Ctrl+C)
-    pub fn select(&mut self, items: &[SimpleItem], _prompt: &str) -> Option<SimpleItem> {
+    pub fn select<T: PickerItem>(&mut self, items: &[T], _prompt: &str) -> Option<T> {
         // Clone items to own them
-        let simple_items: Vec<SimpleItem> = items.to_vec();
-        let mut picker = SelectPicker::new(simple_items);
+        let mut picker = SelectPicker::new(items.to_vec());
         picker.run(&mut self.terminal).cloned()
     }
 
@@ -133,13 +135,19 @@ impl PickerCtx {
     /// This should be called before exiting the application to
     /// ensure the terminal is properly cleaned up.
     pub fn restore(&mut self) -> io::Result<()> {
-        use crossterm::{cursor::Show, execute};
-
         // Show cursor
-        let mut stdout = io::stdout();
-        execute!(stdout, Show)?;
-
+        execute!(self.terminal.backend_mut(), Show, LeaveAlternateScreen)?;
+        disable_raw_mode()?;
+        self.restored = true;
         Ok(())
+    }
+}
+
+impl Drop for PickerCtx {
+    fn drop(&mut self) {
+        if !self.restored {
+            let _ = self.restore();
+        }
     }
 }
 
@@ -215,7 +223,7 @@ impl ExistingTagsSuggestionProvider {
 impl SuggestionProvider for ExistingTagsSuggestionProvider {
     fn suggestions(&self, input: &str) -> Option<Vec<String>> {
         if input.is_empty() {
-            return None;
+            return Some(self.all_tags.to_vec());
         }
 
         // Return fuzzy matches from all workspace tags

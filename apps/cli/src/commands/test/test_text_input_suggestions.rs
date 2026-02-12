@@ -1,13 +1,7 @@
 use std::env;
 
-use ratatui::buffer::Buffer;
-use ratatui::layout::Constraint;
-use ratatui::layout::Rect;
-use ratatui::widgets::{Paragraph, Widget, WidgetRef};
-
 use crate::commands::{Command, CommandCtx};
 use crate::tui::picker_ctx::StaticSuggestionProvider;
-use crate::tui::picker_item::PickerItem;
 
 /// Test command for the text input picker with suggestions.
 ///
@@ -16,6 +10,7 @@ use crate::tui::picker_item::PickerItem;
 ///
 /// Environment variables:
 /// - TEST_SUGGESTIONS: Comma-separated list of suggestions (default: "apple,application,apply")
+#[derive(Debug)]
 pub struct TestTextInputSuggestionsCommand;
 
 impl TestTextInputSuggestionsCommand {
@@ -28,22 +23,6 @@ impl TestTextInputSuggestionsCommand {
 impl Default for TestTextInputSuggestionsCommand {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl PickerItem for TestTextInputSuggestionsCommand {
-    fn constraint(&self) -> Constraint {
-        Constraint::Length(1)
-    }
-
-    fn search_text(&self) -> &str {
-        "test text input suggestions"
-    }
-}
-
-impl WidgetRef for TestTextInputSuggestionsCommand {
-    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        Paragraph::new("test text input suggestions").render(area, buf);
     }
 }
 

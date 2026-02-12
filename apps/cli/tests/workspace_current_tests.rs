@@ -67,7 +67,7 @@ fn test_workspace_current_shows_nothing_outside_workspace() {
                 d.rafaeltab_workspace("some_ws", "Some Workspace", |_w| {});
             });
             // Create a directory that is NOT a workspace
-            td.dir("not_a_workspace", |d| {
+            td.dir("not_a_workspace", |_| {
                 // This directory has no workspace marker
             });
         });
@@ -347,10 +347,6 @@ fn test_workspace_current_in_subfolder() {
 
 #[test]
 fn test_workspace_current_with_expanded_path() {
-    // This test verifies that path expansion works correctly
-    // We'll use the actual home directory to test ~ expansion
-    let home_dir = std::env::var("HOME").expect("HOME environment variable should be set");
-
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|c| {
             c.default_window("shell");

@@ -3,15 +3,15 @@
 //! This module provides the main `CommandPalette` command which displays
 //! a picker with all available commands and executes the selected one.
 
-use ratatui::buffer::Buffer;
-use ratatui::layout::Constraint;
-use ratatui::layout::Rect;
-use ratatui::widgets::{Paragraph, Widget, WidgetRef};
+use std::rc::Rc;
+
+use ratatui::layout::Spacing;
+use ratatui::prelude::*;
+use ratatui::widgets::{Paragraph, WidgetRef};
 
 use crate::commands::registry::CommandRegistry;
 use crate::commands::{Command, CommandCtx};
 use crate::tui::picker_item::PickerItem;
-use crate::tui::pickers::SelectPicker;
 
 /// The main command palette command.
 ///
@@ -27,6 +27,7 @@ use crate::tui::pickers::SelectPicker;
 /// let registry = CommandRegistry::new();
 /// let palette = CommandPalette::new(registry);
 /// ```
+#[derive(Debug)]
 pub struct CommandPalette {
     registry: CommandRegistry,
 }
@@ -40,22 +41,6 @@ impl CommandPalette {
     /// Get a reference to the internal registry.
     pub fn registry(&self) -> &CommandRegistry {
         &self.registry
-    }
-}
-
-impl PickerItem for CommandPalette {
-    fn constraint(&self) -> Constraint {
-        Constraint::Length(1)
-    }
-
-    fn search_text(&self) -> &str {
-        "command palette"
-    }
-}
-
-impl WidgetRef for CommandPalette {
-    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        Paragraph::new("command palette").render(area, buf);
     }
 }
 
@@ -84,26 +69,14 @@ impl Command for CommandPalette {
             .map(|cmd| CommandItem {
                 name: cmd.name().to_string(),
                 description: cmd.description().to_string(),
+                command: cmd.clone(),
             })
             .collect();
 
         // Create and run the picker
-        let mut picker = SelectPicker::new(items);
-
-        // Get terminal from context (we need access to terminal)
-        // For now, we'll use the terminal directly from the picker_ctx
-        use ratatui::backend::CrosstermBackend;
-        use ratatui::Terminal;
-        use std::io;
-
-        let backend = CrosstermBackend::new(io::stdout());
-        let mut terminal = Terminal::new(backend).expect("Failed to create terminal");
-
-        if let Some(selected) = picker.run(&mut terminal) {
-            // Find and run the selected command
-            if let Some(cmd) = self.registry.find_by_name(&selected.name) {
-                cmd.run(ctx);
-            }
+        let res = ctx.select(&items, "Run a command");
+        if let Some(cmd) = res {
+            cmd.command.run(ctx);
         }
         // If None, user cancelled - just return
     }
@@ -114,6 +87,7 @@ impl Command for CommandPalette {
 struct CommandItem {
     name: String,
     description: String,
+    pub command: Rc<dyn Command>,
 }
 
 impl PickerItem for CommandItem {
@@ -125,11 +99,43 @@ impl PickerItem for CommandItem {
         // Search in both name and description
         &self.name
     }
+
+    fn render(&self, selected: bool) -> Box<dyn WidgetRef> {
+        Box::new(CommandItemWidget {
+            name: self.name.clone(),
+            description: self.description.clone(),
+            selected,
+        })
+    }
 }
 
-impl WidgetRef for CommandItem {
+struct CommandItemWidget {
+    name: String,
+    description: String,
+    selected: bool,
+}
+
+impl WidgetRef for CommandItemWidget {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        let text = format!("{} - {}", self.name, self.description);
-        Paragraph::new(text).render(area, buf);
+        let layout = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![
+                Constraint::Length(self.name.len().try_into().unwrap()),
+                Constraint::Fill(1),
+            ])
+            .spacing(Spacing::Space(1))
+            .split(area);
+        let mut name_widget = Paragraph::new(self.name.clone());
+        if self.selected {
+            name_widget = name_widget.fg(Color::Yellow);
+        }
+        name_widget.render(layout[0], buf);
+
+        let description_widget = Paragraph::new(
+            Line::from(self.description.clone())
+                .right_aligned()
+                .fg(Color::DarkGray),
+        );
+        description_widget.render(layout[1], buf);
     }
 }

@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 pub trait RafaeltabCommand<TArgs> {
     fn execute(&self, args: TArgs);
 }
@@ -40,7 +42,7 @@ pub trait RafaeltabCommand<TArgs> {
 ///     }
 /// }
 /// ```
-pub trait Command: crate::tui::picker_item::PickerItem {
+pub trait Command: Debug {
     /// Returns the command name displayed in the palette.
     fn name(&self) -> &str;
 

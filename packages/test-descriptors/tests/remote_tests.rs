@@ -26,7 +26,7 @@ fn test_remote_descriptor_bare_repo_is_valid() {
 
     // Verify it's a bare repository
     let output = Command::new("git")
-        .args(&["config", "core.bare"])
+        .args(["config", "core.bare"])
         .current_dir(&bare_path)
         .output()
         .unwrap();

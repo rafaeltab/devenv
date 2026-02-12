@@ -85,8 +85,8 @@ pub fn get_windows_for_workspace(
     // Check if workspace has custom session config
     if let Some(sessions) = &tmux_config.sessions {
         for session in sessions {
-            if let Session::Workspace(ws_session) = session {
-                if ws_session.workspace == workspace_id {
+            if let Session::Workspace(ws_session) = session
+                && ws_session.workspace == workspace_id {
                     return ws_session
                         .windows
                         .iter()
@@ -96,7 +96,6 @@ pub fn get_windows_for_workspace(
                         })
                         .collect();
                 }
-            }
         }
     }
 
@@ -144,7 +143,7 @@ mod tests {
         assert!(result[0]
             .command
             .as_ref()
-            .map_or(false, |c| c.contains("vim")));
+            .is_some_and(|c| c.contains("vim")));
         assert_eq!(result[1].name, "shell");
         assert_eq!(result[1].command, None);
     }
@@ -181,12 +180,12 @@ mod tests {
         assert!(result[0]
             .command
             .as_ref()
-            .map_or(false, |c| c.contains("nvim .")));
+            .is_some_and(|c| c.contains("nvim .")));
         assert_eq!(result[1].name, "build");
         assert!(result[1]
             .command
             .as_ref()
-            .map_or(false, |c| c.contains("npm run dev")));
+            .is_some_and(|c| c.contains("npm run dev")));
     }
 
     #[test]

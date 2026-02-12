@@ -362,9 +362,9 @@ fn ansi_to_rgb(idx: u8) -> (u8, u8, u8) {
         16..=231 => {
             // 6x6x6 color cube
             let idx = idx - 16;
-            let r = (idx / 36) as u8;
-            let g = ((idx % 36) / 6) as u8;
-            let b = (idx % 6) as u8;
+            let r = idx / 36;
+            let g = (idx % 36) / 6;
+            let b = idx % 6;
             (
                 if r == 0 { 0 } else { r * 40 + 55 },
                 if g == 0 { 0 } else { g * 40 + 55 },
@@ -373,7 +373,7 @@ fn ansi_to_rgb(idx: u8) -> (u8, u8, u8) {
         }
         232..=255 => {
             // Grayscale
-            let gray = (idx - 232) as u8 * 10 + 8;
+            let gray = (idx - 232) * 10 + 8;
             (gray, gray, gray)
         }
     }

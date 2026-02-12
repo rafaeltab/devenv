@@ -302,7 +302,7 @@ mod tests {
 
     #[test]
     fn test_find_most_specific_workspace_simple_match() {
-        let workspaces = vec![("devenv", "/home/user/source/devenv")];
+        let workspaces = [("devenv", "/home/user/source/devenv")];
 
         let result = find_most_specific_workspace(
             "/home/user/source/devenv/apps/cli",
@@ -314,10 +314,8 @@ mod tests {
 
     #[test]
     fn test_find_most_specific_workspace_nested_returns_most_specific() {
-        let workspaces = vec![
-            ("home", "/home/user"),
-            ("devenv", "/home/user/source/devenv"),
-        ];
+        let workspaces = [("home", "/home/user"),
+            ("devenv", "/home/user/source/devenv")];
 
         let result = find_most_specific_workspace(
             "/home/user/source/devenv/apps/cli",
@@ -330,10 +328,8 @@ mod tests {
     #[test]
     fn test_find_most_specific_workspace_nested_parent_first_in_list() {
         // Test that order in the list doesn't matter
-        let workspaces = vec![
-            ("devenv", "/home/user/source/devenv"),
-            ("home", "/home/user"),
-        ];
+        let workspaces = [("devenv", "/home/user/source/devenv"),
+            ("home", "/home/user")];
 
         let result = find_most_specific_workspace(
             "/home/user/source/devenv/apps/cli",
@@ -345,10 +341,8 @@ mod tests {
 
     #[test]
     fn test_find_most_specific_workspace_returns_parent_when_not_in_child() {
-        let workspaces = vec![
-            ("home", "/home/user"),
-            ("devenv", "/home/user/source/devenv"),
-        ];
+        let workspaces = [("home", "/home/user"),
+            ("devenv", "/home/user/source/devenv")];
 
         let result = find_most_specific_workspace(
             "/home/user/documents",
@@ -360,7 +354,7 @@ mod tests {
 
     #[test]
     fn test_find_most_specific_workspace_no_match() {
-        let workspaces = vec![("devenv", "/home/user/source/devenv")];
+        let workspaces = [("devenv", "/home/user/source/devenv")];
 
         let result = find_most_specific_workspace(
             "/tmp/other",
@@ -372,11 +366,9 @@ mod tests {
 
     #[test]
     fn test_find_most_specific_workspace_deeply_nested() {
-        let workspaces = vec![
-            ("home", "/home/user"),
+        let workspaces = [("home", "/home/user"),
             ("source", "/home/user/source"),
-            ("devenv", "/home/user/source/devenv"),
-        ];
+            ("devenv", "/home/user/source/devenv")];
 
         let result = find_most_specific_workspace(
             "/home/user/source/devenv/apps/cli/src",

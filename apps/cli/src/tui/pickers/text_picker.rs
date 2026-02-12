@@ -28,9 +28,7 @@ impl TextPicker {
         &mut self,
         terminal: &mut ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stdout>>,
     ) -> Option<String> {
-        use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-
-        enable_raw_mode().ok()?;
+        terminal.clear().ok()?;
 
         loop {
             // Create a copy of the data needed for rendering
@@ -55,7 +53,6 @@ impl TextPicker {
                         code: KeyCode::Enter,
                         ..
                     } => {
-                        disable_raw_mode().ok()?;
                         if self.input.is_empty() {
                             return None; // Empty input treated as cancel
                         }
@@ -65,7 +62,6 @@ impl TextPicker {
                     KeyEvent {
                         code: KeyCode::Esc, ..
                     } => {
-                        disable_raw_mode().ok()?;
                         return None;
                     }
                     // Cancel - Ctrl+C
@@ -74,7 +70,6 @@ impl TextPicker {
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     } => {
-                        disable_raw_mode().ok()?;
                         return None;
                     }
                     // Backspace

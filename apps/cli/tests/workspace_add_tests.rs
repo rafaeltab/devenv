@@ -1,12 +1,13 @@
 mod common;
 
 use crate::common::{
-    rafaeltab_descriptors::RafaeltabDirMixin, rafaeltab_descriptors::RafaeltabRootMixin,
+    rafaeltab_descriptors::RafaeltabRootMixin,
     CliCommandBuilder,
 };
 use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
 
+// TODO make sure all these tests verify something
 #[test]
 fn test_workspace_add_non_interactive_with_name() {
     let env = TestEnvironment::describe(|root| {
@@ -329,7 +330,7 @@ fn test_workspace_add_in_non_interactive_mode_without_name_fails() {
         .with_cwd(&workspace_path)
         .args(&["workspace", "add", "--interactive=false"])
         .build();
-    let result = env.testers().cmd().run(&cmd);
+    let _ = env.testers().cmd().run(&cmd);
 
     // This test documents expected behavior - in non-interactive mode without a name,
     // the command should fail or show an error

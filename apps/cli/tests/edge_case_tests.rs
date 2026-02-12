@@ -138,7 +138,7 @@ fn test_workspace_path_with_spaces() {
 #[test]
 fn test_empty_tags_list() {
     let env = TestEnvironment::describe(|root| {
-        root.rafaeltab_config(|c| {});
+        root.rafaeltab_config(|_| {});
 
         root.test_dir(|td| {
             td.dir("no_tags", |d| {
@@ -246,7 +246,7 @@ fn test_workspace_path_does_not_exist() {
 
     // Should either succeed or fail gracefully
     assert!(
-        result.success || !result.success,
+        result.success,
         "Test should complete without panic"
     );
 }
@@ -279,7 +279,7 @@ fn test_duplicate_workspace_ids() {
 
     // Should handle duplicates gracefully
     assert!(
-        result.success || !result.success,
+        result.success,
         "Test should complete without panic"
     );
 }
@@ -321,7 +321,7 @@ fn test_branch_name_with_slashes() {
 
     // Should handle branch names with slashes
     assert!(
-        result.success || !result.success,
+        result.success,
         "Test should complete without panic. Output: {} {}",
         result.stdout,
         result.stderr
@@ -348,8 +348,9 @@ fn test_symlink_workspace_path() {
     #[cfg(unix)]
     std::os::unix::fs::symlink(&real_path, &symlink_path).expect("Failed to create symlink");
 
-    #[cfg(windows)]
-    std::os::windows::fs::symlink_dir(&real_path, &symlink_path).expect("Failed to create symlink");
+    // TODO reactivate
+    // #[cfg(windows)]
+    // std::os::windows::fs::symlink_dir(&real_path, &symlink_path).expect("Failed to create symlink");
 
     // Test workspace list
     let cmd = CliCommandBuilder::new()

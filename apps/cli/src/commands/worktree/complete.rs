@@ -357,12 +357,11 @@ fn execute_cleanup_directly(
     let should_switch_client = current_dir.starts_with(worktree_path);
 
     // 3. If we're in the worktree being deleted, switch client first
-    if should_switch_client {
-        if let Some(ws) = workspace {
+    if should_switch_client
+        && let Some(ws) = workspace {
             switch_to_main_workspace_session(session_repository, client_repository, &ws.name);
             println!("Switched to main workspace session");
         }
-    }
 
     // 4. Kill the worktree's tmux session
     let session_name = calculate_worktree_session_name(workspace, branch_name);
@@ -370,11 +369,10 @@ fn execute_cleanup_directly(
     println!("Closed tmux session: {}", session_name);
 
     // 5. Change directory away from worktree if needed
-    if current_dir.starts_with(worktree_path) {
-        if let Err(e) = std::env::set_current_dir(main_repo_path) {
+    if current_dir.starts_with(worktree_path)
+        && let Err(e) = std::env::set_current_dir(main_repo_path) {
             eprintln!("Warning: Could not change directory: {}", e);
         }
-    }
 
     // 6. Remove the git worktree
     let remove_result = if force {

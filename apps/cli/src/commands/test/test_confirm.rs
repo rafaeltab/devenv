@@ -1,12 +1,6 @@
 use std::env;
 
-use ratatui::buffer::Buffer;
-use ratatui::layout::Constraint;
-use ratatui::layout::Rect;
-use ratatui::widgets::{Paragraph, Widget, WidgetRef};
-
 use crate::commands::{Command, CommandCtx};
-use crate::tui::picker_item::PickerItem;
 
 /// Test command for the confirm picker.
 ///
@@ -16,6 +10,7 @@ use crate::tui::picker_item::PickerItem;
 /// Environment variables:
 /// - TEST_CONFIRM_PROMPT: The prompt text (default: "Confirm?")
 /// - TEST_CONFIRM_DEFAULT: The default selection (default: "true")
+#[derive(Debug)]
 pub struct TestConfirmCommand;
 
 impl TestConfirmCommand {
@@ -28,22 +23,6 @@ impl TestConfirmCommand {
 impl Default for TestConfirmCommand {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl PickerItem for TestConfirmCommand {
-    fn constraint(&self) -> Constraint {
-        Constraint::Length(1)
-    }
-
-    fn search_text(&self) -> &str {
-        "test confirm"
-    }
-}
-
-impl WidgetRef for TestConfirmCommand {
-    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        Paragraph::new("test confirm").render(area, buf);
     }
 }
 

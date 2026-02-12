@@ -301,7 +301,7 @@ fn test_malformed_workspace_in_config() {
     // The command may succeed (skipping malformed entries) or fail
     // We're testing that it doesn't panic
     assert!(
-        result.success || !result.success,
+        result.success,
         "Test should run without panic. Result: {} {}",
         result.stdout,
         result.stderr

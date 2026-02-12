@@ -1,7 +1,7 @@
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Style};
+use ratatui::prelude::*;
 use ratatui::widgets::{Paragraph, Widget, WidgetRef};
 use sublime_fuzzy::{FuzzySearch, Scoring};
 
@@ -93,9 +93,7 @@ impl<T: PickerItem> SelectPicker<T> {
         &mut self,
         terminal: &mut ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stdout>>,
     ) -> Option<&T> {
-        use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
-
-        enable_raw_mode().ok()?;
+        terminal.clear().ok()?;
 
         loop {
             // Create a copy of the data needed for rendering
@@ -131,16 +129,7 @@ impl<T: PickerItem> SelectPicker<T> {
                             height: 1,
                         };
 
-                        if is_selected {
-                            // Show that something is selected with yellow
-                            let highlighted = Paragraph::new(format!("> {}", item.search_text()))
-                                .style(Style::default().fg(Color::Yellow));
-                            highlighted.render(item_area, frame.buffer_mut());
-                        } else {
-                            // Render unselected item normally
-                            let normal = Paragraph::new(format!("  {}", item.search_text()));
-                            normal.render(item_area, frame.buffer_mut());
-                        }
+                        item.render(is_selected).render_ref(item_area, frame.buffer_mut());
                     }
                 })
                 .ok()?;
@@ -183,7 +172,6 @@ impl<T: PickerItem> SelectPicker<T> {
                         ..
                     } => {
                         if let Some(&(idx, _)) = self.filtered_indices.get(self.selected) {
-                            disable_raw_mode().ok()?;
                             return Some(&self.items[idx]);
                         }
                     }
@@ -191,7 +179,6 @@ impl<T: PickerItem> SelectPicker<T> {
                     KeyEvent {
                         code: KeyCode::Esc, ..
                     } => {
-                        disable_raw_mode().ok()?;
                         return None;
                     }
                     // Cancel - Ctrl+C
@@ -200,7 +187,6 @@ impl<T: PickerItem> SelectPicker<T> {
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     } => {
-                        disable_raw_mode().ok()?;
                         return None;
                     }
                     // Backspace
@@ -260,15 +246,7 @@ impl<T: PickerItem> WidgetRef for SelectPicker<T> {
                 height: 1,
             };
 
-            if is_selected {
-                // Highlight selected item with yellow
-                let style = Style::default().fg(Color::Yellow);
-                let highlighted = Paragraph::new(item.search_text()).style(style);
-                highlighted.render(item_area, buf);
-            } else {
-                // Render unselected item normally
-                item.render_ref(item_area, buf);
-            }
+            item.render(is_selected).render_ref(item_area, buf);
         }
     }
 }
@@ -288,12 +266,6 @@ impl SimpleItem {
     }
 }
 
-impl WidgetRef for SimpleItem {
-    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        Paragraph::new(self.text.clone()).render(area, buf);
-    }
-}
-
 impl PickerItem for SimpleItem {
     fn constraint(&self) -> ratatui::layout::Constraint {
         ratatui::layout::Constraint::Length(1)
@@ -301,5 +273,28 @@ impl PickerItem for SimpleItem {
 
     fn search_text(&self) -> &str {
         &self.text
+    }
+
+    fn render(&self, selected: bool) -> Box<dyn WidgetRef> {
+        Box::new(SimpleItemWidget {
+            text: self.text.clone(),
+            selected,
+        })
+    }
+}
+
+struct SimpleItemWidget {
+    text: String,
+    selected: bool,
+}
+
+impl WidgetRef for SimpleItemWidget {
+    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
+        let mut para = Paragraph::new(self.text.clone());
+        if self.selected {
+            para = para.fg(Color::Yellow);
+        }
+
+        para.render(area, buf);
     }
 }

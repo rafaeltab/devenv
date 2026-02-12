@@ -1,13 +1,8 @@
 use std::env;
 
-use ratatui::buffer::Buffer;
-use ratatui::layout::Constraint;
-use ratatui::layout::Rect;
-use ratatui::widgets::{Paragraph, Widget, WidgetRef};
-
 use crate::commands::{Command, CommandCtx};
 use crate::tui::picker_item::PickerItem;
-use crate::tui::pickers::{SelectPicker, SimpleItem};
+use crate::tui::pickers::{SimpleItem};
 
 /// Test command for the select picker.
 ///
@@ -16,6 +11,7 @@ use crate::tui::pickers::{SelectPicker, SimpleItem};
 ///
 /// Environment variables:
 /// - TEST_PICKER_ITEMS: Comma-separated list of items (e.g., "Item1,Item2,Item3")
+#[derive(Debug)]
 pub struct TestPickerCommand;
 
 impl TestPickerCommand {
@@ -28,22 +24,6 @@ impl TestPickerCommand {
 impl Default for TestPickerCommand {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl PickerItem for TestPickerCommand {
-    fn constraint(&self) -> Constraint {
-        Constraint::Length(1)
-    }
-
-    fn search_text(&self) -> &str {
-        "test picker"
-    }
-}
-
-impl WidgetRef for TestPickerCommand {
-    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        Paragraph::new("test picker").render(area, buf);
     }
 }
 

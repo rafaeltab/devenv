@@ -4,38 +4,11 @@
 //! access to picker methods and other runtime functionality.
 
 use std::io::{self};
-use std::sync::Arc;
+use std::rc::Rc;
 
-use crate::domain::tmux_workspaces::aggregates::workspaces::workspace::{Workspace, WorkspaceTag};
 use crate::domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository;
+use crate::tui::PickerItem;
 use crate::tui::picker_ctx::{PickerCtx, SuggestionProvider};
-use crate::tui::pickers::SimpleItem;
-
-/// A dummy workspace repository for when no real repository is available.
-struct DummyWorkspaceRepository;
-
-impl WorkspaceRepository for DummyWorkspaceRepository {
-    fn get_workspaces(&self) -> Vec<Workspace> {
-        Vec::new()
-    }
-
-    fn create_workspace(
-        &self,
-        _name: String,
-        _tags: Vec<String>,
-        _root: String,
-        _id: String,
-    ) -> Workspace {
-        Workspace {
-            id: String::new(),
-            name: String::new(),
-            path: String::new(),
-            tags: Vec::new(),
-            importance: 0,
-            worktree: None,
-        }
-    }
-}
 
 /// Context for executing commands in the command palette.
 ///
@@ -63,23 +36,12 @@ impl WorkspaceRepository for DummyWorkspaceRepository {
 /// ```
 pub struct CommandCtx {
     picker_ctx: PickerCtx,
-    workspace_repo: Arc<dyn WorkspaceRepository>,
+    workspace_repo: Rc<dyn WorkspaceRepository>,
 }
 
 impl CommandCtx {
     /// Create a new command context.
-    pub fn new() -> io::Result<Self> {
-        let picker_ctx = PickerCtx::new()?;
-        let workspace_repo: Arc<dyn WorkspaceRepository> = Arc::new(DummyWorkspaceRepository);
-
-        Ok(Self {
-            picker_ctx,
-            workspace_repo,
-        })
-    }
-
-    /// Create a new command context with a workspace repository.
-    pub fn with_repository(workspace_repo: Arc<dyn WorkspaceRepository>) -> io::Result<Self> {
+    pub fn new(workspace_repo: Rc<dyn WorkspaceRepository>) -> io::Result<Self> {
         let picker_ctx = PickerCtx::new()?;
 
         Ok(Self {
@@ -102,7 +64,7 @@ impl CommandCtx {
     /// # Returns
     /// * `Some(SimpleItem)` - The selected item
     /// * `None` - If the user cancels
-    pub fn select(&mut self, items: &[SimpleItem], prompt: &str) -> Option<SimpleItem> {
+    pub fn select<T: PickerItem>(&mut self, items: &[T], prompt: &str) -> Option<T> {
         self.picker_ctx.select(items, prompt)
     }
 

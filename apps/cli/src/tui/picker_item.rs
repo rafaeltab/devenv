@@ -34,7 +34,7 @@ use ratatui::widgets::WidgetRef;
 ///     }
 /// }
 /// ```
-pub trait PickerItem: WidgetRef {
+pub trait PickerItem: Clone {
     /// Returns the layout constraint for this item.
     ///
     /// This determines how much space the item takes in the picker list.
@@ -44,4 +44,6 @@ pub trait PickerItem: WidgetRef {
     ///
     /// This text will be matched against user input when filtering items.
     fn search_text(&self) -> &str;
+
+    fn render(&self, selected: bool) -> Box<dyn WidgetRef>;
 }

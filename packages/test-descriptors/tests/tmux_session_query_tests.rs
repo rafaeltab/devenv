@@ -65,7 +65,7 @@ fn test_list_tmux_sessions_returns_actual_sessions() {
 #[test]
 fn test_list_tmux_sessions_empty_when_no_sessions() {
     let env = TestEnvironment::describe(|root| {
-        root.test_dir(|td| {
+        root.test_dir(|_td| {
             // No tmux sessions defined
         });
     })

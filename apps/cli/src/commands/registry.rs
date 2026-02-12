@@ -3,6 +3,8 @@
 //! This module provides the `CommandRegistry` which maintains a list
 //! of commands that can be displayed and executed in the command palette.
 
+use std::rc::Rc;
+
 use crate::commands::Command;
 
 /// Registry for command palette commands.
@@ -25,8 +27,9 @@ use crate::commands::Command;
 ///     // Execute the command
 /// }
 /// ```
+#[derive(Debug)]
 pub struct CommandRegistry {
-    commands: Vec<Box<dyn Command>>,
+    commands: Vec<Rc<dyn Command>>,
 }
 
 impl CommandRegistry {
@@ -41,12 +44,12 @@ impl CommandRegistry {
     ///
     /// Returns a mutable reference to self for method chaining.
     pub fn register(&mut self, command: impl Command + 'static) -> &mut Self {
-        self.commands.push(Box::new(command));
+        self.commands.push(Rc::new(command));
         self
     }
 
     /// Get all registered commands.
-    pub fn commands(&self) -> &[Box<dyn Command>] {
+    pub fn commands(&self) -> &[Rc<dyn Command>] {
         &self.commands
     }
 

@@ -79,11 +79,11 @@ impl FullClientAsserter {
 
     /// Read available PTY output and process it.
     fn read_pty_output(&mut self) {
-        if let Ok(mut buffer) = self.read_buffer.lock() {
-            if !buffer.is_empty() {
-                self.terminal.process_bytes(&buffer);
-                buffer.clear();
-            }
+        if let Ok(mut buffer) = self.read_buffer.lock()
+            && !buffer.is_empty()
+        {
+            self.terminal.process_bytes(&buffer);
+            buffer.clear();
         }
     }
 }

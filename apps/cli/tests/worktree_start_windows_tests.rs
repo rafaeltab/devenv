@@ -1,11 +1,10 @@
 mod common;
 
 use crate::common::{
-    rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabGitMixin, RafaeltabRootMixin},
-    CliCommandBuilder,
+    CliCommandBuilder, rafaeltab_descriptors::{RafaeltabGitMixin, RafaeltabRootMixin}
 };
 use std::process::Command as StdCommand;
-use test_descriptors::testers::{Command, CommandTester};
+use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
 
 #[test]
