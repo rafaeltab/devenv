@@ -44,7 +44,7 @@
                     "cat*": "deny",
                     "echo*": "deny",
                 },
-                "read": "allow"
+                "read": "allow",
             }
         },
         "build": {
