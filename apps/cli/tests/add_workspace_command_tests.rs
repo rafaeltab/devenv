@@ -65,7 +65,7 @@ fn test_add_workspace_happy_path() {
 
     let mut asserter = env.testers().pty().terminal_size(40, 120).run(&cmd);
 
-    asserter.wait_for_settle();
+    asserter.wait_for_text("Add Workspace");
 
     // Step 1: Command Palette Display - verify "Add Workspace" visible
     asserter.find_text("Add Workspace").assert_visible();
