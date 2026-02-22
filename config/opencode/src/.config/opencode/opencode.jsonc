@@ -33,6 +33,7 @@
             "man*": "allow",
             "printf*": "allow",
             "hexdump*": "allow",
+            "turbo*": "allow",
         },
     },
     "agent": {
