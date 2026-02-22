@@ -3,21 +3,29 @@
 //! This module provides the main `CommandPalette` command which displays
 //! a picker with all available commands and executes the selected one.
 
-use std::rc::Rc;
+use std::sync::Arc;
 
 use ratatui::layout::Spacing;
 use ratatui::prelude::*;
 use ratatui::widgets::{Paragraph, WidgetRef};
+use shaku::{Component, Interface};
 
 use crate::commands::registry::CommandRegistry;
 use crate::commands::{Command, CommandCtx};
+use crate::domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository;
 use crate::tui::picker_item::PickerItem;
 use crate::tui::theme::Theme;
+
+/// Interface for the command palette.
+pub trait CommandPaletteInterface: Interface {
+    fn execute(&self);
+}
 
 /// The main command palette command.
 ///
 /// This command displays a picker with all registered commands and
-/// executes the selected command.
+/// executes the selected command. It is a shaku Component that injects
+/// the workspace repository for creating the command context.
 ///
 /// # Example
 ///
@@ -28,6 +36,50 @@ use crate::tui::theme::Theme;
 /// let registry = CommandRegistry::new();
 /// let palette = CommandPalette::new(registry);
 /// ```
+#[derive(Component)]
+#[shaku(interface = CommandPaletteInterface)]
+pub struct CommandPaletteComponent {
+    #[shaku(inject)]
+    workspace_repository: Arc<dyn WorkspaceRepository>,
+}
+
+impl CommandPaletteInterface for CommandPaletteComponent {
+    fn execute(&self) {
+        // Build the command registry
+        let mut registry = CommandRegistry::new();
+
+        // Register normal commands
+        use crate::commands::builtin::AddWorkspaceCommand;
+        registry.register(AddWorkspaceCommand::new());
+
+        // Register test commands only in TEST_MODE
+        if std::env::var("TEST_MODE").is_ok() {
+            use crate::commands::test::{
+                TestConfirmCommand, TestPickerCommand, TestTextInputCommand,
+                TestTextInputSuggestionsCommand,
+            };
+            registry.register(TestPickerCommand::new());
+            registry.register(TestTextInputCommand::new());
+            registry.register(TestTextInputSuggestionsCommand::new());
+            registry.register(TestConfirmCommand::new());
+        }
+
+        let palette = CommandPalette::new(registry);
+
+        if palette.registry().is_empty() {
+            println!("No commands available");
+            return;
+        }
+
+        // Create command context and run
+        let mut ctx = CommandCtx::new(self.workspace_repository.clone())
+            .expect("Failed to create command context");
+        palette.run(&mut ctx);
+    }
+}
+
+/// The command palette display logic.
+/// This is kept as a separate struct to implement the `Command` trait for the picker.
 #[derive(Debug)]
 pub struct CommandPalette {
     registry: CommandRegistry,
@@ -88,7 +140,7 @@ impl Command for CommandPalette {
 struct CommandItem {
     name: String,
     description: String,
-    pub command: Rc<dyn Command>,
+    pub command: Arc<dyn Command>,
 }
 
 impl PickerItem for CommandItem {

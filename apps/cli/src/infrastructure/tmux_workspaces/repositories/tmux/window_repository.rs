@@ -1,7 +1,9 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use serde::Deserialize;
 use serde_json::json;
+use shaku::Component;
 
 use crate::{
     domain::tmux_workspaces::{
@@ -12,18 +14,22 @@ use crate::{
         },
     },
     infrastructure::tmux_workspaces::tmux::{
+        connection::TmuxConnectionInterface,
         tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode},
         tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
     },
-    storage::tmux::TmuxStorage,
 };
 
-use super::tmux_client::TmuxRepository;
+#[derive(Component)]
+#[shaku(interface = TmuxWindowRepository)]
+pub struct ImplWindowRepository {
+    #[shaku(inject)]
+    pub connection: Arc<dyn TmuxConnectionInterface>,
+    #[shaku(inject)]
+    pub pane_repository: Arc<dyn TmuxPaneRepository>,
+}
 
-impl<TTmuxStorage> TmuxWindowRepository for TmuxRepository<'_, TTmuxStorage>
-where
-    TTmuxStorage: TmuxStorage,
-{
+impl TmuxWindowRepository for ImplWindowRepository {
     fn new_window(&self, new_window: &NewWindowBuilder) -> TmuxWindow {
         let mut args = vec!["new-window"];
         if let Some(dir_val) = &new_window.dir {
@@ -63,14 +69,14 @@ where
         args.extend(["-P", "-F", &list_format]);
         let out = self
             .connection
-            .cmd(args)
+            .cmd(&args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to create window");
 
         let response = serde_json::from_str::<ListWindowsResponse>(&out)
             .expect("Failed to parse window response");
-        let panes = self.get_panes(
+        let panes = self.pane_repository.get_panes(
             Some(TmuxFilterAstBuilder::build(|b| {
                 b.eq(
                     b.var(TmuxFormatVariable::WindowId),
@@ -95,7 +101,7 @@ where
             args.extend(["-t", &wind.id]);
         }
         self.connection
-            .cmd(args)
+            .cmd(&args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to kill window");
@@ -133,7 +139,7 @@ where
 
         let res = self
             .connection
-            .cmd(args)
+            .cmd(&args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to get windows");
@@ -145,7 +151,7 @@ where
         let window_ids: HashSet<String> = responses.iter().map(|x| x.id.clone()).collect();
         match include.panes {
             Some(_) => {
-                let panes = self.get_panes(
+                let panes = self.pane_repository.get_panes(
                     Some(TmuxFilterAstBuilder::build(|b| {
                         b.any(
                             window_ids

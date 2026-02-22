@@ -1,29 +1,30 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use serde::Deserialize;
 use serde_json::json;
+use shaku::Component;
 
 use crate::{
     domain::tmux_workspaces::{
-        aggregates::tmux::{pane::TmuxPane, window::WindowIncludeFields},
-        repositories::tmux::{
-            pane_repository::{GetPanesTarget, SplitDirection, TmuxPaneRepository},
-            window_repository::{GetWindowsTarget, TmuxWindowRepository},
-        },
+        aggregates::tmux::pane::TmuxPane,
+        repositories::tmux::pane_repository::{GetPanesTarget, SplitDirection, TmuxPaneRepository},
     },
     infrastructure::tmux_workspaces::tmux::{
+        connection::TmuxConnectionInterface,
         tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode},
         tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
     },
-    storage::tmux::TmuxStorage,
 };
 
-use super::tmux_client::TmuxRepository;
+#[derive(Component)]
+#[shaku(interface = TmuxPaneRepository)]
+pub struct ImplPaneRepository {
+    #[shaku(inject)]
+    pub connection: Arc<dyn TmuxConnectionInterface>,
+}
 
-impl<TTmuxStorage> TmuxPaneRepository for TmuxRepository<'_, TTmuxStorage>
-where
-    TTmuxStorage: TmuxStorage,
-{
+impl TmuxPaneRepository for ImplPaneRepository {
     fn get_panes(&self, filter: Option<TmuxFilterNode>, target: GetPanesTarget) -> Vec<TmuxPane> {
         let list_format = json!({
             "id": TmuxFormatVariable::PaneId.to_format(),
@@ -52,7 +53,7 @@ where
 
         let res = self
             .connection
-            .cmd(args)
+            .cmd(&args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to get panes");
@@ -73,7 +74,7 @@ where
             args.extend(["-t", &pane_value.id])
         }
         self.connection
-            .cmd(args)
+            .cmd(&args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to kill pane");
@@ -108,7 +109,7 @@ where
 
         let _ = self
             .connection
-            .cmd(args)
+            .cmd(&args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to get panes");
@@ -122,23 +123,21 @@ where
     }
 }
 
-impl<TTmuxStorage> TmuxRepository<'_, TTmuxStorage>
-where
-    TTmuxStorage: TmuxStorage,
-{
+impl ImplPaneRepository {
+    /// Get panes for the window that contains the given pane, or all current panes if None.
+    /// This avoids a circular dependency with TmuxWindowRepository by querying panes directly
+    /// using a window_id filter instead of going through the window repository.
     fn get_current_panes(&self, pane: Option<&TmuxPane>) -> Vec<TmuxPane> {
         match pane {
-            Some(pane_value) => {
-                let window_id = &pane_value.window_id;
-                let window = self.get_windows(
-                    Some(TmuxFilterAstBuilder::build(|b| {
-                        b.eq(b.var(TmuxFormatVariable::WindowId), b.const_val(window_id))
-                    })),
-                    WindowIncludeFields { panes: Some(()) },
-                    GetWindowsTarget::None,
-                );
-                window.first().unwrap().clone().panes.unwrap()
-            }
+            Some(pane_value) => self.get_panes(
+                Some(TmuxFilterAstBuilder::build(|b| {
+                    b.eq(
+                        b.var(TmuxFormatVariable::WindowId),
+                        b.const_val(&pane_value.window_id),
+                    )
+                })),
+                GetPanesTarget::All,
+            ),
             None => self.get_panes(None, GetPanesTarget::None),
         }
     }

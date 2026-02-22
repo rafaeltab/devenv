@@ -1,27 +1,36 @@
+use std::sync::Arc;
+
 use atty::Stream;
 use inquire::{Confirm, Text};
+use shaku::{Component, Interface};
 
 use crate::{
-    commands::command::RafaeltabCommand,
     domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository,
     utils::display::RafaeltabDisplay,
 };
 
-#[derive(Default)]
-pub struct WorkspaceAddCommand;
+pub trait WorkspaceAddCommandInterface: Interface {
+    fn execute(&self, args: WorkspaceAddArgs);
+}
 
-pub struct WorkspaceAddOptions<'a> {
+pub struct WorkspaceAddArgs<'a> {
     pub display: &'a dyn RafaeltabDisplay,
-    pub workspace_repository: &'a dyn WorkspaceRepository,
     pub interactive: Option<bool>,
     pub name: Option<String>,
     pub tags: Option<Vec<String>>,
     pub path: Option<String>,
 }
 
-impl RafaeltabCommand<WorkspaceAddOptions<'_>> for WorkspaceAddCommand {
-    fn execute(&self, options: WorkspaceAddOptions) {
-        let path = match options.path.clone() {
+#[derive(Component)]
+#[shaku(interface = WorkspaceAddCommandInterface)]
+pub struct WorkspaceAddCommand {
+    #[shaku(inject)]
+    workspace_repository: Arc<dyn WorkspaceRepository>,
+}
+
+impl WorkspaceAddCommandInterface for WorkspaceAddCommand {
+    fn execute(&self, args: WorkspaceAddArgs) {
+        let path = match args.path.clone() {
             Some(path) => path,
             None => {
                 let curr_dir_err_msg = "Unable to get the current directory";
@@ -33,28 +42,28 @@ impl RafaeltabCommand<WorkspaceAddOptions<'_>> for WorkspaceAddCommand {
             }
         };
 
-        let prompt_data = prompt_data(&options);
+        let prompt_data = prompt_data(&args);
 
         // Build an id
         let id = prompt_data.name.to_lowercase().replace(' ', "_");
 
-        let workspace = &options.workspace_repository.create_workspace(
+        let workspace = &self.workspace_repository.create_workspace(
             prompt_data.name,
             prompt_data.tags,
             path,
             id,
         );
 
-        let _ = &options.display.display(workspace);
+        args.display.display(workspace);
     }
 }
 
-fn prompt_data(options: &WorkspaceAddOptions) -> PromptData {
-    let interactive = match options.interactive {
+fn prompt_data(args: &WorkspaceAddArgs) -> PromptData {
+    let interactive = match args.interactive {
         Some(i) => i,
         None => atty::is(Stream::Stdout),
     };
-    let name = match options.name.clone() {
+    let name = match args.name.clone() {
         Some(n) => n,
         None => {
             if !interactive {
@@ -64,7 +73,7 @@ fn prompt_data(options: &WorkspaceAddOptions) -> PromptData {
         }
     };
 
-    let tags = match options.tags.clone() {
+    let tags = match args.tags.clone() {
         Some(t) => t,
         None => prompt_tags(interactive),
     };

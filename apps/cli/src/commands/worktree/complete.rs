@@ -3,9 +3,11 @@
 use std::io::{self, BufRead, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use std::sync::Arc;
+
+use shaku::{Component, Interface};
 
 use crate::{
-    commands::command::RafaeltabCommand,
     domain::{
         tmux_workspaces::{
             aggregates::workspaces::workspace::Workspace,
@@ -21,30 +23,38 @@ use crate::{
         },
         worktree::{config::find_most_specific_workspace, error::WorktreeError},
     },
-    infrastructure::{git, tmux_workspaces::tmux::session_detection::get_current_tmux_session},
+    infrastructure::{git, tmux_workspaces::tmux::session_detection::SessionDetection},
     utils::path::expand_path,
 };
 
-#[derive(Default)]
-pub struct WorktreeCompleteCommand;
+pub trait WorktreeCompleteCommandInterface: Interface {
+    fn execute(&self, args: WorktreeCompleteArgs);
+}
 
-pub struct WorktreeCompleteOptions<'a> {
+pub struct WorktreeCompleteArgs {
     /// The branch name of the worktree to complete (optional, defaults to current directory)
     pub branch_name: Option<String>,
     /// Force removal even with uncommitted/unpushed changes
     pub force: bool,
     /// Skip confirmation prompt
     pub yes: bool,
-    /// Repository for workspace operations
-    pub workspace_repository: &'a dyn WorkspaceRepository,
-    /// Repository for tmux session operations
-    pub session_repository: &'a dyn TmuxSessionRepository,
-    /// Repository for tmux client operations
-    pub client_repository: &'a dyn TmuxClientRepository,
-    /// Repository for tmux popup operations
-    pub popup_repository: &'a dyn TmuxPopupRepository,
-    /// Repository for session descriptions (to create workspace sessions)
-    pub description_repository: &'a dyn SessionDescriptionRepository,
+}
+
+#[derive(Component)]
+#[shaku(interface = WorktreeCompleteCommandInterface)]
+pub struct WorktreeCompleteCommand {
+    #[shaku(inject)]
+    workspace_repository: Arc<dyn WorkspaceRepository>,
+    #[shaku(inject)]
+    session_repository: Arc<dyn TmuxSessionRepository>,
+    #[shaku(inject)]
+    client_repository: Arc<dyn TmuxClientRepository>,
+    #[shaku(inject)]
+    popup_repository: Arc<dyn TmuxPopupRepository>,
+    #[shaku(inject)]
+    description_repository: Arc<dyn SessionDescriptionRepository>,
+    #[shaku(inject)]
+    session_detection: Arc<dyn SessionDetection>,
 }
 
 /// Result of the worktree complete command
@@ -63,9 +73,9 @@ pub enum WorktreeCompleteResult {
     Failed(WorktreeError),
 }
 
-impl RafaeltabCommand<WorktreeCompleteOptions<'_>> for WorktreeCompleteCommand {
-    fn execute(&self, options: WorktreeCompleteOptions) {
-        match self.execute_internal(options) {
+impl WorktreeCompleteCommandInterface for WorktreeCompleteCommand {
+    fn execute(&self, args: WorktreeCompleteArgs) {
+        match self.execute_internal(args) {
             WorktreeCompleteResult::Success {
                 branch_name,
                 worktree_path,
@@ -91,7 +101,7 @@ impl RafaeltabCommand<WorktreeCompleteOptions<'_>> for WorktreeCompleteCommand {
 }
 
 impl WorktreeCompleteCommand {
-    fn execute_internal(&self, options: WorktreeCompleteOptions) -> WorktreeCompleteResult {
+    fn execute_internal(&self, args: WorktreeCompleteArgs) -> WorktreeCompleteResult {
         // ===== PHASE 1: PRE-FLIGHT CHECKS =====
 
         // 1. Get current directory
@@ -106,7 +116,7 @@ impl WorktreeCompleteCommand {
         };
 
         // 2. Determine the worktree path and branch name
-        let (worktree_path, branch_name) = if let Some(ref branch) = options.branch_name {
+        let (worktree_path, branch_name) = if let Some(ref branch) = args.branch_name {
             // Branch name provided - find the worktree
             match find_worktree_by_branch(&current_dir, branch) {
                 Ok((path, name)) => (path, name),
@@ -144,7 +154,7 @@ impl WorktreeCompleteCommand {
         };
 
         // 5. Safety checks (unless --force)
-        if !options.force {
+        if !args.force {
             // Check for uncommitted changes
             match git::check_clean_status(&worktree_path) {
                 Ok(true) => {}
@@ -173,12 +183,12 @@ impl WorktreeCompleteCommand {
         }
 
         // 6. Find the workspace this worktree belongs to
-        let workspaces = options.workspace_repository.get_workspaces();
+        let workspaces = self.workspace_repository.get_workspaces();
         let workspace = find_workspace_for_path(&main_repo_path, &workspaces);
 
         // ===== PHASE 2: DETERMINE EXECUTION FLOW =====
 
-        let current_session = get_current_tmux_session();
+        let current_session = self.session_detection.get_current_tmux_session();
         let target_session_name = calculate_worktree_session_name(workspace, &branch_name);
         let is_self_deletion = current_session.as_ref() == Some(&target_session_name);
 
@@ -187,12 +197,12 @@ impl WorktreeCompleteCommand {
             delegate_to_popup(
                 workspace,
                 &branch_name,
-                options.force,
-                options.yes,
-                options.session_repository,
-                options.popup_repository,
-                options.description_repository,
-                options.client_repository,
+                args.force,
+                args.yes,
+                &*self.session_repository,
+                &*self.popup_repository,
+                &*self.description_repository,
+                &*self.client_repository,
             )
         } else {
             // Flow 2: We're in a different session - execute cleanup directly
@@ -201,11 +211,11 @@ impl WorktreeCompleteCommand {
                 &worktree_path,
                 &main_repo_path,
                 &branch_name,
-                options.force,
-                options.yes,
+                args.force,
+                args.yes,
                 &current_dir,
-                options.session_repository,
-                options.client_repository,
+                &*self.session_repository,
+                &*self.client_repository,
             )
         }
     }

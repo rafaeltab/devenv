@@ -1,4 +1,8 @@
-//! Utility functions for tmux session management
+//! Utility service for tmux session management
+
+use std::sync::Arc;
+
+use shaku::{Component, Interface};
 
 use crate::{
     domain::tmux_workspaces::aggregates::tmux::description::window::WindowDescription,
@@ -6,10 +10,50 @@ use crate::{
     storage::tmux::{Session, TmuxStorage},
 };
 
+/// Interface for tmux session utility operations.
+pub trait SessionUtilsService: Interface {
+    /// Create tmux sessions for all worktrees in a workspace.
+    /// This runs after the main workspace session has been created.
+    fn create_worktree_sessions(
+        &self,
+        workspace: &crate::domain::tmux_workspaces::aggregates::workspaces::workspace::Workspace,
+    );
+
+    /// Get window configuration for a workspace session.
+    /// Returns workspace-specific windows if configured, otherwise returns default windows.
+    fn get_windows_for_workspace(&self, workspace_id: &str) -> Vec<WindowDescription>;
+}
+
+#[derive(Component)]
+#[shaku(interface = SessionUtilsService)]
+pub struct ImplSessionUtilsService {
+    #[shaku(inject)]
+    session_repository: Arc<dyn TmuxSessionRepository>,
+    #[shaku(inject)]
+    tmux_storage: Arc<dyn TmuxStorage>,
+}
+
+impl SessionUtilsService for ImplSessionUtilsService {
+    fn create_worktree_sessions(
+        &self,
+        workspace: &crate::domain::tmux_workspaces::aggregates::workspaces::workspace::Workspace,
+    ) {
+        create_worktree_sessions_impl(
+            workspace,
+            &*self.session_repository,
+            &*self.tmux_storage,
+        );
+    }
+
+    fn get_windows_for_workspace(&self, workspace_id: &str) -> Vec<WindowDescription> {
+        get_windows_for_workspace(workspace_id, &*self.tmux_storage)
+    }
+}
+
 /// Create tmux sessions for all worktrees in a workspace.
 /// This runs after the main workspace session has been created.
 /// Errors are silently ignored (TODO: add logging when available).
-pub fn create_worktree_sessions(
+fn create_worktree_sessions_impl(
     workspace: &crate::domain::tmux_workspaces::aggregates::workspaces::workspace::Workspace,
     session_repository: &dyn TmuxSessionRepository,
     tmux_storage: &dyn TmuxStorage,

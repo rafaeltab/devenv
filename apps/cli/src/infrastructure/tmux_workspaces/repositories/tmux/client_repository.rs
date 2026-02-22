@@ -1,27 +1,35 @@
+use std::sync::Arc;
+
 use serde::Deserialize;
 use serde_json::json;
+use shaku::Component;
 
 use crate::domain::tmux_workspaces::aggregates::tmux::client::ClientIncludeFields;
 use crate::domain::tmux_workspaces::repositories::tmux::client_repository::{
     SwitchClientTarget, TmuxClientRepository,
 };
+use crate::domain::tmux_workspaces::repositories::tmux::session_repository::TmuxSessionRepository;
+use crate::infrastructure::tmux_workspaces::tmux::connection::TmuxConnectionInterface;
 use crate::infrastructure::tmux_workspaces::tmux::tmux_format::{
     TmuxFilterAstBuilder, TmuxFilterNode,
 };
-use crate::storage::tmux::TmuxStorage;
 use crate::{
-    domain::tmux_workspaces::{
-        aggregates::tmux::client::TmuxClient,
-        repositories::tmux::session_repository::TmuxSessionRepository,
-    },
+    domain::tmux_workspaces::aggregates::tmux::client::TmuxClient,
     infrastructure::tmux_workspaces::tmux::tmux_format_variables::{
         TmuxFormatField, TmuxFormatVariable,
     },
 };
 
-use super::tmux_client::TmuxRepository;
+#[derive(Component)]
+#[shaku(interface = TmuxClientRepository)]
+pub struct ImplClientRepository {
+    #[shaku(inject)]
+    pub connection: Arc<dyn TmuxConnectionInterface>,
+    #[shaku(inject)]
+    pub session_repository: Arc<dyn TmuxSessionRepository>,
+}
 
-impl<TTmuxStorage: TmuxStorage> TmuxClientRepository for TmuxRepository<'_, TTmuxStorage> {
+impl TmuxClientRepository for ImplClientRepository {
     fn get_clients(
         &self,
         filter: Option<TmuxFilterNode>,
@@ -45,7 +53,7 @@ impl<TTmuxStorage: TmuxStorage> TmuxClientRepository for TmuxRepository<'_, TTmu
 
         let res = self
             .connection
-            .cmd(&args)
+            .cmd_owned(&args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to get clients");
@@ -56,8 +64,9 @@ impl<TTmuxStorage: TmuxStorage> TmuxClientRepository for TmuxRepository<'_, TTmu
             .collect();
         match include.clone().attached_to {
             Some(session_includes) => {
-                let sessions =
-                    self.get_sessions(Some(filter_responses(&responses)), session_includes);
+                let sessions = self
+                    .session_repository
+                    .get_sessions(Some(filter_responses(&responses)), session_includes);
                 responses
                     .iter()
                     .map(|x| TmuxClient {
@@ -90,7 +99,7 @@ impl<TTmuxStorage: TmuxStorage> TmuxClientRepository for TmuxRepository<'_, TTmu
         }
         args.extend(["-t".to_string(), target_id.to_string()]);
         self.connection
-            .cmd(&args)
+            .cmd_owned(&args)
             .run()
             .expect("Unable to switch client");
     }

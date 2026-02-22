@@ -1,3 +1,5 @@
+use shaku::Interface;
+
 use crate::{
     domain::tmux_workspaces::aggregates::tmux::{
         session::TmuxSession,
@@ -13,7 +15,7 @@ pub enum GetWindowsTarget<'a> {
     All,
 }
 
-pub trait TmuxWindowRepository {
+pub trait TmuxWindowRepository: Interface {
     fn new_window(&self, new_widow: &NewWindowBuilder) -> TmuxWindow;
     fn delete_window(&self, session: Option<&TmuxWindow>);
     fn get_windows(

@@ -4,11 +4,11 @@
 //! access to picker methods and other runtime functionality.
 
 use std::io::{self};
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository;
-use crate::tui::PickerItem;
 use crate::tui::picker_ctx::{PickerCtx, SuggestionProvider};
+use crate::tui::PickerItem;
 
 /// Context for executing commands in the command palette.
 ///
@@ -36,12 +36,12 @@ use crate::tui::picker_ctx::{PickerCtx, SuggestionProvider};
 /// ```
 pub struct CommandCtx {
     picker_ctx: PickerCtx,
-    workspace_repo: Rc<dyn WorkspaceRepository>,
+    workspace_repo: Arc<dyn WorkspaceRepository>,
 }
 
 impl CommandCtx {
     /// Create a new command context.
-    pub fn new(workspace_repo: Rc<dyn WorkspaceRepository>) -> io::Result<Self> {
+    pub fn new(workspace_repo: Arc<dyn WorkspaceRepository>) -> io::Result<Self> {
         let picker_ctx = PickerCtx::new()?;
 
         Ok(Self {

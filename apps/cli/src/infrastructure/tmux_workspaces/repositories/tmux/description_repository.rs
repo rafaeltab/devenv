@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use shaku::Component;
 use uuid::{uuid, Uuid};
 
 use crate::{
@@ -20,24 +23,18 @@ use crate::{
     storage::tmux::{Session, TmuxStorage},
 };
 
-pub struct ImplDescriptionRepository<
-    'a,
-    TWorkspaceRepository: WorkspaceRepository,
-    TTmuxSessionRepository: TmuxSessionRepository,
-    TTmuxStorage: TmuxStorage,
-> {
-    pub workspace_repository: &'a TWorkspaceRepository,
-    pub session_repository: &'a TTmuxSessionRepository,
-    pub tmux_storage: &'a TTmuxStorage,
+#[derive(Component)]
+#[shaku(interface = SessionDescriptionRepository)]
+pub struct ImplDescriptionRepository {
+    #[shaku(inject)]
+    pub workspace_repository: Arc<dyn WorkspaceRepository>,
+    #[shaku(inject)]
+    pub session_repository: Arc<dyn TmuxSessionRepository>,
+    #[shaku(inject)]
+    pub tmux_storage: Arc<dyn TmuxStorage>,
 }
 
-impl<TWorkspaceRepository, TTmuxSessionRepository, TTmuxStorage> SessionDescriptionRepository
-    for ImplDescriptionRepository<'_, TWorkspaceRepository, TTmuxSessionRepository, TTmuxStorage>
-where
-    TWorkspaceRepository: WorkspaceRepository,
-    TTmuxSessionRepository: TmuxSessionRepository,
-    TTmuxStorage: TmuxStorage,
-{
+impl SessionDescriptionRepository for ImplDescriptionRepository {
     fn get_session_descriptions(&self) -> Vec<SessionDescription> {
         let workspaces = self.workspace_repository.get_workspaces();
         let mut result: Vec<SessionDescription> = vec![];
@@ -163,6 +160,8 @@ fn find_session_id(input: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use crate::{
         domain::tmux_workspaces::{
             aggregates::tmux::description::session::{SessionDescription, SessionKind},
@@ -240,9 +239,9 @@ mod tests {
         }
     }
 
-    fn workspace_repo_factory<TWorkspaceStorage: WorkspaceStorage>(
-        workspace_storage: &TWorkspaceStorage,
-    ) -> impl WorkspaceRepository + '_ {
+    fn workspace_repo_factory(
+        workspace_storage: Arc<dyn WorkspaceStorage>,
+    ) -> impl WorkspaceRepository {
         ImplWorkspaceRepository { workspace_storage }
     }
 
@@ -250,16 +249,11 @@ mod tests {
         MockSessionRepo {}
     }
 
-    fn sut_factory<
-        'a,
-        TStorage: TmuxStorage,
-        TWorkspaceRepo: WorkspaceRepository,
-        TSessionRepo: TmuxSessionRepository,
-    >(
-        tmux_storage: &'a TStorage,
-        workspace_repository: &'a TWorkspaceRepo,
-        session_repository: &'a TSessionRepo,
-    ) -> impl SessionDescriptionRepository + 'a {
+    fn sut_factory(
+        tmux_storage: Arc<dyn TmuxStorage>,
+        workspace_repository: Arc<dyn WorkspaceRepository>,
+        session_repository: Arc<dyn TmuxSessionRepository>,
+    ) -> impl SessionDescriptionRepository {
         ImplDescriptionRepository {
             tmux_storage,
             workspace_repository,
@@ -269,11 +263,12 @@ mod tests {
 
     #[test]
     fn should_include_all_workspaces() {
-        let tmux_storage = tmux_storage_factory();
-        let workspace_storage = workspace_storage_factory();
-        let workspace_repo = workspace_repo_factory(&workspace_storage);
-        let session_repository = session_repo_factory();
-        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
+        let tmux_storage: Arc<dyn TmuxStorage> = Arc::new(tmux_storage_factory());
+        let workspace_storage: Arc<dyn WorkspaceStorage> = Arc::new(workspace_storage_factory());
+        let workspace_repo: Arc<dyn WorkspaceRepository> =
+            Arc::new(workspace_repo_factory(workspace_storage));
+        let session_repository: Arc<dyn TmuxSessionRepository> = Arc::new(session_repo_factory());
+        let sut = sut_factory(tmux_storage, workspace_repo, session_repository);
 
         let result = sut.get_session_descriptions();
 
@@ -286,11 +281,12 @@ mod tests {
 
     #[test]
     fn should_include_all_path_sessions() {
-        let tmux_storage = tmux_storage_factory();
-        let workspace_storage = workspace_storage_factory();
-        let workspace_repo = workspace_repo_factory(&workspace_storage);
-        let session_repository = session_repo_factory();
-        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
+        let tmux_storage: Arc<dyn TmuxStorage> = Arc::new(tmux_storage_factory());
+        let workspace_storage: Arc<dyn WorkspaceStorage> = Arc::new(workspace_storage_factory());
+        let workspace_repo: Arc<dyn WorkspaceRepository> =
+            Arc::new(workspace_repo_factory(workspace_storage));
+        let session_repository: Arc<dyn TmuxSessionRepository> = Arc::new(session_repo_factory());
+        let sut = sut_factory(tmux_storage, workspace_repo, session_repository);
 
         let result = sut.get_session_descriptions();
 
@@ -303,11 +299,12 @@ mod tests {
 
     #[test]
     fn should_use_session_definition_for_workspace_sessions() {
-        let tmux_storage = tmux_storage_factory();
-        let workspace_storage = workspace_storage_factory();
-        let workspace_repo = workspace_repo_factory(&workspace_storage);
-        let session_repository = session_repo_factory();
-        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
+        let tmux_storage: Arc<dyn TmuxStorage> = Arc::new(tmux_storage_factory());
+        let workspace_storage: Arc<dyn WorkspaceStorage> = Arc::new(workspace_storage_factory());
+        let workspace_repo: Arc<dyn WorkspaceRepository> =
+            Arc::new(workspace_repo_factory(workspace_storage));
+        let session_repository: Arc<dyn TmuxSessionRepository> = Arc::new(session_repo_factory());
+        let sut = sut_factory(tmux_storage, workspace_repo, session_repository);
 
         let result = sut.get_session_descriptions();
 
@@ -317,11 +314,12 @@ mod tests {
 
     #[test]
     fn should_apply_default_windows_to_workspaces() {
-        let tmux_storage = tmux_storage_factory();
-        let workspace_storage = workspace_storage_factory();
-        let workspace_repo = workspace_repo_factory(&workspace_storage);
-        let session_repository = session_repo_factory();
-        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
+        let tmux_storage: Arc<dyn TmuxStorage> = Arc::new(tmux_storage_factory());
+        let workspace_storage: Arc<dyn WorkspaceStorage> = Arc::new(workspace_storage_factory());
+        let workspace_repo: Arc<dyn WorkspaceRepository> =
+            Arc::new(workspace_repo_factory(workspace_storage));
+        let session_repository: Arc<dyn TmuxSessionRepository> = Arc::new(session_repo_factory());
+        let sut = sut_factory(tmux_storage, workspace_repo, session_repository);
 
         let result = sut.get_session_descriptions();
 
@@ -331,11 +329,12 @@ mod tests {
 
     #[test]
     fn should_not_apply_workspaces_twice_when_defined_in_sessions() {
-        let tmux_storage = tmux_storage_factory();
-        let workspace_storage = workspace_storage_factory();
-        let workspace_repo = workspace_repo_factory(&workspace_storage);
-        let session_repository = session_repo_factory();
-        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
+        let tmux_storage: Arc<dyn TmuxStorage> = Arc::new(tmux_storage_factory());
+        let workspace_storage: Arc<dyn WorkspaceStorage> = Arc::new(workspace_storage_factory());
+        let workspace_repo: Arc<dyn WorkspaceRepository> =
+            Arc::new(workspace_repo_factory(workspace_storage));
+        let session_repository: Arc<dyn TmuxSessionRepository> = Arc::new(session_repo_factory());
+        let sut = sut_factory(tmux_storage, workspace_repo, session_repository);
 
         let result = sut.get_session_descriptions();
 

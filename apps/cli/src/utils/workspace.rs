@@ -4,7 +4,7 @@ use crate::storage::workspace::{Workspace, WorkspaceStorage};
 
 use super::{data_with_path::DataWithPath, display::RafaeltabDisplayItem, path::expand_path};
 
-pub fn get_workspace_paths<TWorkspaceStorage: WorkspaceStorage>(
+pub fn get_workspace_paths<TWorkspaceStorage: WorkspaceStorage + ?Sized>(
     workspace_storage: &TWorkspaceStorage,
 ) -> Vec<DataWithPath<Workspace>> {
     workspace_storage
@@ -14,7 +14,7 @@ pub fn get_workspace_paths<TWorkspaceStorage: WorkspaceStorage>(
         .collect()
 }
 
-pub fn find_workspace<TWorkspaceStorage: WorkspaceStorage>(
+pub fn find_workspace<TWorkspaceStorage: WorkspaceStorage + ?Sized>(
     workspace_storage: &TWorkspaceStorage,
     id: &str,
 ) -> Option<Workspace> {

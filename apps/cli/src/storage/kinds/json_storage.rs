@@ -1,4 +1,8 @@
-use std::{cell::RefCell, fs, io, path::Path};
+use std::{
+    fs, io,
+    path::Path,
+    sync::{Arc, RwLock},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -17,7 +21,7 @@ pub struct JsonStorageProvider {
 }
 pub struct JsonStorage {
     path: String,
-    data: RefCell<JsonData>,
+    data: RwLock<JsonData>,
 }
 
 impl JsonStorageProvider {
@@ -32,7 +36,7 @@ impl JsonStorageProvider {
 
         Ok(JsonStorage {
             path: self.path.clone(),
-            data: RefCell::new(json_data),
+            data: RwLock::new(json_data),
         })
     }
 }
@@ -40,17 +44,17 @@ impl JsonStorageProvider {
 impl WorkspaceStorage for JsonStorage {}
 impl Storage<Vec<Workspace>> for JsonStorage {
     fn read(&self) -> Vec<Workspace> {
-        self.data.borrow().workspaces.clone()
+        self.data.read().unwrap().workspaces.clone()
     }
 
     fn write(&self, value: &Vec<Workspace>) -> Result<(), io::Error> {
         let new_value = JsonData {
             workspaces: value.clone(),
-            tmux: self.data.borrow().tmux.clone(),
-            worktree: self.data.borrow().worktree.clone(),
+            tmux: self.data.read().unwrap().tmux.clone(),
+            worktree: self.data.read().unwrap().worktree.clone(),
         };
         let _ = write_json_data(self.path.clone(), &new_value);
-        self.data.replace(load_json_data(self.path.clone())?);
+        *self.data.write().unwrap() = load_json_data(self.path.clone())?;
         Ok(())
     }
 }
@@ -58,17 +62,17 @@ impl Storage<Vec<Workspace>> for JsonStorage {
 impl TmuxStorage for JsonStorage {}
 impl Storage<Tmux> for JsonStorage {
     fn read(&self) -> Tmux {
-        self.data.borrow().tmux.clone()
+        self.data.read().unwrap().tmux.clone()
     }
 
     fn write(&self, value: &Tmux) -> Result<(), io::Error> {
         let new_value = JsonData {
-            workspaces: self.data.borrow().workspaces.clone(),
+            workspaces: self.data.read().unwrap().workspaces.clone(),
             tmux: value.clone(),
-            worktree: self.data.borrow().worktree.clone(),
+            worktree: self.data.read().unwrap().worktree.clone(),
         };
         let _ = write_json_data(self.path.clone(), &new_value);
-        self.data.replace(load_json_data(self.path.clone())?);
+        *self.data.write().unwrap() = load_json_data(self.path.clone())?;
         Ok(())
     }
 }
@@ -76,17 +80,17 @@ impl Storage<Tmux> for JsonStorage {
 impl WorktreeStorage for JsonStorage {}
 impl Storage<Option<WorktreeConfig>> for JsonStorage {
     fn read(&self) -> Option<WorktreeConfig> {
-        self.data.borrow().worktree.clone()
+        self.data.read().unwrap().worktree.clone()
     }
 
     fn write(&self, value: &Option<WorktreeConfig>) -> Result<(), io::Error> {
         let new_value = JsonData {
-            workspaces: self.data.borrow().workspaces.clone(),
-            tmux: self.data.borrow().tmux.clone(),
+            workspaces: self.data.read().unwrap().workspaces.clone(),
+            tmux: self.data.read().unwrap().tmux.clone(),
             worktree: value.clone(),
         };
         let _ = write_json_data(self.path.clone(), &new_value);
-        self.data.replace(load_json_data(self.path.clone())?);
+        *self.data.write().unwrap() = load_json_data(self.path.clone())?;
         Ok(())
     }
 }
@@ -112,6 +116,109 @@ fn write_json_data(path: String, data: &JsonData) -> Result<(), io::Error> {
 
     Ok(())
 }
+
+/// Wrapper to provide `JsonStorage` as `WorkspaceStorage` via shaku `with_component_override`.
+/// Shares the underlying `JsonStorage` instance via `Arc`.
+///
+/// Listed as a component in the shaku module, but MUST be overridden via
+/// `with_component_override` at module-build time (the default panics).
+#[derive(shaku::Component)]
+#[shaku(interface = WorkspaceStorage)]
+pub struct JsonWorkspaceStorage {
+    #[shaku(default)]
+    inner: Option<Arc<JsonStorage>>,
+}
+
+impl JsonWorkspaceStorage {
+    pub fn new(storage: Arc<JsonStorage>) -> Self {
+        Self {
+            inner: Some(storage),
+        }
+    }
+
+    fn storage(&self) -> &JsonStorage {
+        self.inner
+            .as_ref()
+            .expect("JsonWorkspaceStorage must be provided via with_component_override")
+    }
+}
+
+impl Storage<Vec<Workspace>> for JsonWorkspaceStorage {
+    fn read(&self) -> Vec<Workspace> {
+        Storage::<Vec<Workspace>>::read(self.storage())
+    }
+    fn write(&self, value: &Vec<Workspace>) -> Result<(), io::Error> {
+        Storage::<Vec<Workspace>>::write(self.storage(), value)
+    }
+}
+
+impl WorkspaceStorage for JsonWorkspaceStorage {}
+
+/// Wrapper to provide `JsonStorage` as `TmuxStorage` via shaku `with_component_override`.
+#[derive(shaku::Component)]
+#[shaku(interface = TmuxStorage)]
+pub struct JsonTmuxStorage {
+    #[shaku(default)]
+    inner: Option<Arc<JsonStorage>>,
+}
+
+impl JsonTmuxStorage {
+    pub fn new(storage: Arc<JsonStorage>) -> Self {
+        Self {
+            inner: Some(storage),
+        }
+    }
+
+    fn storage(&self) -> &JsonStorage {
+        self.inner
+            .as_ref()
+            .expect("JsonTmuxStorage must be provided via with_component_override")
+    }
+}
+
+impl Storage<Tmux> for JsonTmuxStorage {
+    fn read(&self) -> Tmux {
+        Storage::<Tmux>::read(self.storage())
+    }
+    fn write(&self, value: &Tmux) -> Result<(), io::Error> {
+        Storage::<Tmux>::write(self.storage(), value)
+    }
+}
+
+impl TmuxStorage for JsonTmuxStorage {}
+
+/// Wrapper to provide `JsonStorage` as `WorktreeStorage` via shaku `with_component_override`.
+#[derive(shaku::Component)]
+#[shaku(interface = WorktreeStorage)]
+pub struct JsonWorktreeStorage {
+    #[shaku(default)]
+    inner: Option<Arc<JsonStorage>>,
+}
+
+impl JsonWorktreeStorage {
+    pub fn new(storage: Arc<JsonStorage>) -> Self {
+        Self {
+            inner: Some(storage),
+        }
+    }
+
+    fn storage(&self) -> &JsonStorage {
+        self.inner
+            .as_ref()
+            .expect("JsonWorktreeStorage must be provided via with_component_override")
+    }
+}
+
+impl Storage<Option<WorktreeConfig>> for JsonWorktreeStorage {
+    fn read(&self) -> Option<WorktreeConfig> {
+        Storage::<Option<WorktreeConfig>>::read(self.storage())
+    }
+    fn write(&self, value: &Option<WorktreeConfig>) -> Result<(), io::Error> {
+        Storage::<Option<WorktreeConfig>>::write(self.storage(), value)
+    }
+}
+
+impl WorktreeStorage for JsonWorktreeStorage {}
 
 static PATH_LOCATIONS_LINUX: &[&str] = &["~/.rafaeltab.json"];
 

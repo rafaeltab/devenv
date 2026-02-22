@@ -42,7 +42,7 @@ pub trait RafaeltabCommand<TArgs> {
 ///     }
 /// }
 /// ```
-pub trait Command: Debug {
+pub trait Command: Debug + Send + Sync {
     /// Returns the command name displayed in the palette.
     fn name(&self) -> &str;
 

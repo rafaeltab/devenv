@@ -1,5 +1,6 @@
 use std::cmp::min;
 use std::io;
+use std::sync::Arc;
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::layout::{Constraint, Direction, Layout};
@@ -7,44 +8,41 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 use ratatui::{prelude::*, Terminal};
+use shaku::{Component, Interface};
 use sublime_fuzzy::best_match;
 use unicode_width::UnicodeWidthChar;
 
+use crate::commands::tmux::session_utils::SessionUtilsService;
 use crate::domain::tmux_workspaces::aggregates::tmux::description::session::SessionDescription;
 use crate::domain::tmux_workspaces::repositories::tmux::client_repository::{
     SwitchClientTarget, TmuxClientRepository,
 };
-use crate::storage::tmux::TmuxStorage;
+use crate::domain::tmux_workspaces::repositories::tmux::description_repository::SessionDescriptionRepository;
+use crate::domain::tmux_workspaces::repositories::tmux::session_repository::TmuxSessionRepository;
 use crate::utils::with_terminal;
-use crate::{
-    commands::command::RafaeltabCommand,
-    domain::tmux_workspaces::repositories::tmux::{
-        description_repository::SessionDescriptionRepository,
-        session_repository::TmuxSessionRepository,
-    },
-};
 
-#[derive(Default)]
-pub struct TmuxSwitchCommand;
-
-pub struct TmuxSwitchOptions<'a> {
-    pub session_description_repository: &'a dyn SessionDescriptionRepository,
-    pub session_repository: &'a dyn TmuxSessionRepository,
-    pub client_repository: &'a dyn TmuxClientRepository,
-    pub tmux_storage: &'a dyn TmuxStorage,
+pub trait TmuxSwitchCommandInterface: Interface {
+    fn execute(&self);
 }
 
-impl RafaeltabCommand<TmuxSwitchOptions<'_>> for TmuxSwitchCommand {
-    fn execute(
-        &self,
-        TmuxSwitchOptions {
-            session_description_repository,
-            session_repository,
-            client_repository,
-            tmux_storage,
-        }: TmuxSwitchOptions,
-    ) {
-        let descriptions = session_description_repository.get_session_descriptions();
+#[derive(Component)]
+#[shaku(interface = TmuxSwitchCommandInterface)]
+pub struct TmuxSwitchCommand {
+    #[shaku(inject)]
+    session_description_repository: Arc<dyn SessionDescriptionRepository>,
+    #[shaku(inject)]
+    session_repository: Arc<dyn TmuxSessionRepository>,
+    #[shaku(inject)]
+    client_repository: Arc<dyn TmuxClientRepository>,
+    #[shaku(inject)]
+    session_utils: Arc<dyn SessionUtilsService>,
+}
+
+impl TmuxSwitchCommandInterface for TmuxSwitchCommand {
+    fn execute(&self) {
+        let descriptions = self
+            .session_description_repository
+            .get_session_descriptions();
 
         let res = fuzzy_pick(FuzzySearchArgs {
             items: &descriptions,
@@ -56,19 +54,16 @@ impl RafaeltabCommand<TmuxSwitchOptions<'_>> for TmuxSwitchCommand {
             println!("You selected {}!", selected_session.name);
             let session = match &selected_session.session {
                 Some(se) => se,
-                None => &session_repository.new_session(selected_session),
+                None => &self.session_repository.new_session(selected_session),
             };
 
-            client_repository.switch_client(None, SwitchClientTarget::Session(session));
+            self.client_repository
+                .switch_client(None, SwitchClientTarget::Session(session));
 
             // Create worktree sessions if this is a workspace session
             use crate::domain::tmux_workspaces::aggregates::tmux::description::session::SessionKind;
             if let SessionKind::Workspace(workspace) = &selected_session.kind {
-                crate::commands::tmux::session_utils::create_worktree_sessions(
-                    workspace,
-                    session_repository,
-                    tmux_storage,
-                );
+                self.session_utils.create_worktree_sessions(workspace);
             }
         } else {
             println!("You didn't make a selection :/");
@@ -226,19 +221,15 @@ where
                         }
                         KeyCode::Backspace => {
                             if !query.is_empty() {
-                                // Delete one grapheme-aware-ish (width based) char
-                                // Simple approach: remove last char
                                 query.pop();
                                 filtered = rebuild_filtered(&owned, &query);
                                 selected_idx = 0;
                             }
                         }
                         KeyCode::Char(ch) => {
-                            // Add printable characters
                             if !modifiers.contains(KeyModifiers::CONTROL)
                                 && !modifiers.contains(KeyModifiers::ALT)
                             {
-                                // Ignore wide control combinations
                                 if ch.width().unwrap() > 0 {
                                     query.push(ch);
                                     filtered = rebuild_filtered(&owned, &query);

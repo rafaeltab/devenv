@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
+use shaku::Interface;
 
 use super::storage_interface::Storage;
 
 /// Trait for storage that can read/write global worktree configuration
-pub trait WorktreeStorage: Storage<Option<WorktreeConfig>> {}
+pub trait WorktreeStorage: Storage<Option<WorktreeConfig>> + Interface {}
 
 /// Global worktree configuration that applies to all workspaces
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, Default)]

@@ -1,3 +1,5 @@
+use shaku::Interface;
+
 /// Options for displaying a tmux popup
 pub struct PopupOptions {
     /// Session to attach popup to
@@ -12,7 +14,7 @@ pub struct PopupOptions {
     pub title: Option<String>,
 }
 
-pub trait TmuxPopupRepository {
+pub trait TmuxPopupRepository: Interface {
     /// Display a popup running the given command
     fn display_popup(&self, options: &PopupOptions) -> Result<(), String>;
 }

@@ -1,3 +1,7 @@
+use std::sync::Arc;
+
+use shaku::{Component, Interface};
+
 use crate::{
     storage::workspace::WorkspaceStorage,
     utils::{
@@ -6,17 +10,28 @@ use crate::{
     },
 };
 
-pub struct FindWorkspaceOptions<'a> {
-    pub display: &'a dyn RafaeltabDisplay,
+pub trait FindWorkspaceCommandInterface: Interface {
+    fn execute(&self, args: FindWorkspaceArgs);
 }
 
-pub fn find_workspace_cmd<TWorkspaceStorage: WorkspaceStorage>(
-    workspace_storage: &TWorkspaceStorage,
-    id: &str,
-    FindWorkspaceOptions { display }: FindWorkspaceOptions,
-) {
-    let workspace = find_workspace(workspace_storage, id);
-    if let Some(space) = workspace {
-        display.display(&DataWithPath::new(space.clone(), expand_path(&space.root)))
+pub struct FindWorkspaceArgs<'a> {
+    pub display: &'a dyn RafaeltabDisplay,
+    pub id: String,
+}
+
+#[derive(Component)]
+#[shaku(interface = FindWorkspaceCommandInterface)]
+pub struct FindWorkspaceCommand {
+    #[shaku(inject)]
+    workspace_storage: Arc<dyn WorkspaceStorage>,
+}
+
+impl FindWorkspaceCommandInterface for FindWorkspaceCommand {
+    fn execute(&self, args: FindWorkspaceArgs) {
+        let workspace = find_workspace(&*self.workspace_storage, &args.id);
+        if let Some(space) = workspace {
+            args.display
+                .display(&DataWithPath::new(space.clone(), expand_path(&space.root)))
+        }
     }
 }

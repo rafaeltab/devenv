@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use serde::Deserialize;
 use serde_json::json;
+use shaku::Component;
 
 use crate::{
     domain::tmux_workspaces::{
@@ -17,21 +20,25 @@ use crate::{
         },
     },
     infrastructure::tmux_workspaces::tmux::{
+        connection::TmuxConnectionInterface,
         tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode},
         tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
     },
-    storage::tmux::TmuxStorage,
     utils::path::expand_path,
 };
 
 static TMUX_SESSION_ID_KEY: &str = "RAFAELTAB_SESSION_ID";
 
-use super::tmux_client::TmuxRepository;
+#[derive(Component)]
+#[shaku(interface = TmuxSessionRepository)]
+pub struct ImplSessionRepository {
+    #[shaku(inject)]
+    pub connection: Arc<dyn TmuxConnectionInterface>,
+    #[shaku(inject)]
+    pub window_repository: Arc<dyn TmuxWindowRepository>,
+}
 
-impl<TTmuxStorage> TmuxSessionRepository for TmuxRepository<'_, TTmuxStorage>
-where
-    TTmuxStorage: TmuxStorage,
-{
+impl TmuxSessionRepository for ImplSessionRepository {
     fn new_session(&self, description: &SessionDescription) -> TmuxSession {
         let name = &description.name;
         let path = match &description.kind {
@@ -80,7 +87,7 @@ where
 
         let session_id = self
             .connection
-            .cmd(args)
+            .cmd(&args)
             .stderr_to_stdout()
             .read()
             .expect("Expected to succeed creating session");
@@ -98,7 +105,8 @@ where
         let session = sessions.first().unwrap().clone();
 
         for window in windows {
-            self.new_window(&window.with_target(session.clone()).with_dir(&full_path));
+            self.window_repository
+                .new_window(&window.with_target(session.clone()).with_dir(&full_path));
         }
 
         session
@@ -110,7 +118,7 @@ where
             args.extend(["-t", &sess.id]);
         }
         self.connection
-            .cmd(args)
+            .cmd(&args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to get sessions");
@@ -118,7 +126,7 @@ where
 
     fn get_environment(&self, session_id: &str) -> String {
         self.connection
-            .cmd(["show-environment", "-t", session_id])
+            .cmd(&["show-environment", "-t", session_id])
             .stderr_to_stdout()
             .read()
             .expect("Failed to get sessions")
@@ -143,7 +151,7 @@ where
         if !filter_string.is_empty() {
             args.extend(["-f", &filter_string]);
         }
-        let result = self.connection.cmd(args).stderr_to_stdout().read();
+        let result = self.connection.cmd(&args).stderr_to_stdout().read();
 
         match result {
             Ok(res) => {
@@ -164,7 +172,7 @@ where
                     .collect();
                 if let Some(window_includes) = include.windows {
                     (0..sessions.len()).for_each(|i| {
-                        let windows = self.get_windows(
+                        let windows = self.window_repository.get_windows(
                             None,
                             window_includes.clone(),
                             GetWindowsTarget::Session {

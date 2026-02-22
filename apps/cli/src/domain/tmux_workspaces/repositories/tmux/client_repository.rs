@@ -1,3 +1,5 @@
+use shaku::Interface;
+
 use crate::{
     domain::tmux_workspaces::aggregates::tmux::{
         client::{ClientIncludeFields, TmuxClient},
@@ -15,7 +17,7 @@ pub enum SwitchClientTarget<'a> {
     Pane(&'a TmuxPane),
 }
 
-pub trait TmuxClientRepository {
+pub trait TmuxClientRepository: Interface {
     fn get_clients(
         &self,
         filter: Option<TmuxFilterNode>,

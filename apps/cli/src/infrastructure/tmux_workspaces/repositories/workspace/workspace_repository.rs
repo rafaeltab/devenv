@@ -1,3 +1,7 @@
+use std::sync::Arc;
+
+use shaku::Component;
+
 use crate::{
     domain::tmux_workspaces::{
         aggregates::workspaces::workspace::{Workspace, WorkspaceTag},
@@ -6,14 +10,14 @@ use crate::{
     storage::{self, workspace::WorkspaceStorage},
 };
 
-pub struct ImplWorkspaceRepository<'a, TWorkspaceStorage: WorkspaceStorage> {
-    pub workspace_storage: &'a TWorkspaceStorage,
+#[derive(Component)]
+#[shaku(interface = WorkspaceRepository)]
+pub struct ImplWorkspaceRepository {
+    #[shaku(inject)]
+    pub workspace_storage: Arc<dyn WorkspaceStorage>,
 }
 
-impl<TWorkspaceStorage> WorkspaceRepository for ImplWorkspaceRepository<'_, TWorkspaceStorage>
-where
-    TWorkspaceStorage: WorkspaceStorage,
-{
+impl WorkspaceRepository for ImplWorkspaceRepository {
     fn get_workspaces(&self) -> Vec<Workspace> {
         self.workspace_storage
             .read()
@@ -81,6 +85,8 @@ where
 
 #[cfg(test)]
 mod test {
+    use std::sync::Arc;
+
     use crate::{
         domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository,
         storage::{
@@ -115,11 +121,9 @@ mod test {
 
     #[test]
     fn should_map_all_workspaces() {
-        let mut workspace_storage = storage_factory();
+        let workspace_storage: Arc<dyn WorkspaceStorage> = Arc::new(storage_factory());
 
-        let sut = ImplWorkspaceRepository {
-            workspace_storage: &mut workspace_storage,
-        };
+        let sut = ImplWorkspaceRepository { workspace_storage };
 
         let result = sut.get_workspaces();
 
@@ -128,11 +132,9 @@ mod test {
 
     #[test]
     fn should_map_root_to_path() {
-        let mut workspace_storage = storage_factory();
+        let workspace_storage: Arc<dyn WorkspaceStorage> = Arc::new(storage_factory());
 
-        let sut = ImplWorkspaceRepository {
-            workspace_storage: &mut workspace_storage,
-        };
+        let sut = ImplWorkspaceRepository { workspace_storage };
 
         let result = sut.get_workspaces();
 
@@ -141,11 +143,9 @@ mod test {
 
     #[test]
     fn should_map_basic_fields() {
-        let mut workspace_storage = storage_factory();
+        let workspace_storage: Arc<dyn WorkspaceStorage> = Arc::new(storage_factory());
 
-        let sut = ImplWorkspaceRepository {
-            workspace_storage: &mut workspace_storage,
-        };
+        let sut = ImplWorkspaceRepository { workspace_storage };
 
         let result = sut.get_workspaces();
 
@@ -155,11 +155,9 @@ mod test {
 
     #[test]
     fn should_map_none_tags_to_empty_vec() {
-        let mut workspace_storage = storage_factory();
+        let workspace_storage: Arc<dyn WorkspaceStorage> = Arc::new(storage_factory());
 
-        let sut = ImplWorkspaceRepository {
-            workspace_storage: &mut workspace_storage,
-        };
+        let sut = ImplWorkspaceRepository { workspace_storage };
 
         let result = sut.get_workspaces();
 
@@ -168,11 +166,9 @@ mod test {
 
     #[test]
     fn should_map_tags_to_workspace_tags() {
-        let mut workspace_storage = storage_factory();
+        let workspace_storage: Arc<dyn WorkspaceStorage> = Arc::new(storage_factory());
 
-        let sut = ImplWorkspaceRepository {
-            workspace_storage: &mut workspace_storage,
-        };
+        let sut = ImplWorkspaceRepository { workspace_storage };
 
         let result = sut.get_workspaces();
         let tag_result = &result.last().unwrap().tags;
@@ -189,7 +185,7 @@ mod test {
             on_create: vec!["npm install".to_string()],
         };
 
-        let workspace_storage = MockWorkspaceStorage {
+        let workspace_storage: Arc<dyn WorkspaceStorage> = Arc::new(MockWorkspaceStorage {
             data: vec![Workspace {
                 id: "workspace-with-config".to_string(),
                 root: "~/test".to_string(),
@@ -197,11 +193,9 @@ mod test {
                 tags: None,
                 worktree: Some(worktree_config.clone()),
             }],
-        };
+        });
 
-        let sut = ImplWorkspaceRepository {
-            workspace_storage: &workspace_storage,
-        };
+        let sut = ImplWorkspaceRepository { workspace_storage };
 
         let result = sut.get_workspaces();
         let workspace = result.first().unwrap();
@@ -217,11 +211,9 @@ mod test {
 
     #[test]
     fn should_map_none_worktree_to_none() {
-        let mut workspace_storage = storage_factory();
+        let workspace_storage: Arc<dyn WorkspaceStorage> = Arc::new(storage_factory());
 
-        let sut = ImplWorkspaceRepository {
-            workspace_storage: &mut workspace_storage,
-        };
+        let sut = ImplWorkspaceRepository { workspace_storage };
 
         let result = sut.get_workspaces();
 

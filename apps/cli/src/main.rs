@@ -1,41 +1,35 @@
 // #![feature(coroutines, coroutine_trait)]
 // #![feature(stmt_expr_attributes)]
-use std::{io, rc::Rc};
+use std::{io, sync::Arc};
 
 use clap::{Args, CommandFactory, Parser, Subcommand};
 use commands::{
-    command::RafaeltabCommand,
     tmux::{
-        list::{TmuxListCommand, TmuxListOptions},
-        start::{TmuxStartCommand, TmuxStartOptions},
+        list::TmuxListCommandInterface,
+        start::TmuxStartCommandInterface,
+        switch::TmuxSwitchCommandInterface,
     },
     workspaces::{
-        add::{WorkspaceAddCommand, WorkspaceAddOptions},
-        current::{get_current_workspace, CurrentWorkspaceOptions},
-        find::{find_workspace_cmd, FindWorkspaceOptions},
-        find_tag::{find_tag_workspace, FindTagWorkspaceOptions},
-        list::{ListWorkspacesCommand, ListWorkspacesCommandArgs},
-        tmux::{list_tmux_workspaces, ListTmuxWorkspaceOptions},
+        add::WorkspaceAddCommandInterface,
+        current::CurrentWorkspaceCommandInterface,
+        find::FindWorkspaceCommandInterface,
+        find_tag::FindTagWorkspaceCommandInterface,
+        list::ListWorkspacesCommandInterface,
+        tmux::ListTmuxWorkspacesCommandInterface,
     },
     worktree::{
-        complete::{WorktreeCompleteCommand, WorktreeCompleteOptions},
-        start::{WorktreeStartCommand, WorktreeStartOptions},
+        complete::WorktreeCompleteCommandInterface,
+        start::WorktreeStartCommandInterface,
     },
 };
-use infrastructure::tmux_workspaces::{
-    repositories::{
-        tmux::{description_repository::ImplDescriptionRepository, tmux_client::TmuxRepository},
-        workspace::workspace_repository::ImplWorkspaceRepository,
-    },
-    tmux::connection::TmuxConnection,
-};
+use infrastructure::tmux_workspaces::tmux::connection::TmuxConnection;
+use shaku::HasComponent;
 use storage::kinds::json_storage::JsonStorageProvider;
 use utils::display::{JsonDisplay, JsonPrettyDisplay, PrettyDisplay, RafaeltabDisplay};
 
-use crate::{commands::tmux::switch::{TmuxSwitchCommand, TmuxSwitchOptions}, domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository};
-
 #[allow(dead_code)]
 mod commands;
+mod di;
 #[allow(dead_code)]
 mod domain;
 #[allow(dead_code)]
@@ -221,200 +215,117 @@ fn main() -> Result<(), io::Error> {
     let cli = Cli::parse();
 
     let storage_provider = JsonStorageProvider::new(cli.config)?;
-    let storage = storage_provider.load()?;
+    let storage = Arc::new(storage_provider.load()?);
 
     // Support test isolation via environment variable
-    let tmux_connection = match std::env::var("RAFAELTAB_TMUX_SOCKET") {
+    let tmux_connection: Box<TmuxConnection> = Box::new(match std::env::var("RAFAELTAB_TMUX_SOCKET") {
         Ok(socket) => TmuxConnection::with_socket(socket),
         Err(_) => TmuxConnection::default(),
-    };
+    });
+
+    // Build the DI module with component overrides for storage wrappers and TmuxConnection
+    let module = di::AppModule::builder()
+        .with_component_override::<dyn storage::workspace::WorkspaceStorage>(
+            Box::new(storage::kinds::json_storage::JsonWorkspaceStorage::new(storage.clone())),
+        )
+        .with_component_override::<dyn storage::tmux::TmuxStorage>(
+            Box::new(storage::kinds::json_storage::JsonTmuxStorage::new(storage.clone())),
+        )
+        .with_component_override::<dyn storage::worktree::WorktreeStorage>(
+            Box::new(storage::kinds::json_storage::JsonWorktreeStorage::new(storage.clone())),
+        )
+        .with_component_override::<dyn infrastructure::tmux_workspaces::tmux::connection::TmuxConnectionInterface>(
+            tmux_connection,
+        )
+        .build();
 
     match &cli.command {
         Some(Commands::Tmux(tmux_args)) => match &tmux_args.command {
-            TmuxCommands::List(args) => TmuxListCommand.execute(TmuxListOptions {
-                display: &*create_display(args),
-                session_description_repository: &ImplDescriptionRepository {
-                    workspace_repository: &ImplWorkspaceRepository {
-                        workspace_storage: &storage,
-                    },
-                    session_repository: &TmuxRepository {
-                        tmux_storage: &storage,
-                        connection: &tmux_connection,
-                    },
-                    tmux_storage: &storage,
-                },
-            }),
+            TmuxCommands::List(args) => {
+                let cmd: &dyn TmuxListCommandInterface = module.resolve_ref();
+                cmd.execute(commands::tmux::list::TmuxListArgs {
+                    display: &*create_display(args),
+                });
+            }
             TmuxCommands::Start => {
-                let session_repository = &TmuxRepository {
-                    tmux_storage: &storage,
-                    connection: &tmux_connection,
-                };
-                TmuxStartCommand.execute(TmuxStartOptions {
-                    session_description_repository: &ImplDescriptionRepository {
-                        workspace_repository: &ImplWorkspaceRepository {
-                            workspace_storage: &storage,
-                        },
-                        session_repository,
-                        tmux_storage: &storage,
-                    },
-                    session_repository,
-                    tmux_storage: &storage,
-                })
+                let cmd: &dyn TmuxStartCommandInterface = module.resolve_ref();
+                cmd.execute();
             }
             TmuxCommands::Switch => {
-                let tmux_repository = &TmuxRepository {
-                    tmux_storage: &storage,
-                    connection: &tmux_connection,
-                };
-                TmuxSwitchCommand.execute(TmuxSwitchOptions {
-                    session_description_repository: &ImplDescriptionRepository {
-                        workspace_repository: &ImplWorkspaceRepository {
-                            workspace_storage: &storage,
-                        },
-                        session_repository: tmux_repository,
-                        tmux_storage: &storage,
-                    },
-                    session_repository: tmux_repository,
-                    client_repository: tmux_repository,
-                    tmux_storage: &storage,
-                })
+                let cmd: &dyn TmuxSwitchCommandInterface = module.resolve_ref();
+                cmd.execute();
             }
         },
         Some(Commands::Workspace(workspace_args)) => match &workspace_args.command {
             WorkspaceCommands::List(args) => {
-                ListWorkspacesCommand.execute(ListWorkspacesCommandArgs {
-                    workspace_storage: &storage,
+                let cmd: &dyn ListWorkspacesCommandInterface = module.resolve_ref();
+                cmd.execute(commands::workspaces::list::ListWorkspacesArgs {
                     display: &*create_display(args),
-                })
+                });
             }
-            WorkspaceCommands::Current(args) => get_current_workspace(
-                &storage,
-                CurrentWorkspaceOptions {
+            WorkspaceCommands::Current(args) => {
+                let cmd: &dyn CurrentWorkspaceCommandInterface = module.resolve_ref();
+                cmd.execute(commands::workspaces::current::CurrentWorkspaceArgs {
                     display: &*create_display(args),
-                },
-            ),
-            WorkspaceCommands::Find(args) => find_workspace_cmd(
-                &storage,
-                &args.id,
-                FindWorkspaceOptions {
+                });
+            }
+            WorkspaceCommands::Find(args) => {
+                let cmd: &dyn FindWorkspaceCommandInterface = module.resolve_ref();
+                cmd.execute(commands::workspaces::find::FindWorkspaceArgs {
                     display: &*create_display(&args.display_command),
-                },
-            ),
-            WorkspaceCommands::FindTag(args) => find_tag_workspace(
-                &storage,
-                &args.tag,
-                FindTagWorkspaceOptions {
+                    id: args.id.clone(),
+                });
+            }
+            WorkspaceCommands::FindTag(args) => {
+                let cmd: &dyn FindTagWorkspaceCommandInterface = module.resolve_ref();
+                cmd.execute(commands::workspaces::find_tag::FindTagWorkspaceArgs {
                     display: &*create_display(&args.display_command),
-                },
-            ),
-            WorkspaceCommands::Tmux(args) => list_tmux_workspaces(
-                &storage,
-                ListTmuxWorkspaceOptions {
+                    tag: args.tag.clone(),
+                });
+            }
+            WorkspaceCommands::Tmux(args) => {
+                let cmd: &dyn ListTmuxWorkspacesCommandInterface = module.resolve_ref();
+                cmd.execute(commands::workspaces::tmux::ListTmuxWorkspacesArgs {
                     display: &*create_display(args),
-                },
-            ),
+                });
+            }
             WorkspaceCommands::Add(args) => {
-                let workspace_repository = ImplWorkspaceRepository {
-                    workspace_storage: &storage,
-                };
-                WorkspaceAddCommand.execute(WorkspaceAddOptions {
+                let cmd: &dyn WorkspaceAddCommandInterface = module.resolve_ref();
+                cmd.execute(commands::workspaces::add::WorkspaceAddArgs {
                     display: &*create_display(&args.display_command),
-                    workspace_repository: &workspace_repository,
                     interactive: args.interactive,
                     name: args.name.clone(),
                     tags: args.tags.clone(),
                     path: args.path.clone(),
-                })
+                });
             }
         },
         Some(Commands::Worktree(worktree_args)) => {
-            let tmux_repository = &TmuxRepository {
-                tmux_storage: &storage,
-                connection: &tmux_connection,
-            };
-            let workspace_repository = &ImplWorkspaceRepository {
-                workspace_storage: &storage,
-            };
-
             match &worktree_args.command {
                 WorktreeCommands::Start(args) => {
-                    WorktreeStartCommand.execute(WorktreeStartOptions {
+                    let cmd: &dyn WorktreeStartCommandInterface = module.resolve_ref();
+                    cmd.execute(commands::worktree::start::WorktreeStartArgs {
                         branch_name: args.branch_name.clone(),
                         force: args.force,
                         yes: args.yes,
-                        workspace_repository,
-                        worktree_storage: &storage,
-                        session_repository: tmux_repository,
-                        client_repository: tmux_repository,
-                        tmux_storage: &storage,
-                    })
+                    });
                 }
                 WorktreeCommands::Complete(args) => {
-                    let description_repository = &ImplDescriptionRepository {
-                        workspace_repository,
-                        session_repository: tmux_repository,
-                        tmux_storage: &storage,
-                    };
-                    let popup_repository = &infrastructure::tmux_workspaces::repositories::tmux::popup_repository::ImplPopupRepository {
-                        connection: &tmux_connection,
-                    };
-
-                    WorktreeCompleteCommand.execute(WorktreeCompleteOptions {
+                    let cmd: &dyn WorktreeCompleteCommandInterface = module.resolve_ref();
+                    cmd.execute(commands::worktree::complete::WorktreeCompleteArgs {
                         branch_name: args.branch_name.clone(),
                         force: args.force,
                         yes: args.yes,
-                        workspace_repository,
-                        session_repository: tmux_repository,
-                        client_repository: tmux_repository,
-                        popup_repository,
-                        description_repository,
-                    })
+                    });
                 }
             }
         }
         Some(Commands::CommandPalette(palette_args)) => {
-            use crate::commands::{
-                builtin::AddWorkspaceCommand, registry::CommandRegistry, CommandPalette,
-                TestConfirmCommand, TestPickerCommand, TestTextInputCommand,
-                TestTextInputSuggestionsCommand,
-            };
-
-            // Create command registry
-            let mut registry = CommandRegistry::new();
-
-            // Register normal commands
-            registry.register(AddWorkspaceCommand::new());
-
-            // Register test commands only in TEST_MODE
-            if std::env::var("TEST_MODE").is_ok() {
-                registry.register(TestPickerCommand::new());
-                registry.register(TestTextInputCommand::new());
-                registry.register(TestTextInputSuggestionsCommand::new());
-                registry.register(TestConfirmCommand::new());
-            }
-
-            // Create the command palette
-            let palette = CommandPalette::new(registry);
-
-            // Handle subcommands
             match &palette_args.command {
                 CommandPaletteCommands::Show => {
-                    // TODO move to using DI so we don't have to do this guly magic
-                    let storage_leaked = Box::leak(Box::new(storage));
-                    let workspace_repository: Rc<dyn WorkspaceRepository> = Rc::new(ImplWorkspaceRepository {
-                        workspace_storage: storage_leaked,
-                    });
-
-                    // Run the command palette
-                    if palette.registry().is_empty() {
-                        println!("No commands available");
-                    } else {
-                        // Create command context and run
-                        use crate::commands::Command;
-                        let mut ctx = crate::commands::CommandCtx::new(workspace_repository)
-                            .expect("Failed to create command context");
-                        palette.run(&mut ctx);
-                    }
+                    let cmd: &dyn commands::command_palette::CommandPaletteInterface =
+                        module.resolve_ref();
+                    cmd.execute();
                 }
             }
         }
