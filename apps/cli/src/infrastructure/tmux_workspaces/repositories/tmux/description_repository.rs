@@ -1,6 +1,10 @@
+use std::sync::Arc;
+
+use shaku::Component;
 use uuid::{uuid, Uuid};
 
 use crate::{
+    di::ConfigPathProvider,
     domain::tmux_workspaces::{
         aggregates::tmux::{
             description::{
@@ -17,33 +21,49 @@ use crate::{
             workspace::workspace_repository::WorkspaceRepository,
         },
     },
-    storage::tmux::{Session, TmuxStorage},
+    storage::{kinds::json_storage::JsonStorage, storage_interface::Storage, tmux::Session},
 };
 
-pub struct ImplDescriptionRepository<
-    'a,
-    TWorkspaceRepository: WorkspaceRepository,
-    TTmuxSessionRepository: TmuxSessionRepository,
-    TTmuxStorage: TmuxStorage,
-> {
-    pub workspace_repository: &'a TWorkspaceRepository,
-    pub session_repository: &'a TTmuxSessionRepository,
-    pub tmux_storage: &'a TTmuxStorage,
+#[derive(Component)]
+#[shaku(interface = SessionDescriptionRepository)]
+pub struct ImplDescriptionRepository {
+    #[shaku(inject)]
+    workspace_repository: Arc<dyn WorkspaceRepository>,
+    #[shaku(inject)]
+    session_repository: Arc<dyn TmuxSessionRepository>,
+    #[shaku(inject)]
+    config_path_provider: Arc<dyn ConfigPathProvider>,
 }
 
-impl<TWorkspaceRepository, TTmuxSessionRepository, TTmuxStorage> SessionDescriptionRepository
-    for ImplDescriptionRepository<'_, TWorkspaceRepository, TTmuxSessionRepository, TTmuxStorage>
-where
-    TWorkspaceRepository: WorkspaceRepository,
-    TTmuxSessionRepository: TmuxSessionRepository,
-    TTmuxStorage: TmuxStorage,
-{
+impl ImplDescriptionRepository {
+    fn get_storage(&self) -> JsonStorage {
+        let config_path = self.config_path_provider.path().to_string();
+        JsonStorage::new(crate::storage::kinds::json_storage::JsonStorageParameters { config_path })
+            .expect("Failed to load storage")
+    }
+
+    /// Constructor for testing purposes
+    #[cfg(test)]
+    pub fn new(
+        workspace_repository: Arc<dyn WorkspaceRepository>,
+        session_repository: Arc<dyn TmuxSessionRepository>,
+        config_path_provider: Arc<dyn ConfigPathProvider>,
+    ) -> Self {
+        Self {
+            workspace_repository,
+            session_repository,
+            config_path_provider,
+        }
+    }
+}
+
+impl SessionDescriptionRepository for ImplDescriptionRepository {
     fn get_session_descriptions(&self) -> Vec<SessionDescription> {
+        let storage = self.get_storage();
         let workspaces = self.workspace_repository.get_workspaces();
         let mut result: Vec<SessionDescription> = vec![];
-        let default_window_descriptions: Vec<WindowDescription> = self
-            .tmux_storage
-            .read()
+        let tmux_data: crate::storage::tmux::Tmux = storage.read();
+        let default_window_descriptions: Vec<WindowDescription> = tmux_data
             .default_windows
             .iter()
             .map(|x| WindowDescription {
@@ -66,13 +86,7 @@ where
             });
         }
 
-        for session in self
-            .tmux_storage
-            .read()
-            .sessions
-            .clone()
-            .unwrap_or_default()
-        {
+        for session in tmux_data.sessions.clone().unwrap_or_default() {
             match session {
                 Session::Workspace(workspace) => {
                     let windows: Vec<WindowDescription> = workspace
@@ -163,117 +177,122 @@ fn find_session_id(input: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use crate::{
         domain::tmux_workspaces::{
             aggregates::tmux::description::session::{SessionDescription, SessionKind},
-            repositories::{
-                tmux::{
-                    description_repository::SessionDescriptionRepository,
-                    session_repository::TmuxSessionRepository,
-                },
-                workspace::workspace_repository::WorkspaceRepository,
+            repositories::tmux::{
+                description_repository::SessionDescriptionRepository,
+                session_repository::TmuxSessionRepository,
             },
         },
-        infrastructure::tmux_workspaces::repositories::workspace::workspace_repository::ImplWorkspaceRepository,
         storage::{
-            test::mocks::{MockTmuxStorage, MockWorkspaceStorage},
-            tmux::{PathSession, Session, Tmux, TmuxStorage, Window, WorkspaceSession},
-            workspace::{Workspace, WorkspaceStorage},
+            tmux::{PathSession, Session, Tmux, Window, WorkspaceSession},
+            workspace::Workspace,
         },
     };
 
     use super::ImplDescriptionRepository;
+    use crate::di::{ConfigPathOption, ConfigPathProvider};
 
-    fn workspace_storage_factory() -> impl WorkspaceStorage {
-        MockWorkspaceStorage {
-            data: vec![
-                Workspace {
-                    name: "Home".to_string(),
-                    id: "home".to_string(),
-                    root: "~".to_string(),
-                    tags: Some(vec![]),
-                    worktree: None,
+    fn create_test_config(workspaces: Vec<Workspace>, tmux: Tmux) -> (String, tempfile::TempDir) {
+        use crate::storage::kinds::json_storage::JsonData;
+        use std::io::Write;
+
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config_path = temp_dir.path().join("rafaeltab.json");
+
+        let config = JsonData {
+            workspaces,
+            tmux,
+            worktree: None,
+        };
+
+        let config_str = serde_json::to_string(&config).expect("Failed to serialize config");
+        let mut file = std::fs::File::create(&config_path).expect("Failed to create config file");
+        file.write_all(config_str.as_bytes())
+            .expect("Failed to write config");
+
+        (config_path.to_string_lossy().to_string(), temp_dir)
+    }
+
+    fn workspaces_factory() -> Vec<Workspace> {
+        vec![
+            Workspace {
+                name: "Home".to_string(),
+                id: "home".to_string(),
+                root: "~".to_string(),
+                tags: Some(vec![]),
+                worktree: None,
+            },
+            Workspace {
+                name: "Source".to_string(),
+                id: "source".to_string(),
+                root: "~/source".to_string(),
+                tags: Some(vec![]),
+                worktree: None,
+            },
+        ]
+    }
+
+    fn tmux_factory() -> Tmux {
+        Tmux {
+            sessions: Some(vec![
+                Session::Path(PathSession {
+                    windows: vec![Window {
+                        name: "zsh".to_string(),
+                        command: None,
+                    }],
+                    path: "/usr/bin".to_string(),
+                    name: "User binaries".to_string(),
+                }),
+                Session::Workspace(WorkspaceSession {
+                    windows: vec![Window {
+                        name: "zsh".to_string(),
+                        command: None,
+                    }],
+                    workspace: "home".to_string(),
+                    name: None,
+                }),
+            ]),
+            default_windows: vec![
+                Window {
+                    name: "Neovim".to_string(),
+                    command: Some("nvim".to_string()),
                 },
-                Workspace {
-                    name: "Source".to_string(),
-                    id: "source".to_string(),
-                    root: "~/source".to_string(),
-                    tags: Some(vec![]),
-                    worktree: None,
+                Window {
+                    name: "zsh".to_string(),
+                    command: None,
                 },
             ],
         }
     }
 
-    fn tmux_storage_factory() -> impl TmuxStorage {
-        MockTmuxStorage {
-            data: Tmux {
-                sessions: Some(vec![
-                    Session::Path(PathSession {
-                        windows: vec![Window {
-                            name: "zsh".to_string(),
-                            command: None,
-                        }],
-                        path: "/usr/bin".to_string(),
-                        name: "User binaries".to_string(),
-                    }),
-                    Session::Workspace(WorkspaceSession {
-                        windows: vec![Window {
-                            name: "zsh".to_string(),
-                            command: None,
-                        }],
-                        workspace: "home".to_string(),
-                        name: None,
-                    }),
-                ]),
-                default_windows: vec![
-                    Window {
-                        name: "Neovim".to_string(),
-                        command: Some("nvim".to_string()),
-                    },
-                    Window {
-                        name: "zsh".to_string(),
-                        command: None,
-                    },
-                ],
-            },
-        }
-    }
+    fn sut_factory(
+        workspaces: Vec<Workspace>,
+        tmux: Tmux,
+    ) -> (ImplDescriptionRepository, tempfile::TempDir) {
+        let (config_path, temp_dir) = create_test_config(workspaces, tmux);
 
-    fn workspace_repo_factory<TWorkspaceStorage: WorkspaceStorage>(
-        workspace_storage: &TWorkspaceStorage,
-    ) -> impl WorkspaceRepository + '_ {
-        ImplWorkspaceRepository { workspace_storage }
-    }
+        let repo = ImplDescriptionRepository::new(
+            Arc::new(crate::infrastructure::tmux_workspaces::repositories::workspace::workspace_repository::ImplWorkspaceRepository::with_config_path(
+                Arc::new(ConfigPathOption {
+                    path: config_path.clone(),
+                }) as Arc<dyn ConfigPathProvider>
+            )),
+            Arc::new(MockSessionRepo {}),
+            Arc::new(ConfigPathOption {
+                path: config_path,
+            }) as Arc<dyn ConfigPathProvider>,
+        );
 
-    fn session_repo_factory() -> impl TmuxSessionRepository {
-        MockSessionRepo {}
-    }
-
-    fn sut_factory<
-        'a,
-        TStorage: TmuxStorage,
-        TWorkspaceRepo: WorkspaceRepository,
-        TSessionRepo: TmuxSessionRepository,
-    >(
-        tmux_storage: &'a TStorage,
-        workspace_repository: &'a TWorkspaceRepo,
-        session_repository: &'a TSessionRepo,
-    ) -> impl SessionDescriptionRepository + 'a {
-        ImplDescriptionRepository {
-            tmux_storage,
-            workspace_repository,
-            session_repository,
-        }
+        (repo, temp_dir)
     }
 
     #[test]
     fn should_include_all_workspaces() {
-        let tmux_storage = tmux_storage_factory();
-        let workspace_storage = workspace_storage_factory();
-        let workspace_repo = workspace_repo_factory(&workspace_storage);
-        let session_repository = session_repo_factory();
-        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
+        let (sut, _temp_dir) = sut_factory(workspaces_factory(), tmux_factory());
 
         let result = sut.get_session_descriptions();
 
@@ -286,11 +305,7 @@ mod tests {
 
     #[test]
     fn should_include_all_path_sessions() {
-        let tmux_storage = tmux_storage_factory();
-        let workspace_storage = workspace_storage_factory();
-        let workspace_repo = workspace_repo_factory(&workspace_storage);
-        let session_repository = session_repo_factory();
-        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
+        let (sut, _temp_dir) = sut_factory(workspaces_factory(), tmux_factory());
 
         let result = sut.get_session_descriptions();
 
@@ -303,11 +318,7 @@ mod tests {
 
     #[test]
     fn should_use_session_definition_for_workspace_sessions() {
-        let tmux_storage = tmux_storage_factory();
-        let workspace_storage = workspace_storage_factory();
-        let workspace_repo = workspace_repo_factory(&workspace_storage);
-        let session_repository = session_repo_factory();
-        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
+        let (sut, _temp_dir) = sut_factory(workspaces_factory(), tmux_factory());
 
         let result = sut.get_session_descriptions();
 
@@ -317,11 +328,7 @@ mod tests {
 
     #[test]
     fn should_apply_default_windows_to_workspaces() {
-        let tmux_storage = tmux_storage_factory();
-        let workspace_storage = workspace_storage_factory();
-        let workspace_repo = workspace_repo_factory(&workspace_storage);
-        let session_repository = session_repo_factory();
-        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
+        let (sut, _temp_dir) = sut_factory(workspaces_factory(), tmux_factory());
 
         let result = sut.get_session_descriptions();
 
@@ -331,11 +338,7 @@ mod tests {
 
     #[test]
     fn should_not_apply_workspaces_twice_when_defined_in_sessions() {
-        let tmux_storage = tmux_storage_factory();
-        let workspace_storage = workspace_storage_factory();
-        let workspace_repo = workspace_repo_factory(&workspace_storage);
-        let session_repository = session_repo_factory();
-        let sut = sut_factory(&tmux_storage, &workspace_repo, &session_repository);
+        let (sut, _temp_dir) = sut_factory(workspaces_factory(), tmux_factory());
 
         let result = sut.get_session_descriptions();
 

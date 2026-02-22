@@ -1,13 +1,19 @@
+use shaku::Component;
+use std::sync::Arc;
+
 use crate::domain::tmux_workspaces::repositories::tmux::popup_repository::{
     PopupOptions, TmuxPopupRepository,
 };
 use crate::infrastructure::tmux_workspaces::tmux::connection::TmuxConnection;
 
-pub struct ImplPopupRepository<'a> {
-    pub connection: &'a TmuxConnection,
+#[derive(Component)]
+#[shaku(interface = TmuxPopupRepository)]
+pub struct ImplPopupRepository {
+    #[shaku(inject)]
+    pub connection: Arc<dyn TmuxConnection>,
 }
 
-impl TmuxPopupRepository for ImplPopupRepository<'_> {
+impl TmuxPopupRepository for ImplPopupRepository {
     fn display_popup(&self, options: &PopupOptions) -> Result<(), String> {
         let mut cmd = self.connection.std_command();
 

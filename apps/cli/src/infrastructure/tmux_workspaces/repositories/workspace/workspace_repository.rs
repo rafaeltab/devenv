@@ -1,22 +1,44 @@
+use std::sync::Arc;
+
+use shaku::Component;
+
 use crate::{
+    di::ConfigPathProvider,
     domain::tmux_workspaces::{
         aggregates::workspaces::workspace::{Workspace, WorkspaceTag},
         repositories::workspace::workspace_repository::WorkspaceRepository,
     },
-    storage::{self, workspace::WorkspaceStorage},
+    storage::{self, kinds::json_storage::JsonStorage, storage_interface::Storage},
 };
 
-pub struct ImplWorkspaceRepository<'a, TWorkspaceStorage: WorkspaceStorage> {
-    pub workspace_storage: &'a TWorkspaceStorage,
+#[derive(Component)]
+#[shaku(interface = WorkspaceRepository)]
+pub struct ImplWorkspaceRepository {
+    #[shaku(inject)]
+    config_path_provider: Arc<dyn ConfigPathProvider>,
 }
 
-impl<TWorkspaceStorage> WorkspaceRepository for ImplWorkspaceRepository<'_, TWorkspaceStorage>
-where
-    TWorkspaceStorage: WorkspaceStorage,
-{
+impl ImplWorkspaceRepository {
+    fn get_storage(&self) -> JsonStorage {
+        let config_path = self.config_path_provider.path().to_string();
+        JsonStorage::new(crate::storage::kinds::json_storage::JsonStorageParameters { config_path })
+            .expect("Failed to load storage")
+    }
+
+    /// Constructor for testing purposes
+    #[cfg(test)]
+    pub fn with_config_path(config_path_provider: Arc<dyn ConfigPathProvider>) -> Self {
+        Self {
+            config_path_provider,
+        }
+    }
+}
+
+impl WorkspaceRepository for ImplWorkspaceRepository {
     fn get_workspaces(&self) -> Vec<Workspace> {
-        self.workspace_storage
-            .read()
+        let storage = self.get_storage();
+        let workspaces_data: Vec<crate::storage::workspace::Workspace> = storage.read();
+        workspaces_data
             .iter()
             .map(|workspace| Workspace {
                 id: workspace.id.clone(),
@@ -46,6 +68,7 @@ where
         root: String,
         id: String,
     ) -> Workspace {
+        let storage = self.get_storage();
         let workspace = storage::workspace::Workspace {
             id,
             name,
@@ -54,9 +77,9 @@ where
             worktree: None,
         };
 
-        let mut workspaces = self.workspace_storage.read().clone();
+        let mut workspaces: Vec<crate::storage::workspace::Workspace> = storage.read();
         workspaces.push(workspace.clone());
-        self.workspace_storage.write(&workspaces).expect("");
+        storage.write(&workspaces).expect("");
 
         Workspace {
             id: workspace.id.clone(),
@@ -81,45 +104,73 @@ where
 
 #[cfg(test)]
 mod test {
+    use std::sync::Arc;
+
     use crate::{
+        di::{ConfigPathOption, ConfigPathProvider},
         domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository,
-        storage::{
-            test::mocks::MockWorkspaceStorage,
-            workspace::{Workspace, WorkspaceStorage},
-            worktree::WorkspaceWorktreeConfig,
-        },
+        storage::{workspace::Workspace, worktree::WorkspaceWorktreeConfig},
     };
 
     use super::ImplWorkspaceRepository;
 
-    fn storage_factory() -> impl WorkspaceStorage {
-        MockWorkspaceStorage {
-            data: vec![
-                Workspace {
-                    id: "workspace-1".to_string(),
-                    root: "~".to_string(),
-                    name: "Workspace 1".to_string(),
-                    tags: None,
-                    worktree: None,
-                },
-                Workspace {
-                    id: "workspace-2".to_string(),
-                    root: "~/home".to_string(),
-                    name: "Workspace 2".to_string(),
-                    tags: Some(vec!["tag-1".to_string(), "tag-2".to_string()]),
-                    worktree: None,
-                },
-            ],
-        }
+    fn create_test_repo(
+        workspaces: Vec<Workspace>,
+    ) -> (ImplWorkspaceRepository, tempfile::TempDir) {
+        use crate::storage::kinds::json_storage::JsonData;
+        use std::io::Write;
+
+        // Create a temp directory with the workspace data
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config_path = temp_dir.path().join("rafaeltab.json");
+
+        // Create full config structure
+        let config = JsonData {
+            workspaces: workspaces.clone(),
+            tmux: crate::storage::tmux::Tmux {
+                sessions: None,
+                default_windows: vec![],
+            },
+            worktree: None,
+        };
+
+        let config_str = serde_json::to_string(&config).expect("Failed to serialize config");
+        let mut file = std::fs::File::create(&config_path).expect("Failed to create config file");
+        file.write_all(config_str.as_bytes())
+            .expect("Failed to write config");
+
+        let config_path_option = Arc::new(ConfigPathOption {
+            path: config_path.to_string_lossy().to_string(),
+        }) as Arc<dyn ConfigPathProvider>;
+
+        (
+            ImplWorkspaceRepository::with_config_path(config_path_option),
+            temp_dir,
+        )
+    }
+
+    fn workspaces_factory() -> Vec<Workspace> {
+        vec![
+            Workspace {
+                id: "workspace-1".to_string(),
+                root: "~".to_string(),
+                name: "Workspace 1".to_string(),
+                tags: None,
+                worktree: None,
+            },
+            Workspace {
+                id: "workspace-2".to_string(),
+                root: "~/home".to_string(),
+                name: "Workspace 2".to_string(),
+                tags: Some(vec!["tag-1".to_string(), "tag-2".to_string()]),
+                worktree: None,
+            },
+        ]
     }
 
     #[test]
     fn should_map_all_workspaces() {
-        let mut workspace_storage = storage_factory();
-
-        let sut = ImplWorkspaceRepository {
-            workspace_storage: &mut workspace_storage,
-        };
+        let (sut, _temp_dir) = create_test_repo(workspaces_factory());
 
         let result = sut.get_workspaces();
 
@@ -128,11 +179,7 @@ mod test {
 
     #[test]
     fn should_map_root_to_path() {
-        let mut workspace_storage = storage_factory();
-
-        let sut = ImplWorkspaceRepository {
-            workspace_storage: &mut workspace_storage,
-        };
+        let (sut, _temp_dir) = create_test_repo(workspaces_factory());
 
         let result = sut.get_workspaces();
 
@@ -141,11 +188,7 @@ mod test {
 
     #[test]
     fn should_map_basic_fields() {
-        let mut workspace_storage = storage_factory();
-
-        let sut = ImplWorkspaceRepository {
-            workspace_storage: &mut workspace_storage,
-        };
+        let (sut, _temp_dir) = create_test_repo(workspaces_factory());
 
         let result = sut.get_workspaces();
 
@@ -155,11 +198,7 @@ mod test {
 
     #[test]
     fn should_map_none_tags_to_empty_vec() {
-        let mut workspace_storage = storage_factory();
-
-        let sut = ImplWorkspaceRepository {
-            workspace_storage: &mut workspace_storage,
-        };
+        let (sut, _temp_dir) = create_test_repo(workspaces_factory());
 
         let result = sut.get_workspaces();
 
@@ -168,11 +207,7 @@ mod test {
 
     #[test]
     fn should_map_tags_to_workspace_tags() {
-        let mut workspace_storage = storage_factory();
-
-        let sut = ImplWorkspaceRepository {
-            workspace_storage: &mut workspace_storage,
-        };
+        let (sut, _temp_dir) = create_test_repo(workspaces_factory());
 
         let result = sut.get_workspaces();
         let tag_result = &result.last().unwrap().tags;
@@ -189,19 +224,15 @@ mod test {
             on_create: vec!["npm install".to_string()],
         };
 
-        let workspace_storage = MockWorkspaceStorage {
-            data: vec![Workspace {
-                id: "workspace-with-config".to_string(),
-                root: "~/test".to_string(),
-                name: "Test Workspace".to_string(),
-                tags: None,
-                worktree: Some(worktree_config.clone()),
-            }],
-        };
+        let workspaces = vec![Workspace {
+            id: "workspace-with-config".to_string(),
+            root: "~/test".to_string(),
+            name: "Test Workspace".to_string(),
+            tags: None,
+            worktree: Some(worktree_config.clone()),
+        }];
 
-        let sut = ImplWorkspaceRepository {
-            workspace_storage: &workspace_storage,
-        };
+        let (sut, _temp_dir) = create_test_repo(workspaces);
 
         let result = sut.get_workspaces();
         let workspace = result.first().unwrap();
@@ -217,11 +248,7 @@ mod test {
 
     #[test]
     fn should_map_none_worktree_to_none() {
-        let mut workspace_storage = storage_factory();
-
-        let sut = ImplWorkspaceRepository {
-            workspace_storage: &mut workspace_storage,
-        };
+        let (sut, _temp_dir) = create_test_repo(workspaces_factory());
 
         let result = sut.get_workspaces();
 

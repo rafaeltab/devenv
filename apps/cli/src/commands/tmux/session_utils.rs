@@ -3,7 +3,10 @@
 use crate::{
     domain::tmux_workspaces::aggregates::tmux::description::window::WindowDescription,
     domain::tmux_workspaces::repositories::tmux::session_repository::TmuxSessionRepository,
-    storage::tmux::{Session, TmuxStorage},
+    storage::{
+        storage_interface::Storage,
+        tmux::Session,
+    },
 };
 
 /// Create tmux sessions for all worktrees in a workspace.
@@ -12,7 +15,7 @@ use crate::{
 pub fn create_worktree_sessions(
     workspace: &crate::domain::tmux_workspaces::aggregates::workspaces::workspace::Workspace,
     session_repository: &dyn TmuxSessionRepository,
-    tmux_storage: &dyn TmuxStorage,
+    config_path: &str,
 ) {
     use crate::domain::tmux_workspaces::aggregates::tmux::description::session::{
         PathSessionDescription, SessionDescription, SessionKind,
@@ -40,7 +43,7 @@ pub fn create_worktree_sessions(
     }
 
     // Get window configuration for this workspace
-    let windows = get_windows_for_workspace(&workspace.id, tmux_storage);
+    let windows = get_windows_for_workspace(&workspace.id, config_path);
 
     // Create session for each worktree
     for worktree_info in worktrees {
@@ -78,9 +81,23 @@ pub fn create_worktree_sessions(
 /// Returns workspace-specific windows if configured, otherwise returns default windows.
 pub fn get_windows_for_workspace(
     workspace_id: &str,
-    tmux_storage: &dyn TmuxStorage,
+    config_path: &str,
 ) -> Vec<WindowDescription> {
-    let tmux_config = tmux_storage.read();
+    // Attempt to load storage, but fall back to empty windows on error
+    let storage = match crate::storage::kinds::json_storage::JsonStorage::new(
+        crate::storage::kinds::json_storage::JsonStorageParameters { 
+            config_path: config_path.to_string() 
+        }
+    ) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Warning: Failed to load tmux configuration from {}: {}", config_path, e);
+            eprintln!("Using default window configuration");
+            return Vec::new();
+        }
+    };
+    
+    let tmux_config: crate::storage::tmux::Tmux = storage.read();
 
     // Check if workspace has custom session config
     if let Some(sessions) = &tmux_config.sessions {
@@ -114,29 +131,51 @@ pub fn get_windows_for_workspace(
 mod tests {
     use super::*;
     use crate::storage::{
-        test::mocks::MockTmuxStorage,
         tmux::{Tmux, Window, WorkspaceSession},
     };
+    use std::io::Write;
+    
+    #[allow(unused_imports)]
+    use crate::storage::workspace::Workspace;
+
+    fn create_temp_tmux_config(tmux: &Tmux) -> (tempfile::TempDir, String) {
+        use crate::storage::kinds::json_storage::JsonData;
+        use crate::storage::workspace::Workspace;
+        
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config_path = temp_dir.path().join("tmux.json");
+        
+        // Create full JsonData structure that the storage expects
+        let json_data = JsonData {
+            workspaces: vec![],
+            tmux: tmux.clone(),
+            worktree: None,
+        };
+        
+        let config_str = serde_json::to_string(&json_data).expect("Failed to serialize config");
+        let mut file = std::fs::File::create(&config_path).expect("Failed to create config file");
+        file.write_all(config_str.as_bytes()).expect("Failed to write config");
+        (temp_dir, config_path.to_string_lossy().to_string())
+    }
 
     #[test]
     fn test_returns_default_windows_when_no_workspace_config() {
-        let storage = MockTmuxStorage {
-            data: Tmux {
-                sessions: None,
-                default_windows: vec![
-                    Window {
-                        name: "editor".to_string(),
-                        command: Some("vim".to_string()),
-                    },
-                    Window {
-                        name: "shell".to_string(),
-                        command: None,
-                    },
-                ],
-            },
+        let tmux = Tmux {
+            sessions: None,
+            default_windows: vec![
+                Window {
+                    name: "editor".to_string(),
+                    command: Some("vim".to_string()),
+                },
+                Window {
+                    name: "shell".to_string(),
+                    command: None,
+                },
+            ],
         };
+        let (_temp_dir, config_path) = create_temp_tmux_config(&tmux);
 
-        let result = get_windows_for_workspace("test-workspace", &storage);
+        let result = get_windows_for_workspace("test-workspace", &config_path);
 
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].name, "editor");
@@ -150,30 +189,29 @@ mod tests {
 
     #[test]
     fn test_returns_workspace_config_when_exists() {
-        let storage = MockTmuxStorage {
-            data: Tmux {
-                sessions: Some(vec![Session::Workspace(WorkspaceSession {
-                    workspace: "my-workspace".to_string(),
-                    name: None,
-                    windows: vec![
-                        Window {
-                            name: "nvim".to_string(),
-                            command: Some("nvim .".to_string()),
-                        },
-                        Window {
-                            name: "build".to_string(),
-                            command: Some("npm run dev".to_string()),
-                        },
-                    ],
-                })]),
-                default_windows: vec![Window {
-                    name: "default".to_string(),
-                    command: None,
-                }],
-            },
+        let tmux = Tmux {
+            sessions: Some(vec![Session::Workspace(WorkspaceSession {
+                workspace: "my-workspace".to_string(),
+                name: None,
+                windows: vec![
+                    Window {
+                        name: "nvim".to_string(),
+                        command: Some("nvim .".to_string()),
+                    },
+                    Window {
+                        name: "build".to_string(),
+                        command: Some("npm run dev".to_string()),
+                    },
+                ],
+            })]),
+            default_windows: vec![Window {
+                name: "default".to_string(),
+                command: None,
+            }],
         };
+        let (_temp_dir, config_path) = create_temp_tmux_config(&tmux);
 
-        let result = get_windows_for_workspace("my-workspace", &storage);
+        let result = get_windows_for_workspace("my-workspace", &config_path);
 
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].name, "nvim");
@@ -190,24 +228,23 @@ mod tests {
 
     #[test]
     fn test_returns_default_for_different_workspace() {
-        let storage = MockTmuxStorage {
-            data: Tmux {
-                sessions: Some(vec![Session::Workspace(WorkspaceSession {
-                    workspace: "workspace-a".to_string(),
-                    name: None,
-                    windows: vec![Window {
-                        name: "custom".to_string(),
-                        command: None,
-                    }],
-                })]),
-                default_windows: vec![Window {
-                    name: "default".to_string(),
+        let tmux = Tmux {
+            sessions: Some(vec![Session::Workspace(WorkspaceSession {
+                workspace: "workspace-a".to_string(),
+                name: None,
+                windows: vec![Window {
+                    name: "custom".to_string(),
                     command: None,
                 }],
-            },
+            })]),
+            default_windows: vec![Window {
+                name: "default".to_string(),
+                command: None,
+            }],
         };
+        let (_temp_dir, config_path) = create_temp_tmux_config(&tmux);
 
-        let result = get_windows_for_workspace("workspace-b", &storage);
+        let result = get_windows_for_workspace("workspace-b", &config_path);
 
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].name, "default");
@@ -215,14 +252,13 @@ mod tests {
 
     #[test]
     fn test_handles_empty_default_windows() {
-        let storage = MockTmuxStorage {
-            data: Tmux {
-                sessions: None,
-                default_windows: vec![],
-            },
+        let tmux = Tmux {
+            sessions: None,
+            default_windows: vec![],
         };
+        let (_temp_dir, config_path) = create_temp_tmux_config(&tmux);
 
-        let result = get_windows_for_workspace("test-workspace", &storage);
+        let result = get_windows_for_workspace("test-workspace", &config_path);
 
         assert_eq!(result.len(), 0);
     }

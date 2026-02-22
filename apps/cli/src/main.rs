@@ -1,41 +1,33 @@
-// #![feature(coroutines, coroutine_trait)]
-// #![feature(stmt_expr_attributes)]
-use std::{io, rc::Rc};
+use std::sync::Arc;
 
 use clap::{Args, CommandFactory, Parser, Subcommand};
 use commands::{
     command::RafaeltabCommand,
     tmux::{
-        list::{TmuxListCommand, TmuxListOptions},
-        start::{TmuxStartCommand, TmuxStartOptions},
+        list::{TmuxListRuntimeOptions},
+        start::{TmuxStartRuntimeOptions},
+        switch::TmuxSwitchRuntimeOptions,
     },
     workspaces::{
-        add::{WorkspaceAddCommand, WorkspaceAddOptions},
-        current::{get_current_workspace, CurrentWorkspaceOptions},
-        find::{find_workspace_cmd, FindWorkspaceOptions},
-        find_tag::{find_tag_workspace, FindTagWorkspaceOptions},
-        list::{ListWorkspacesCommand, ListWorkspacesCommandArgs},
-        tmux::{list_tmux_workspaces, ListTmuxWorkspaceOptions},
+        add::WorkspaceAddRuntimeOptions,
+        current::CurrentWorkspaceRuntimeOptions,
+        find::FindWorkspaceRuntimeOptions,
+        find_tag::FindTagWorkspaceRuntimeOptions,
+        list::ListWorkspacesRuntimeOptions,
+        tmux::ListTmuxWorkspacesRuntimeOptions,
     },
     worktree::{
-        complete::{WorktreeCompleteCommand, WorktreeCompleteOptions},
-        start::{WorktreeStartCommand, WorktreeStartOptions},
+        complete::WorktreeCompleteRuntimeOptions,
+        start::WorktreeStartRuntimeOptions,
     },
 };
-use infrastructure::tmux_workspaces::{
-    repositories::{
-        tmux::{description_repository::ImplDescriptionRepository, tmux_client::TmuxRepository},
-        workspace::workspace_repository::ImplWorkspaceRepository,
-    },
-    tmux::connection::TmuxConnection,
-};
-use storage::kinds::json_storage::JsonStorageProvider;
+use di::AppContainer;
 use utils::display::{JsonDisplay, JsonPrettyDisplay, PrettyDisplay, RafaeltabDisplay};
-
-use crate::{commands::tmux::switch::{TmuxSwitchCommand, TmuxSwitchOptions}, domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository};
 
 #[allow(dead_code)]
 mod commands;
+#[allow(dead_code)]
+mod di;
 #[allow(dead_code)]
 mod domain;
 #[allow(dead_code)]
@@ -217,161 +209,110 @@ struct WorktreeCompleteArgs {
     yes: bool,
 }
 
-fn main() -> Result<(), io::Error> {
+fn main() -> Result<(), std::io::Error> {
     let cli = Cli::parse();
 
-    let storage_provider = JsonStorageProvider::new(cli.config)?;
-    let storage = storage_provider.load()?;
-
-    // Support test isolation via environment variable
-    let tmux_connection = match std::env::var("RAFAELTAB_TMUX_SOCKET") {
-        Ok(socket) => TmuxConnection::with_socket(socket),
-        Err(_) => TmuxConnection::default(),
-    };
+    // Resolve config path and create the DI container
+    let config_path = resolve_config_path(cli.config)?;
+    let container = AppContainer::new(Some(config_path))?;
 
     match &cli.command {
         Some(Commands::Tmux(tmux_args)) => match &tmux_args.command {
-            TmuxCommands::List(args) => TmuxListCommand.execute(TmuxListOptions {
-                display: &*create_display(args),
-                session_description_repository: &ImplDescriptionRepository {
-                    workspace_repository: &ImplWorkspaceRepository {
-                        workspace_storage: &storage,
-                    },
-                    session_repository: &TmuxRepository {
-                        tmux_storage: &storage,
-                        connection: &tmux_connection,
-                    },
-                    tmux_storage: &storage,
-                },
-            }),
+            TmuxCommands::List(args) => {
+                let command = container.tmux_list_command();
+                command
+                    .execute(TmuxListRuntimeOptions {
+                        json: args.json,
+                        json_pretty: args.json_pretty,
+                    })
+                    .expect("Failed to execute tmux list command");
+            }
             TmuxCommands::Start => {
-                let session_repository = &TmuxRepository {
-                    tmux_storage: &storage,
-                    connection: &tmux_connection,
-                };
-                TmuxStartCommand.execute(TmuxStartOptions {
-                    session_description_repository: &ImplDescriptionRepository {
-                        workspace_repository: &ImplWorkspaceRepository {
-                            workspace_storage: &storage,
-                        },
-                        session_repository,
-                        tmux_storage: &storage,
-                    },
-                    session_repository,
-                    tmux_storage: &storage,
-                })
+                let command = container.tmux_start_command();
+                command.execute(TmuxStartRuntimeOptions)
+                    .expect("Failed to execute tmux start command");
             }
             TmuxCommands::Switch => {
-                let tmux_repository = &TmuxRepository {
-                    tmux_storage: &storage,
-                    connection: &tmux_connection,
-                };
-                TmuxSwitchCommand.execute(TmuxSwitchOptions {
-                    session_description_repository: &ImplDescriptionRepository {
-                        workspace_repository: &ImplWorkspaceRepository {
-                            workspace_storage: &storage,
-                        },
-                        session_repository: tmux_repository,
-                        tmux_storage: &storage,
-                    },
-                    session_repository: tmux_repository,
-                    client_repository: tmux_repository,
-                    tmux_storage: &storage,
-                })
+                let command = container.tmux_switch_command();
+                command.execute(TmuxSwitchRuntimeOptions)
+                    .expect("Failed to execute tmux switch command");
             }
         },
         Some(Commands::Workspace(workspace_args)) => match &workspace_args.command {
             WorkspaceCommands::List(args) => {
-                ListWorkspacesCommand.execute(ListWorkspacesCommandArgs {
-                    workspace_storage: &storage,
-                    display: &*create_display(args),
+                let command = container.list_workspaces_command();
+                command.execute(ListWorkspacesRuntimeOptions {
+                    json: args.json,
+                    json_pretty: args.json_pretty,
                 })
+                .expect("Failed to execute workspace list command");
             }
-            WorkspaceCommands::Current(args) => get_current_workspace(
-                &storage,
-                CurrentWorkspaceOptions {
-                    display: &*create_display(args),
-                },
-            ),
-            WorkspaceCommands::Find(args) => find_workspace_cmd(
-                &storage,
-                &args.id,
-                FindWorkspaceOptions {
-                    display: &*create_display(&args.display_command),
-                },
-            ),
-            WorkspaceCommands::FindTag(args) => find_tag_workspace(
-                &storage,
-                &args.tag,
-                FindTagWorkspaceOptions {
-                    display: &*create_display(&args.display_command),
-                },
-            ),
-            WorkspaceCommands::Tmux(args) => list_tmux_workspaces(
-                &storage,
-                ListTmuxWorkspaceOptions {
-                    display: &*create_display(args),
-                },
-            ),
+            WorkspaceCommands::Current(args) => {
+                let command = container.current_workspace_command();
+                command.execute(CurrentWorkspaceRuntimeOptions {
+                    json: args.json,
+                    json_pretty: args.json_pretty,
+                })
+                .expect("Failed to execute current workspace command");
+            }
+            WorkspaceCommands::Find(args) => {
+                let command = container.find_workspace_command();
+                command.execute(FindWorkspaceRuntimeOptions {
+                    id: args.id.clone(),
+                    json: args.display_command.json,
+                    json_pretty: args.display_command.json_pretty,
+                })
+                .expect("Failed to execute find workspace command");
+            }
+            WorkspaceCommands::FindTag(args) => {
+                let command = container.find_tag_workspace_command();
+                command
+                    .execute(FindTagWorkspaceRuntimeOptions {
+                        tag: args.tag.clone(),
+                        json: args.display_command.json,
+                        json_pretty: args.display_command.json_pretty,
+                    })
+                    .expect("Failed to execute find tag workspace command");
+            }
+            WorkspaceCommands::Tmux(args) => {
+                let command = container.list_tmux_workspaces_command();
+                command
+                    .execute(ListTmuxWorkspacesRuntimeOptions {
+                        json: args.json,
+                        json_pretty: args.json_pretty,
+                    })
+                    .expect("Failed to execute list tmux workspaces command");
+            }
             WorkspaceCommands::Add(args) => {
-                let workspace_repository = ImplWorkspaceRepository {
-                    workspace_storage: &storage,
-                };
-                WorkspaceAddCommand.execute(WorkspaceAddOptions {
-                    display: &*create_display(&args.display_command),
-                    workspace_repository: &workspace_repository,
+                let command = container.workspace_add_command();
+                command.execute(WorkspaceAddRuntimeOptions {
+                    json: args.display_command.json,
+                    json_pretty: args.display_command.json_pretty,
                     interactive: args.interactive,
                     name: args.name.clone(),
                     tags: args.tags.clone(),
                     path: args.path.clone(),
-                })
+                }).expect("Failed to execute workspace add command");
             }
         },
-        Some(Commands::Worktree(worktree_args)) => {
-            let tmux_repository = &TmuxRepository {
-                tmux_storage: &storage,
-                connection: &tmux_connection,
-            };
-            let workspace_repository = &ImplWorkspaceRepository {
-                workspace_storage: &storage,
-            };
-
-            match &worktree_args.command {
-                WorktreeCommands::Start(args) => {
-                    WorktreeStartCommand.execute(WorktreeStartOptions {
-                        branch_name: args.branch_name.clone(),
-                        force: args.force,
-                        yes: args.yes,
-                        workspace_repository,
-                        worktree_storage: &storage,
-                        session_repository: tmux_repository,
-                        client_repository: tmux_repository,
-                        tmux_storage: &storage,
-                    })
-                }
-                WorktreeCommands::Complete(args) => {
-                    let description_repository = &ImplDescriptionRepository {
-                        workspace_repository,
-                        session_repository: tmux_repository,
-                        tmux_storage: &storage,
-                    };
-                    let popup_repository = &infrastructure::tmux_workspaces::repositories::tmux::popup_repository::ImplPopupRepository {
-                        connection: &tmux_connection,
-                    };
-
-                    WorktreeCompleteCommand.execute(WorktreeCompleteOptions {
-                        branch_name: args.branch_name.clone(),
-                        force: args.force,
-                        yes: args.yes,
-                        workspace_repository,
-                        session_repository: tmux_repository,
-                        client_repository: tmux_repository,
-                        popup_repository,
-                        description_repository,
-                    })
-                }
+        Some(Commands::Worktree(worktree_args)) => match &worktree_args.command {
+            WorktreeCommands::Start(args) => {
+                let command = container.worktree_start_command();
+                command.execute(WorktreeStartRuntimeOptions {
+                    branch_name: args.branch_name.clone(),
+                    force: args.force,
+                    yes: args.yes,
+                }).expect("Failed to execute worktree start command");
             }
-        }
+            WorktreeCommands::Complete(args) => {
+                let command = container.worktree_complete_command();
+                command.execute(WorktreeCompleteRuntimeOptions {
+                    branch_name: args.branch_name.clone(),
+                    force: args.force,
+                    yes: args.yes,
+                }).expect("Failed to execute worktree complete command");
+            }
+        },
         Some(Commands::CommandPalette(palette_args)) => {
             use crate::commands::{
                 builtin::AddWorkspaceCommand, registry::CommandRegistry, CommandPalette,
@@ -399,11 +340,8 @@ fn main() -> Result<(), io::Error> {
             // Handle subcommands
             match &palette_args.command {
                 CommandPaletteCommands::Show => {
-                    // TODO move to using DI so we don't have to do this guly magic
-                    let storage_leaked = Box::leak(Box::new(storage));
-                    let workspace_repository: Rc<dyn WorkspaceRepository> = Rc::new(ImplWorkspaceRepository {
-                        workspace_storage: storage_leaked,
-                    });
+                    // Now we can use the DI container - no more Box::leak!
+                    let workspace_repository = container.workspace_repository();
 
                     // Run the command palette
                     if palette.registry().is_empty() {
@@ -426,19 +364,44 @@ fn main() -> Result<(), io::Error> {
     Ok(())
 }
 
-fn create_display(command: &DisplayCommand) -> Box<dyn RafaeltabDisplay> {
-    let display: Box<dyn RafaeltabDisplay> = match command {
+fn create_display_arc(command: &DisplayCommand) -> Arc<dyn RafaeltabDisplay> {
+    let display: Arc<dyn RafaeltabDisplay> = match command {
         DisplayCommand {
             json: true,
             json_pretty: false,
             ..
-        } => Box::new(JsonDisplay {}),
+        } => Arc::new(JsonDisplay {}),
         DisplayCommand {
             json: true,
             json_pretty: true,
             ..
-        } => Box::new(JsonPrettyDisplay {}),
-        DisplayCommand { json: false, .. } => Box::new(PrettyDisplay {}),
+        } => Arc::new(JsonPrettyDisplay {}),
+        DisplayCommand { json: false, .. } => Arc::new(PrettyDisplay {}),
     };
     display
+}
+
+fn resolve_config_path(path: Option<String>) -> Result<String, std::io::Error> {
+    use crate::utils::path::expand_path;
+    use std::path::Path;
+
+    static PATH_LOCATIONS_LINUX: &[&str] = &["~/.rafaeltab.json"];
+
+    if let Some(path) = path {
+        Ok(path)
+    } else {
+        // If config_path is not set, loop over PATH_LOCATIONS and find the first existing path
+        for &path in PATH_LOCATIONS_LINUX {
+            let full_path = expand_path(path);
+            if Path::new(&full_path).exists() {
+                return Ok(full_path);
+            }
+        }
+
+        // If no existing path found, return an error
+        Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "No config file found in PATH_LOCATIONS",
+        ))
+    }
 }

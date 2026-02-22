@@ -12,18 +12,15 @@ use crate::{
         },
     },
     infrastructure::tmux_workspaces::tmux::{
+        connection::TmuxConnection,
         tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode},
         tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
     },
-    storage::tmux::TmuxStorage,
 };
 
 use super::tmux_client::TmuxRepository;
 
-impl<TTmuxStorage> TmuxPaneRepository for TmuxRepository<'_, TTmuxStorage>
-where
-    TTmuxStorage: TmuxStorage,
-{
+impl TmuxPaneRepository for TmuxRepository {
     fn get_panes(&self, filter: Option<TmuxFilterNode>, target: GetPanesTarget) -> Vec<TmuxPane> {
         let list_format = json!({
             "id": TmuxFormatVariable::PaneId.to_format(),
@@ -52,7 +49,7 @@ where
 
         let res = self
             .connection
-            .cmd(args)
+            .cmd(args.iter().map(|&s| s.to_string()).collect())
             .stderr_to_stdout()
             .read()
             .expect("Failed to get panes");
@@ -73,7 +70,7 @@ where
             args.extend(["-t", &pane_value.id])
         }
         self.connection
-            .cmd(args)
+            .cmd(args.iter().map(|&s| s.to_string()).collect())
             .stderr_to_stdout()
             .read()
             .expect("Failed to kill pane");
@@ -108,10 +105,10 @@ where
 
         let _ = self
             .connection
-            .cmd(args)
+            .cmd(args.iter().map(|&s| s.to_string()).collect())
             .stderr_to_stdout()
             .read()
-            .expect("Failed to get panes");
+            .expect("Failed to split window");
 
         let new_panes = self.get_current_panes(pane);
         new_panes
@@ -122,10 +119,7 @@ where
     }
 }
 
-impl<TTmuxStorage> TmuxRepository<'_, TTmuxStorage>
-where
-    TTmuxStorage: TmuxStorage,
-{
+impl TmuxRepository {
     fn get_current_panes(&self, pane: Option<&TmuxPane>) -> Vec<TmuxPane> {
         match pane {
             Some(pane_value) => {

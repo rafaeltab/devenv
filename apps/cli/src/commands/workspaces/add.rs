@@ -1,26 +1,35 @@
+use std::sync::Arc;
+
 use atty::Stream;
 use inquire::{Confirm, Text};
 
 use crate::{
     commands::command::RafaeltabCommand,
     domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository,
-    utils::display::RafaeltabDisplay,
+    utils::display::DisplayFactory,
 };
 
-#[derive(Default)]
-pub struct WorkspaceAddCommand;
-
-pub struct WorkspaceAddOptions<'a> {
-    pub display: &'a dyn RafaeltabDisplay,
-    pub workspace_repository: &'a dyn WorkspaceRepository,
+// Runtime options - CLI arguments only
+pub struct WorkspaceAddRuntimeOptions {
+    pub json: bool,
+    pub json_pretty: bool,
     pub interactive: Option<bool>,
     pub name: Option<String>,
     pub tags: Option<Vec<String>>,
     pub path: Option<String>,
 }
 
-impl RafaeltabCommand<WorkspaceAddOptions<'_>> for WorkspaceAddCommand {
-    fn execute(&self, options: WorkspaceAddOptions) {
+// Command with injected dependencies
+pub struct WorkspaceAddCommand {
+    pub workspace_repository: Arc<dyn WorkspaceRepository>,
+    pub display_factory: Arc<dyn DisplayFactory>,
+}
+
+impl RafaeltabCommand<WorkspaceAddRuntimeOptions> for WorkspaceAddCommand {
+    fn execute(
+        &self,
+        options: WorkspaceAddRuntimeOptions,
+    ) -> Result<(), crate::commands::command::CommandError> {
         let path = match options.path.clone() {
             Some(path) => path,
             None => {
@@ -38,18 +47,23 @@ impl RafaeltabCommand<WorkspaceAddOptions<'_>> for WorkspaceAddCommand {
         // Build an id
         let id = prompt_data.name.to_lowercase().replace(' ', "_");
 
-        let workspace = &options.workspace_repository.create_workspace(
+        let workspace = &self.workspace_repository.create_workspace(
             prompt_data.name,
             prompt_data.tags,
             path,
             id,
         );
 
-        let _ = &options.display.display(workspace);
+        // Create display from factory based on runtime options
+        let display = self
+            .display_factory
+            .create_display(options.json, options.json_pretty);
+        display.display(workspace);
+        Ok(())
     }
 }
 
-fn prompt_data(options: &WorkspaceAddOptions) -> PromptData {
+fn prompt_data(options: &WorkspaceAddRuntimeOptions) -> PromptData {
     let interactive = match options.interactive {
         Some(i) => i,
         None => atty::is(Stream::Stdout),

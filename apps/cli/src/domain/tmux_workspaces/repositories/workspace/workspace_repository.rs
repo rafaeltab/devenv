@@ -1,6 +1,8 @@
+use shaku::Interface;
+
 use crate::domain::tmux_workspaces::aggregates::workspaces::workspace::Workspace;
 
-pub trait WorkspaceRepository {
+pub trait WorkspaceRepository: Interface {
     fn get_workspaces(&self) -> Vec<Workspace>;
     fn create_workspace(
         &self,

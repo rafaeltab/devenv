@@ -1,5 +1,11 @@
+use std::sync::Arc;
+
 use serde_json::{json, Value};
 
+use crate::domain::tmux_workspaces::{
+    aggregates::workspaces::workspace::Workspace as DomainWorkspace,
+    repositories::workspace::workspace_repository::WorkspaceRepository,
+};
 use crate::storage::workspace::{Workspace, WorkspaceStorage};
 
 use super::{data_with_path::DataWithPath, display::RafaeltabDisplayItem, path::expand_path};
@@ -11,6 +17,19 @@ pub fn get_workspace_paths<TWorkspaceStorage: WorkspaceStorage>(
         .read()
         .iter()
         .map(|x| x.load_path())
+        .collect()
+}
+
+pub fn get_workspace_paths_from_repo(
+    workspace_repository: Arc<dyn WorkspaceRepository>,
+) -> Vec<DataWithPath<DomainWorkspace>> {
+    workspace_repository
+        .get_workspaces()
+        .into_iter()
+        .map(|ws| {
+            let path = expand_path(&ws.path);
+            DataWithPath::new(ws, path)
+        })
         .collect()
 }
 
@@ -49,7 +68,17 @@ impl RafaeltabDisplayItem for Workspace {
     fn to_pretty_string(&self) -> String {
         match &self.tags {
             Some(tags) if !tags.is_empty() => {
-                format!("{} ({}): {} {:?}", self.name, self.id, self.root, tags)
+                let tags_formatted = format!(
+                    "[{}]",
+                    tags.iter()
+                        .map(|t| format!("\"{}\"", t))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
+                format!(
+                    "{} ({}): {} {}",
+                    self.name, self.id, self.root, tags_formatted
+                )
             }
             _ => format!("{} ({}): {}", self.name, self.id, self.root),
         }
@@ -74,12 +103,53 @@ impl RafaeltabDisplayItem for DataWithPath<Workspace> {
     fn to_pretty_string(&self) -> String {
         match &self.data.tags {
             Some(tags) if !tags.is_empty() => {
+                let tags_formatted = format!(
+                    "[{}]",
+                    tags.iter()
+                        .map(|t| format!("\"{}\"", t))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                );
                 format!(
-                    "{} ({}): {} {:?}",
-                    self.data.name, self.data.id, self.path, tags
+                    "{} ({}): {} {}",
+                    self.data.name, self.data.id, self.path, tags_formatted
                 )
             }
             _ => format!("{} ({}): {}", self.data.name, self.data.id, self.path),
         }
+    }
+}
+
+// Implementations for domain Workspace type
+impl RafaeltabDisplayItem for DataWithPath<DomainWorkspace> {
+    fn to_json(&self) -> Value {
+        let tags: Vec<String> = self.data.tags.iter().map(|t| t.name.clone()).collect();
+        json!({
+            "name": self.data.name,
+            "root": self.path,
+            "id": self.data.id,
+            "tags": tags,
+            "importance": self.data.importance,
+        })
+    }
+
+    fn to_pretty_string(&self) -> String {
+        let tags_str = if self.data.tags.is_empty() {
+            String::new()
+        } else {
+            format!(
+                " [{}]",
+                self.data
+                    .tags
+                    .iter()
+                    .map(|t| format!("\"{}\"", t.name))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        };
+        format!(
+            "{} ({}): {}{}",
+            self.data.name, self.data.id, self.path, tags_str
+        )
     }
 }

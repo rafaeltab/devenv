@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fs, io, path::Path};
+use std::{fs, io, path::Path, sync::RwLock};
 
 use serde::{Deserialize, Serialize};
 
@@ -12,27 +12,31 @@ use crate::{
     utils::path::expand_path,
 };
 
-pub struct JsonStorageProvider {
-    path: String,
+/// Parameters for creating JsonStorage
+#[derive(Debug, Clone)]
+pub struct JsonStorageParameters {
+    pub config_path: String,
 }
+
+/// JSON-based storage implementation that handles all data types
 pub struct JsonStorage {
     path: String,
-    data: RefCell<JsonData>,
+    data: RwLock<JsonData>,
 }
 
-impl JsonStorageProvider {
-    pub fn new(path: Option<String>) -> Result<Self, io::Error> {
-        let config_path = get_config_path(path)?;
-
-        Ok(JsonStorageProvider { path: config_path })
+impl JsonStorage {
+    /// Get the config path
+    pub fn path(&self) -> &str {
+        &self.path
     }
 
-    pub fn load(&self) -> Result<JsonStorage, io::Error> {
-        let json_data = load_json_data(self.path.clone())?;
+    /// Create a new JsonStorage with the given parameters
+    pub fn new(parameters: JsonStorageParameters) -> Result<Self, io::Error> {
+        let json_data = load_json_data(parameters.config_path.clone())?;
 
         Ok(JsonStorage {
-            path: self.path.clone(),
-            data: RefCell::new(json_data),
+            path: parameters.config_path,
+            data: RwLock::new(json_data),
         })
     }
 }
@@ -40,17 +44,19 @@ impl JsonStorageProvider {
 impl WorkspaceStorage for JsonStorage {}
 impl Storage<Vec<Workspace>> for JsonStorage {
     fn read(&self) -> Vec<Workspace> {
-        self.data.borrow().workspaces.clone()
+        self.data.read().unwrap().workspaces.clone()
     }
 
     fn write(&self, value: &Vec<Workspace>) -> Result<(), io::Error> {
         let new_value = JsonData {
             workspaces: value.clone(),
-            tmux: self.data.borrow().tmux.clone(),
-            worktree: self.data.borrow().worktree.clone(),
+            tmux: self.data.read().unwrap().tmux.clone(),
+            worktree: self.data.read().unwrap().worktree.clone(),
         };
         let _ = write_json_data(self.path.clone(), &new_value);
-        self.data.replace(load_json_data(self.path.clone())?);
+        // Reload data from disk
+        let reloaded_data = load_json_data(self.path.clone())?;
+        *self.data.write().unwrap() = reloaded_data;
         Ok(())
     }
 }
@@ -58,17 +64,19 @@ impl Storage<Vec<Workspace>> for JsonStorage {
 impl TmuxStorage for JsonStorage {}
 impl Storage<Tmux> for JsonStorage {
     fn read(&self) -> Tmux {
-        self.data.borrow().tmux.clone()
+        self.data.read().unwrap().tmux.clone()
     }
 
     fn write(&self, value: &Tmux) -> Result<(), io::Error> {
         let new_value = JsonData {
-            workspaces: self.data.borrow().workspaces.clone(),
+            workspaces: self.data.read().unwrap().workspaces.clone(),
             tmux: value.clone(),
-            worktree: self.data.borrow().worktree.clone(),
+            worktree: self.data.read().unwrap().worktree.clone(),
         };
         let _ = write_json_data(self.path.clone(), &new_value);
-        self.data.replace(load_json_data(self.path.clone())?);
+        // Reload data from disk
+        let reloaded_data = load_json_data(self.path.clone())?;
+        *self.data.write().unwrap() = reloaded_data;
         Ok(())
     }
 }
@@ -76,17 +84,19 @@ impl Storage<Tmux> for JsonStorage {
 impl WorktreeStorage for JsonStorage {}
 impl Storage<Option<WorktreeConfig>> for JsonStorage {
     fn read(&self) -> Option<WorktreeConfig> {
-        self.data.borrow().worktree.clone()
+        self.data.read().unwrap().worktree.clone()
     }
 
     fn write(&self, value: &Option<WorktreeConfig>) -> Result<(), io::Error> {
         let new_value = JsonData {
-            workspaces: self.data.borrow().workspaces.clone(),
-            tmux: self.data.borrow().tmux.clone(),
+            workspaces: self.data.read().unwrap().workspaces.clone(),
+            tmux: self.data.read().unwrap().tmux.clone(),
             worktree: value.clone(),
         };
         let _ = write_json_data(self.path.clone(), &new_value);
-        self.data.replace(load_json_data(self.path.clone())?);
+        // Reload data from disk
+        let reloaded_data = load_json_data(self.path.clone())?;
+        *self.data.write().unwrap() = reloaded_data;
         Ok(())
     }
 }
@@ -113,9 +123,28 @@ fn write_json_data(path: String, data: &JsonData) -> Result<(), io::Error> {
     Ok(())
 }
 
-static PATH_LOCATIONS_LINUX: &[&str] = &["~/.rafaeltab.json"];
+/// Legacy provider for creating storage (used during transition)
+pub struct JsonStorageProvider {
+    path: String,
+}
+
+impl JsonStorageProvider {
+    pub fn new(path: Option<String>) -> Result<Self, io::Error> {
+        let config_path = get_config_path(path)?;
+
+        Ok(JsonStorageProvider { path: config_path })
+    }
+
+    pub fn load(&self) -> Result<JsonStorage, io::Error> {
+        JsonStorage::new(JsonStorageParameters {
+            config_path: self.path.clone(),
+        })
+    }
+}
 
 fn get_config_path(path: Option<String>) -> Result<String, io::Error> {
+    static PATH_LOCATIONS_LINUX: &[&str] = &["~/.rafaeltab.json"];
+
     if let Some(path) = path {
         Ok(path)
     } else {

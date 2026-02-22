@@ -1,4 +1,6 @@
 use serde_json::Value;
+use shaku::{Component, Interface};
+use std::sync::Arc;
 
 pub trait ToDynVec<'a> {
     fn to_dyn_vec(&self) -> Vec<&dyn RafaeltabDisplayItem>;
@@ -57,6 +59,27 @@ impl RafaeltabDisplay for JsonDisplay {
             Err(_) => panic!("Failed to convert element to json"),
         };
         println!("{}", json_str);
+    }
+}
+
+/// Factory for creating display instances based on output format preferences
+pub trait DisplayFactory: Interface {
+    /// Create a display instance based on format flags
+    fn create_display(&self, json: bool, json_pretty: bool) -> Arc<dyn RafaeltabDisplay>;
+}
+
+/// Default implementation of DisplayFactory
+#[derive(Component)]
+#[shaku(interface = DisplayFactory)]
+pub struct DisplayFactoryImpl;
+
+impl DisplayFactory for DisplayFactoryImpl {
+    fn create_display(&self, json: bool, json_pretty: bool) -> Arc<dyn RafaeltabDisplay> {
+        match (json, json_pretty) {
+            (true, true) => Arc::new(JsonPrettyDisplay),
+            (true, false) => Arc::new(JsonDisplay),
+            _ => Arc::new(PrettyDisplay),
+        }
     }
 }
 

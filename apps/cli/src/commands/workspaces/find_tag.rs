@@ -1,29 +1,57 @@
+use std::sync::Arc;
+
 use crate::{
-    storage::workspace::{Workspace, WorkspaceStorage},
+    commands::command::RafaeltabCommand,
+    domain::tmux_workspaces::{
+        aggregates::workspaces::workspace::Workspace,
+        repositories::workspace::workspace_repository::WorkspaceRepository,
+    },
     utils::{
         data_with_path::DataWithPath,
-        display::{RafaeltabDisplay, ToDynVec},
+        display::{DisplayFactory, ToDynVec},
+        path::expand_path,
     },
 };
 
-pub struct FindTagWorkspaceOptions<'a> {
-    pub display: &'a dyn RafaeltabDisplay,
+// Runtime options - CLI arguments only
+pub struct FindTagWorkspaceRuntimeOptions {
+    pub tag: String,
+    pub json: bool,
+    pub json_pretty: bool,
 }
 
-pub fn find_tag_workspace<TWorkspaceStorage: WorkspaceStorage>(
-    workspace_storage: &TWorkspaceStorage,
-    tag: &str,
-    FindTagWorkspaceOptions { display }: FindTagWorkspaceOptions,
-) {
-    let workspaces: Vec<DataWithPath<Workspace>> = workspace_storage
-        .read()
-        .iter()
-        .filter(|x| match &x.tags {
-            Some(tags) => tags.contains(&tag.to_string()),
-            None => false,
-        })
-        .map(|x| x.load_path())
-        .collect();
+// Command with injected dependencies
+pub struct FindTagWorkspaceCommand {
+    pub workspace_repository: Arc<dyn WorkspaceRepository>,
+    pub display_factory: Arc<dyn DisplayFactory>,
+}
 
-    display.display_list(workspaces.to_dyn_vec());
+impl RafaeltabCommand<FindTagWorkspaceRuntimeOptions> for FindTagWorkspaceCommand {
+    fn execute(
+        &self,
+        options: FindTagWorkspaceRuntimeOptions,
+    ) -> Result<(), crate::commands::command::CommandError> {
+        let display = self
+            .display_factory
+            .create_display(options.json, options.json_pretty);
+
+        let workspaces: Vec<Workspace> = self
+            .workspace_repository
+            .get_workspaces()
+            .into_iter()
+            .filter(|x| x.tags.iter().any(|t| t.name == options.tag))
+            .collect();
+
+        let workspaces_with_path: Vec<DataWithPath<Workspace>> = workspaces
+            .into_iter()
+            .map(|ws| {
+                let path = expand_path(&ws.path);
+                DataWithPath::new(ws, path)
+            })
+            .collect();
+
+        display.display_list(workspaces_with_path.to_dyn_vec());
+
+        Ok(())
+    }
 }

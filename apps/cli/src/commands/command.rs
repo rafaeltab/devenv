@@ -1,7 +1,33 @@
 use std::fmt::Debug;
 
+/// Error type for command execution failures
+#[derive(Debug)]
+pub enum CommandError {
+    /// IO error occurred during command execution
+    Io(std::io::Error),
+    /// General error with a message
+    General(String),
+}
+
+impl From<std::io::Error> for CommandError {
+    fn from(err: std::io::Error) -> Self {
+        CommandError::Io(err)
+    }
+}
+
+impl std::fmt::Display for CommandError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CommandError::Io(err) => write!(f, "IO error: {}", err),
+            CommandError::General(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
+impl std::error::Error for CommandError {}
+
 pub trait RafaeltabCommand<TArgs> {
-    fn execute(&self, args: TArgs);
+    fn execute(&self, args: TArgs) -> Result<(), CommandError>;
 }
 
 /// Trait for commands that can be displayed and executed in the command palette.

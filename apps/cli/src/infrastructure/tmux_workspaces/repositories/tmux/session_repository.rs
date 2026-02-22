@@ -17,10 +17,10 @@ use crate::{
         },
     },
     infrastructure::tmux_workspaces::tmux::{
+        connection::TmuxConnection,
         tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode},
         tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
     },
-    storage::tmux::TmuxStorage,
     utils::path::expand_path,
 };
 
@@ -28,10 +28,7 @@ static TMUX_SESSION_ID_KEY: &str = "RAFAELTAB_SESSION_ID";
 
 use super::tmux_client::TmuxRepository;
 
-impl<TTmuxStorage> TmuxSessionRepository for TmuxRepository<'_, TTmuxStorage>
-where
-    TTmuxStorage: TmuxStorage,
-{
+impl TmuxSessionRepository for TmuxRepository {
     fn new_session(&self, description: &SessionDescription) -> TmuxSession {
         let name = &description.name;
         let path = match &description.kind {
@@ -80,7 +77,7 @@ where
 
         let session_id = self
             .connection
-            .cmd(args)
+            .cmd(args.iter().map(|&s| s.to_string()).collect())
             .stderr_to_stdout()
             .read()
             .expect("Expected to succeed creating session");
@@ -110,7 +107,7 @@ where
             args.extend(["-t", &sess.id]);
         }
         self.connection
-            .cmd(args)
+            .cmd(args.iter().map(|&s| s.to_string()).collect())
             .stderr_to_stdout()
             .read()
             .expect("Failed to get sessions");
@@ -118,7 +115,11 @@ where
 
     fn get_environment(&self, session_id: &str) -> String {
         self.connection
-            .cmd(["show-environment", "-t", session_id])
+            .cmd(vec![
+                "show-environment".to_string(),
+                "-t".to_string(),
+                session_id.to_string(),
+            ])
             .stderr_to_stdout()
             .read()
             .expect("Failed to get sessions")
@@ -143,7 +144,11 @@ where
         if !filter_string.is_empty() {
             args.extend(["-f", &filter_string]);
         }
-        let result = self.connection.cmd(args).stderr_to_stdout().read();
+        let result = self
+            .connection
+            .cmd(args.iter().map(|&s| s.to_string()).collect())
+            .stderr_to_stdout()
+            .read();
 
         match result {
             Ok(res) => {

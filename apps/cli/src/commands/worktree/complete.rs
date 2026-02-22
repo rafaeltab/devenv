@@ -3,6 +3,7 @@
 use std::io::{self, BufRead, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use std::sync::Arc;
 
 use crate::{
     commands::command::RafaeltabCommand,
@@ -25,26 +26,28 @@ use crate::{
     utils::path::expand_path,
 };
 
-#[derive(Default)]
-pub struct WorktreeCompleteCommand;
-
-pub struct WorktreeCompleteOptions<'a> {
+/// Runtime options - CLI arguments only
+pub struct WorktreeCompleteRuntimeOptions {
     /// The branch name of the worktree to complete (optional, defaults to current directory)
     pub branch_name: Option<String>,
     /// Force removal even with uncommitted/unpushed changes
     pub force: bool,
     /// Skip confirmation prompt
     pub yes: bool,
+}
+
+/// Command with injected dependencies
+pub struct WorktreeCompleteCommand {
     /// Repository for workspace operations
-    pub workspace_repository: &'a dyn WorkspaceRepository,
+    pub workspace_repository: Arc<dyn WorkspaceRepository>,
     /// Repository for tmux session operations
-    pub session_repository: &'a dyn TmuxSessionRepository,
+    pub session_repository: Arc<dyn TmuxSessionRepository>,
     /// Repository for tmux client operations
-    pub client_repository: &'a dyn TmuxClientRepository,
+    pub client_repository: Arc<dyn TmuxClientRepository>,
     /// Repository for tmux popup operations
-    pub popup_repository: &'a dyn TmuxPopupRepository,
+    pub popup_repository: Arc<dyn TmuxPopupRepository>,
     /// Repository for session descriptions (to create workspace sessions)
-    pub description_repository: &'a dyn SessionDescriptionRepository,
+    pub description_repository: Arc<dyn SessionDescriptionRepository>,
 }
 
 /// Result of the worktree complete command
@@ -63,8 +66,8 @@ pub enum WorktreeCompleteResult {
     Failed(WorktreeError),
 }
 
-impl RafaeltabCommand<WorktreeCompleteOptions<'_>> for WorktreeCompleteCommand {
-    fn execute(&self, options: WorktreeCompleteOptions) {
+impl RafaeltabCommand<WorktreeCompleteRuntimeOptions> for WorktreeCompleteCommand {
+    fn execute(&self, options: WorktreeCompleteRuntimeOptions) -> Result<(), crate::commands::command::CommandError> {
         match self.execute_internal(options) {
             WorktreeCompleteResult::Success {
                 branch_name,
@@ -87,11 +90,12 @@ impl RafaeltabCommand<WorktreeCompleteOptions<'_>> for WorktreeCompleteCommand {
                 exit(1);
             }
         }
+        Ok(())
     }
 }
 
 impl WorktreeCompleteCommand {
-    fn execute_internal(&self, options: WorktreeCompleteOptions) -> WorktreeCompleteResult {
+    fn execute_internal(&self, options: WorktreeCompleteRuntimeOptions) -> WorktreeCompleteResult {
         // ===== PHASE 1: PRE-FLIGHT CHECKS =====
 
         // 1. Get current directory
@@ -173,7 +177,7 @@ impl WorktreeCompleteCommand {
         }
 
         // 6. Find the workspace this worktree belongs to
-        let workspaces = options.workspace_repository.get_workspaces();
+        let workspaces = self.workspace_repository.get_workspaces();
         let workspace = find_workspace_for_path(&main_repo_path, &workspaces);
 
         // ===== PHASE 2: DETERMINE EXECUTION FLOW =====
@@ -189,10 +193,10 @@ impl WorktreeCompleteCommand {
                 &branch_name,
                 options.force,
                 options.yes,
-                options.session_repository,
-                options.popup_repository,
-                options.description_repository,
-                options.client_repository,
+                self.session_repository.as_ref(),
+                self.popup_repository.as_ref(),
+                self.description_repository.as_ref(),
+                self.client_repository.as_ref(),
             )
         } else {
             // Flow 2: We're in a different session - execute cleanup directly
@@ -204,8 +208,8 @@ impl WorktreeCompleteCommand {
                 options.force,
                 options.yes,
                 &current_dir,
-                options.session_repository,
-                options.client_repository,
+                self.session_repository.as_ref(),
+                self.client_repository.as_ref(),
             )
         }
     }

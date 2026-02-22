@@ -3,7 +3,7 @@ use serde_json::json;
 
 use crate::{storage::worktree::WorkspaceWorktreeConfig, utils::display::RafaeltabDisplayItem};
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Workspace {
     /// A plaintext string that represents the unique identifier of this workspace
     pub id: String,
@@ -19,7 +19,7 @@ pub struct Workspace {
     pub worktree: Option<WorkspaceWorktreeConfig>,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct WorkspaceTag {
     /// The name of this tag
     pub name: String,
@@ -27,11 +27,12 @@ pub struct WorkspaceTag {
 
 impl RafaeltabDisplayItem for Workspace {
     fn to_json(&self) -> serde_json::Value {
+        let tag_names: Vec<String> = self.tags.iter().map(|t| t.name.clone()).collect();
         json!({
             "id": self.id,
             "name": self.name,
             "path": self.path,
-            "tags": self.tags
+            "tags": tag_names
         })
     }
 

@@ -1,5 +1,6 @@
 use std::cmp::min;
 use std::io;
+use std::sync::Arc;
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::layout::{Constraint, Direction, Layout};
@@ -10,11 +11,11 @@ use ratatui::{prelude::*, Terminal};
 use sublime_fuzzy::best_match;
 use unicode_width::UnicodeWidthChar;
 
+use crate::di::ConfigPathProvider;
 use crate::domain::tmux_workspaces::aggregates::tmux::description::session::SessionDescription;
 use crate::domain::tmux_workspaces::repositories::tmux::client_repository::{
     SwitchClientTarget, TmuxClientRepository,
 };
-use crate::storage::tmux::TmuxStorage;
 use crate::utils::with_terminal;
 use crate::{
     commands::command::RafaeltabCommand,
@@ -24,55 +25,58 @@ use crate::{
     },
 };
 
-#[derive(Default)]
-pub struct TmuxSwitchCommand;
+/// Runtime options for TmuxSwitchCommand
+/// This command has no CLI arguments, so the struct is empty
+pub struct TmuxSwitchRuntimeOptions;
 
-pub struct TmuxSwitchOptions<'a> {
-    pub session_description_repository: &'a dyn SessionDescriptionRepository,
-    pub session_repository: &'a dyn TmuxSessionRepository,
-    pub client_repository: &'a dyn TmuxClientRepository,
-    pub tmux_storage: &'a dyn TmuxStorage,
+/// Command for switching between tmux sessions with fuzzy search
+pub struct TmuxSwitchCommand {
+    pub session_description_repository: Arc<dyn SessionDescriptionRepository>,
+    pub session_repository: Arc<dyn TmuxSessionRepository>,
+    pub client_repository: Arc<dyn TmuxClientRepository>,
+    pub config_path_provider: Arc<dyn ConfigPathProvider>,
 }
 
-impl RafaeltabCommand<TmuxSwitchOptions<'_>> for TmuxSwitchCommand {
+impl RafaeltabCommand<TmuxSwitchRuntimeOptions> for TmuxSwitchCommand {
     fn execute(
         &self,
-        TmuxSwitchOptions {
-            session_description_repository,
-            session_repository,
-            client_repository,
-            tmux_storage,
-        }: TmuxSwitchOptions,
-    ) {
-        let descriptions = session_description_repository.get_session_descriptions();
+        _runtime_options: TmuxSwitchRuntimeOptions,
+    ) -> Result<(), crate::commands::command::CommandError> {
+        let descriptions = self
+            .session_description_repository
+            .get_session_descriptions();
 
         let res = fuzzy_pick(FuzzySearchArgs {
             items: &descriptions,
             search_text_fun: select_name,
         })
-        .expect("Hey");
+        .map_err(|e| crate::commands::command::CommandError::Io(e))?;
 
         if let Some(selected_session) = res {
             println!("You selected {}!", selected_session.name);
             let session = match &selected_session.session {
                 Some(se) => se,
-                None => &session_repository.new_session(selected_session),
+                None => &self.session_repository.new_session(selected_session),
             };
 
-            client_repository.switch_client(None, SwitchClientTarget::Session(session));
+            self.client_repository
+                .switch_client(None, SwitchClientTarget::Session(session));
 
             // Create worktree sessions if this is a workspace session
             use crate::domain::tmux_workspaces::aggregates::tmux::description::session::SessionKind;
             if let SessionKind::Workspace(workspace) = &selected_session.kind {
+                let config_path = self.config_path_provider.path();
                 crate::commands::tmux::session_utils::create_worktree_sessions(
                     workspace,
-                    session_repository,
-                    tmux_storage,
+                    self.session_repository.as_ref(),
+                    &config_path,
                 );
             }
         } else {
             println!("You didn't make a selection :/");
         }
+
+        Ok(())
     }
 }
 

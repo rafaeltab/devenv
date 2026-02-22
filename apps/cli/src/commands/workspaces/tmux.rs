@@ -1,63 +1,93 @@
+use std::sync::Arc;
+
 use duct::cmd;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::{
-    commands::tmux::legacy::TMUX_WORKSPACE_KEY,
-    storage::workspace::{Workspace, WorkspaceStorage},
-    utils::{
-        display::{RafaeltabDisplay, RafaeltabDisplayItem, ToDynVec},
-        workspace::find_workspace,
+    commands::{
+        command::CommandError, command::RafaeltabCommand, tmux::legacy::TMUX_WORKSPACE_KEY,
     },
+    domain::tmux_workspaces::{
+        aggregates::workspaces::workspace::Workspace,
+        repositories::workspace::workspace_repository::WorkspaceRepository,
+    },
+    utils::display::{DisplayFactory, RafaeltabDisplayItem, ToDynVec},
 };
 
-pub struct ListTmuxWorkspaceOptions<'a> {
-    pub display: &'a dyn RafaeltabDisplay,
+// Runtime options - CLI arguments only
+pub struct ListTmuxWorkspacesRuntimeOptions {
+    pub json: bool,
+    pub json_pretty: bool,
 }
 
-pub fn list_tmux_workspaces<TWorkspaceStorage: WorkspaceStorage>(
-    workspace_storage: &TWorkspaceStorage,
-    ListTmuxWorkspaceOptions { display }: ListTmuxWorkspaceOptions,
-) {
-    let format = json!({
-        "name": "#{session_name}",
-        "path": "#{session_path}",
-    });
+// Command with injected dependencies
+pub struct ListTmuxWorkspacesCommand {
+    pub workspace_repository: Arc<dyn WorkspaceRepository>,
+    pub display_factory: Arc<dyn DisplayFactory>,
+}
 
-    let output = cmd!("tmux", "ls", "-F", format.to_string())
-        .stderr_to_stdout()
-        .read()
-        .unwrap();
-    let sessions: Vec<SessionOutput> = output
-        .lines()
-        .map(|x| serde_json::from_str::<SessionOutput>(x).unwrap())
-        .collect();
+impl RafaeltabCommand<ListTmuxWorkspacesRuntimeOptions> for ListTmuxWorkspacesCommand {
+    fn execute(&self, options: ListTmuxWorkspacesRuntimeOptions) -> Result<(), CommandError> {
+        // Create display from factory based on runtime options
+        let display = self
+            .display_factory
+            .create_display(options.json, options.json_pretty);
 
-    let mut results: Vec<SessionResult> = vec![];
-    for session in &sessions {
-        let session_env = cmd!("tmux", "show-environment", "-t", session.clone().name)
+        let format = json!({
+            "name": "#{session_name}",
+            "path": "#{session_path}",
+        });
+
+        let output = cmd!("tmux", "ls", "-F", format.to_string())
             .stderr_to_stdout()
             .read()
-            .unwrap();
-        let workspace_line = session_env.lines().find(|x| x.contains(TMUX_WORKSPACE_KEY));
-        results.push(match workspace_line {
-            None => SessionResult {
-                session_name: session.name.clone(),
-                session_path: session.path.clone(),
-                workspace: None,
-            },
-            Some(line) => {
-                let workspace_id = line.split('=').next_back().unwrap();
-                SessionResult {
+            .map_err(|e| CommandError::General(format!("Failed to list tmux sessions: {}", e)))?;
+
+        let sessions: Vec<SessionOutput> = output
+            .lines()
+            .map(|x| {
+                serde_json::from_str::<SessionOutput>(x).map_err(|e| {
+                    CommandError::General(format!("Failed to parse session output: {}", e))
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let mut results: Vec<SessionResult> = vec![];
+        for session in &sessions {
+            let session_env = cmd!("tmux", "show-environment", "-t", session.clone().name)
+                .stderr_to_stdout()
+                .read()
+                .map_err(|e| {
+                    CommandError::General(format!("Failed to get session environment: {}", e))
+                })?;
+            let workspace_line = session_env.lines().find(|x| x.contains(TMUX_WORKSPACE_KEY));
+            results.push(match workspace_line {
+                None => SessionResult {
                     session_name: session.name.clone(),
                     session_path: session.path.clone(),
-                    workspace: find_workspace(workspace_storage, workspace_id),
+                    workspace: None,
+                },
+                Some(line) => {
+                    let workspace_id = line.split('=').next_back().ok_or_else(|| {
+                        CommandError::General("Failed to parse workspace ID".to_string())
+                    })?;
+                    SessionResult {
+                        session_name: session.name.clone(),
+                        session_path: session.path.clone(),
+                        workspace: self
+                            .workspace_repository
+                            .get_workspaces()
+                            .into_iter()
+                            .find(|x| x.id == workspace_id),
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
 
-    display.display_list(results.to_dyn_vec());
+        display.display_list(results.to_dyn_vec());
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]

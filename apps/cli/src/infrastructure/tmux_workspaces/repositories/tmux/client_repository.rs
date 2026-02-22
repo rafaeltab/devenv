@@ -5,10 +5,10 @@ use crate::domain::tmux_workspaces::aggregates::tmux::client::ClientIncludeField
 use crate::domain::tmux_workspaces::repositories::tmux::client_repository::{
     SwitchClientTarget, TmuxClientRepository,
 };
+use crate::infrastructure::tmux_workspaces::tmux::connection::TmuxConnection;
 use crate::infrastructure::tmux_workspaces::tmux::tmux_format::{
     TmuxFilterAstBuilder, TmuxFilterNode,
 };
-use crate::storage::tmux::TmuxStorage;
 use crate::{
     domain::tmux_workspaces::{
         aggregates::tmux::client::TmuxClient,
@@ -21,7 +21,7 @@ use crate::{
 
 use super::tmux_client::TmuxRepository;
 
-impl<TTmuxStorage: TmuxStorage> TmuxClientRepository for TmuxRepository<'_, TTmuxStorage> {
+impl TmuxClientRepository for TmuxRepository {
     fn get_clients(
         &self,
         filter: Option<TmuxFilterNode>,
@@ -45,7 +45,7 @@ impl<TTmuxStorage: TmuxStorage> TmuxClientRepository for TmuxRepository<'_, TTmu
 
         let res = self
             .connection
-            .cmd(&args)
+            .cmd(args)
             .stderr_to_stdout()
             .read()
             .expect("Failed to get clients");
@@ -90,7 +90,7 @@ impl<TTmuxStorage: TmuxStorage> TmuxClientRepository for TmuxRepository<'_, TTmu
         }
         args.extend(["-t".to_string(), target_id.to_string()]);
         self.connection
-            .cmd(&args)
+            .cmd(args)
             .run()
             .expect("Unable to switch client");
     }

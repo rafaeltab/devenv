@@ -1,5 +1,6 @@
 //! Command to start a new git worktree
 
+use std::sync::Arc;
 use std::{path::Path, process::exit};
 
 use duct::cmd;
@@ -27,30 +28,30 @@ use crate::{
         },
     },
     infrastructure::git::{self, symlink::create_symlinks, BranchLocation, GitError},
-    storage::{tmux::TmuxStorage, worktree::WorktreeStorage},
+    storage::storage_interface::Storage,
     utils::path::expand_path,
 };
 
-#[derive(Default)]
-pub struct WorktreeStartCommand;
-
-pub struct WorktreeStartOptions<'a> {
+/// Runtime options - CLI arguments only
+pub struct WorktreeStartRuntimeOptions {
     /// The branch name for the new worktree
     pub branch_name: String,
     /// Force creation even without worktree config
     pub force: bool,
     /// Skip confirmation prompt
     pub yes: bool,
+}
+
+/// Command with injected dependencies
+pub struct WorktreeStartCommand {
     /// Repository for workspace operations
-    pub workspace_repository: &'a dyn WorkspaceRepository,
-    /// Storage for global worktree config
-    pub worktree_storage: &'a dyn WorktreeStorage,
+    pub workspace_repository: Arc<dyn WorkspaceRepository>,
     /// Repository for tmux session operations
-    pub session_repository: &'a dyn TmuxSessionRepository,
+    pub session_repository: Arc<dyn TmuxSessionRepository>,
     /// Repository for tmux client operations
-    pub client_repository: &'a dyn TmuxClientRepository,
-    /// Storage for tmux configuration
-    pub tmux_storage: &'a dyn TmuxStorage,
+    pub client_repository: Arc<dyn TmuxClientRepository>,
+    /// Config path provider
+    pub config_path_provider: Arc<dyn crate::di::ConfigPathProvider>,
 }
 
 /// Result of the worktree start command
@@ -73,8 +74,11 @@ pub enum WorktreeStartResult {
     Failed(WorktreeError),
 }
 
-impl RafaeltabCommand<WorktreeStartOptions<'_>> for WorktreeStartCommand {
-    fn execute(&self, options: WorktreeStartOptions) {
+impl RafaeltabCommand<WorktreeStartRuntimeOptions> for WorktreeStartCommand {
+    fn execute(
+        &self,
+        options: WorktreeStartRuntimeOptions,
+    ) -> Result<(), crate::commands::command::CommandError> {
         let branch_name = options.branch_name.clone();
         match self.execute_internal(options) {
             WorktreeStartResult::Success {
@@ -111,11 +115,12 @@ impl RafaeltabCommand<WorktreeStartOptions<'_>> for WorktreeStartCommand {
                 exit(1);
             }
         }
+        Ok(())
     }
 }
 
 impl WorktreeStartCommand {
-    fn execute_internal(&self, options: WorktreeStartOptions) -> WorktreeStartResult {
+    fn execute_internal(&self, options: WorktreeStartRuntimeOptions) -> WorktreeStartResult {
         // 1. Get current directory
         let current_dir = match std::env::current_dir() {
             Ok(dir) => dir,
@@ -128,7 +133,7 @@ impl WorktreeStartCommand {
         };
 
         // 2. Find the workspace for the current directory
-        let workspaces = options.workspace_repository.get_workspaces();
+        let workspaces = self.workspace_repository.get_workspaces();
         let workspace = match find_workspace_for_path(&current_dir, &workspaces) {
             Some(ws) => ws,
             None => {
@@ -152,9 +157,23 @@ impl WorktreeStartCommand {
         };
 
         // 5. Check for worktree configuration
-        let global_config = options.worktree_storage.read();
+        let config_path = self.config_path_provider.path().to_string();
+        let storage = match crate::storage::kinds::json_storage::JsonStorage::new(
+            crate::storage::kinds::json_storage::JsonStorageParameters {
+                config_path: config_path.clone(),
+            },
+        ) {
+            Ok(s) => s,
+            Err(e) => {
+                return WorktreeStartResult::Failed(WorktreeError::GitError(format!(
+                    "Failed to load configuration from '{}': {}",
+                    config_path, e
+                )));
+            }
+        };
+        let global_config: Option<crate::storage::worktree::WorktreeConfig> = storage.read();
         let workspace_config =
-            find_workspace_worktree_config(&workspace.id, options.workspace_repository);
+            find_workspace_worktree_config(&workspace.id, self.workspace_repository.as_ref());
 
         let has_config = global_config.is_some() || workspace_config.is_some();
 
@@ -310,11 +329,11 @@ impl WorktreeStartCommand {
 
         // Create a session description for the worktree
         let session = create_tmux_session(
-            options.session_repository,
+            self.session_repository.as_ref(),
             &session_name,
             &worktree_path,
             &workspace.id,
-            options.tmux_storage,
+            &config_path,
         );
 
         // 17. If onCreate failed, don't switch to session
@@ -329,8 +348,7 @@ impl WorktreeStartCommand {
 
         // 18. Switch to the new tmux session
         if let Some(ref sess) = session {
-            options
-                .client_repository
+            self.client_repository
                 .switch_client(None, SwitchClientTarget::Session(sess));
         }
 
@@ -390,7 +408,7 @@ fn create_tmux_session(
     session_name: &str,
     worktree_path: &Path,
     workspace_id: &str,
-    tmux_storage: &dyn TmuxStorage,
+    config_path: &str,
 ) -> Option<crate::domain::tmux_workspaces::aggregates::tmux::session::TmuxSession> {
     use crate::commands::tmux::session_utils::get_windows_for_workspace;
     use crate::domain::tmux_workspaces::aggregates::tmux::description::session::{
@@ -407,7 +425,7 @@ fn create_tmux_session(
         kind: SessionKind::Path(PathSessionDescription {
             path: worktree_path.to_string_lossy().to_string(),
         }),
-        windows: get_windows_for_workspace(workspace_id, tmux_storage),
+        windows: get_windows_for_workspace(workspace_id, config_path),
         session: None,
     };
 
@@ -417,13 +435,46 @@ fn create_tmux_session(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::di::{ConfigPathOption, ConfigPathProvider};
     use crate::domain::worktree::config::MergedWorktreeConfig;
     use crate::infrastructure::tmux_workspaces::repositories::workspace::workspace_repository::ImplWorkspaceRepository;
     use crate::storage::{
-        test::mocks::MockWorkspaceStorage,
         workspace::Workspace,
         worktree::{WorkspaceWorktreeConfig, WorktreeConfig},
     };
+    use std::io::Write;
+    use std::sync::Arc;
+
+    fn create_test_repo(
+        workspaces: Vec<Workspace>,
+    ) -> (ImplWorkspaceRepository, tempfile::TempDir) {
+        use crate::storage::kinds::json_storage::JsonData;
+
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config_path = temp_dir.path().join("rafaeltab.json");
+
+        let config = JsonData {
+            workspaces,
+            tmux: crate::storage::tmux::Tmux {
+                sessions: None,
+                default_windows: vec![],
+            },
+            worktree: None,
+        };
+
+        let config_str = serde_json::to_string(&config).expect("Failed to serialize config");
+        let mut file = std::fs::File::create(&config_path).expect("Failed to create config file");
+        file.write_all(config_str.as_bytes())
+            .expect("Failed to write config");
+
+        let config_path_option = Arc::new(ConfigPathOption {
+            path: config_path.to_string_lossy().to_string(),
+        }) as Arc<dyn ConfigPathProvider>;
+
+        let repo = ImplWorkspaceRepository::with_config_path(config_path_option);
+
+        (repo, temp_dir)
+    }
 
     #[test]
     fn test_find_workspace_worktree_config_returns_config() {
@@ -432,28 +483,24 @@ mod tests {
             on_create: vec!["pnpm install".to_string()],
         };
 
-        let workspace_storage = MockWorkspaceStorage {
-            data: vec![
-                Workspace {
-                    id: "workspace-1".to_string(),
-                    root: "~/test1".to_string(),
-                    name: "Test 1".to_string(),
-                    tags: None,
-                    worktree: None,
-                },
-                Workspace {
-                    id: "workspace-with-config".to_string(),
-                    root: "~/test2".to_string(),
-                    name: "Test 2".to_string(),
-                    tags: None,
-                    worktree: Some(worktree_config.clone()),
-                },
-            ],
-        };
+        let workspaces = vec![
+            Workspace {
+                id: "workspace-1".to_string(),
+                root: "~/test1".to_string(),
+                name: "Test 1".to_string(),
+                tags: None,
+                worktree: None,
+            },
+            Workspace {
+                id: "workspace-with-config".to_string(),
+                root: "~/test2".to_string(),
+                name: "Test 2".to_string(),
+                tags: None,
+                worktree: Some(worktree_config.clone()),
+            },
+        ];
 
-        let workspace_repository = ImplWorkspaceRepository {
-            workspace_storage: &workspace_storage,
-        };
+        let (workspace_repository, _temp_dir) = create_test_repo(workspaces);
 
         let result = find_workspace_worktree_config("workspace-with-config", &workspace_repository);
 
@@ -467,19 +514,15 @@ mod tests {
 
     #[test]
     fn test_find_workspace_worktree_config_returns_none_when_missing() {
-        let workspace_storage = MockWorkspaceStorage {
-            data: vec![Workspace {
-                id: "workspace-no-config".to_string(),
-                root: "~/test".to_string(),
-                name: "Test".to_string(),
-                tags: None,
-                worktree: None,
-            }],
-        };
+        let workspaces = vec![Workspace {
+            id: "workspace-no-config".to_string(),
+            root: "~/test".to_string(),
+            name: "Test".to_string(),
+            tags: None,
+            worktree: None,
+        }];
 
-        let workspace_repository = ImplWorkspaceRepository {
-            workspace_storage: &workspace_storage,
-        };
+        let (workspace_repository, _temp_dir) = create_test_repo(workspaces);
 
         let result = find_workspace_worktree_config("workspace-no-config", &workspace_repository);
 
@@ -488,19 +531,15 @@ mod tests {
 
     #[test]
     fn test_find_workspace_worktree_config_returns_none_for_nonexistent_workspace() {
-        let workspace_storage = MockWorkspaceStorage {
-            data: vec![Workspace {
-                id: "workspace-1".to_string(),
-                root: "~/test".to_string(),
-                name: "Test".to_string(),
-                tags: None,
-                worktree: None,
-            }],
-        };
+        let workspaces = vec![Workspace {
+            id: "workspace-1".to_string(),
+            root: "~/test".to_string(),
+            name: "Test".to_string(),
+            tags: None,
+            worktree: None,
+        }];
 
-        let workspace_repository = ImplWorkspaceRepository {
-            workspace_storage: &workspace_storage,
-        };
+        let (workspace_repository, _temp_dir) = create_test_repo(workspaces);
 
         let result = find_workspace_worktree_config("nonexistent-workspace", &workspace_repository);
 
@@ -515,19 +554,15 @@ mod tests {
             on_create: vec!["pnpm install".to_string()],
         };
 
-        let workspace_storage = MockWorkspaceStorage {
-            data: vec![Workspace {
-                id: "test-workspace".to_string(),
-                root: "~/test".to_string(),
-                name: "Test Workspace".to_string(),
-                tags: None,
-                worktree: Some(workspace_config),
-            }],
-        };
+        let workspaces = vec![Workspace {
+            id: "test-workspace".to_string(),
+            root: "~/test".to_string(),
+            name: "Test Workspace".to_string(),
+            tags: None,
+            worktree: Some(workspace_config),
+        }];
 
-        let workspace_repository = ImplWorkspaceRepository {
-            workspace_storage: &workspace_storage,
-        };
+        let (workspace_repository, _temp_dir) = create_test_repo(workspaces);
 
         // Setup global config
         let global_config = WorktreeConfig {
@@ -553,19 +588,15 @@ mod tests {
     #[test]
     fn test_empty_workspace_config_merges_with_global() {
         // Setup workspace without worktree config
-        let workspace_storage = MockWorkspaceStorage {
-            data: vec![Workspace {
-                id: "no-config-workspace".to_string(),
-                root: "~/test".to_string(),
-                name: "No Config Workspace".to_string(),
-                tags: None,
-                worktree: None,
-            }],
-        };
+        let workspaces = vec![Workspace {
+            id: "no-config-workspace".to_string(),
+            root: "~/test".to_string(),
+            name: "No Config Workspace".to_string(),
+            tags: None,
+            worktree: None,
+        }];
 
-        let workspace_repository = ImplWorkspaceRepository {
-            workspace_storage: &workspace_storage,
-        };
+        let (workspace_repository, _temp_dir) = create_test_repo(workspaces);
 
         // Setup global config
         let global_config = WorktreeConfig {
@@ -592,19 +623,15 @@ mod tests {
             on_create: vec!["yarn install".to_string()],
         };
 
-        let workspace_storage = MockWorkspaceStorage {
-            data: vec![Workspace {
-                id: "workspace-only".to_string(),
-                root: "~/test".to_string(),
-                name: "Workspace Only".to_string(),
-                tags: None,
-                worktree: Some(workspace_config),
-            }],
-        };
+        let workspaces = vec![Workspace {
+            id: "workspace-only".to_string(),
+            root: "~/test".to_string(),
+            name: "Workspace Only".to_string(),
+            tags: None,
+            worktree: Some(workspace_config),
+        }];
 
-        let workspace_repository = ImplWorkspaceRepository {
-            workspace_storage: &workspace_storage,
-        };
+        let (workspace_repository, _temp_dir) = create_test_repo(workspaces);
 
         // Merge with no global config
         let ws_config = find_workspace_worktree_config("workspace-only", &workspace_repository);

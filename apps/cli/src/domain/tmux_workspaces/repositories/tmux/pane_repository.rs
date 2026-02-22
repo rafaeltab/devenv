@@ -1,3 +1,5 @@
+use shaku::Interface;
+
 use crate::{
     domain::tmux_workspaces::aggregates::tmux::pane::TmuxPane,
     infrastructure::tmux_workspaces::tmux::tmux_format::TmuxFilterNode,
@@ -17,7 +19,7 @@ pub enum GetPanesTarget<'a> {
     All,
 }
 
-pub trait TmuxPaneRepository {
+pub trait TmuxPaneRepository: Interface {
     fn get_panes(&self, filter: Option<TmuxFilterNode>, target: GetPanesTarget) -> Vec<TmuxPane>;
     fn kill_pane(&self, pane: Option<&TmuxPane>);
     fn split_window(

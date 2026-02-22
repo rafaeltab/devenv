@@ -12,18 +12,15 @@ use crate::{
         },
     },
     infrastructure::tmux_workspaces::tmux::{
+        connection::TmuxConnection,
         tmux_format::{TmuxFilterAstBuilder, TmuxFilterNode},
         tmux_format_variables::{TmuxFormatField, TmuxFormatVariable},
     },
-    storage::tmux::TmuxStorage,
 };
 
 use super::tmux_client::TmuxRepository;
 
-impl<TTmuxStorage> TmuxWindowRepository for TmuxRepository<'_, TTmuxStorage>
-where
-    TTmuxStorage: TmuxStorage,
-{
+impl TmuxWindowRepository for TmuxRepository {
     fn new_window(&self, new_window: &NewWindowBuilder) -> TmuxWindow {
         let mut args = vec!["new-window"];
         if let Some(dir_val) = &new_window.dir {
@@ -63,7 +60,7 @@ where
         args.extend(["-P", "-F", &list_format]);
         let out = self
             .connection
-            .cmd(args)
+            .cmd(args.iter().map(|&s| s.to_string()).collect())
             .stderr_to_stdout()
             .read()
             .expect("Failed to create window");
@@ -95,7 +92,7 @@ where
             args.extend(["-t", &wind.id]);
         }
         self.connection
-            .cmd(args)
+            .cmd(args.iter().map(|&s| s.to_string()).collect())
             .stderr_to_stdout()
             .read()
             .expect("Failed to kill window");
@@ -133,7 +130,7 @@ where
 
         let res = self
             .connection
-            .cmd(args)
+            .cmd(args.iter().map(|&s| s.to_string()).collect())
             .stderr_to_stdout()
             .read()
             .expect("Failed to get windows");

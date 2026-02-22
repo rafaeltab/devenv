@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
+use shaku::Interface;
 
 use super::storage_interface::Storage;
 
-pub trait TmuxStorage: Storage<Tmux> {}
+pub trait TmuxStorage: Storage<Tmux> + Interface {}
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
