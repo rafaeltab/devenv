@@ -28,6 +28,7 @@
             "cargo build*": "allow",
             "cargo test*": "allow",
             "cargo doc*": "allow",
+            "cargo expand*": "allow",
             "tree*": "allow",
             "xargs grep*": "allow",
             "uniq*": "allow",
