@@ -5,9 +5,9 @@ LanguagesV2:configure_language(function()
             ['rust_analyzer'] = {
                 settings = {
                     ['rust-analyzer'] = {
-                        checkOnSave = {
-                            command = "clippy"
-                        }
+                        -- checkOnSave = {
+                        --     command = "clippy"
+                        -- }
                     }
                 }
             }
