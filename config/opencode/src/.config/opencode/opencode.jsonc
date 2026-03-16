@@ -1,68 +1,81 @@
 {
-    "$schema": "https://opencode.ai/config.json",
-    "theme": "darling",
-    "autoupdate": true,
-    "permission": {
+  "$schema": "https://opencode.ai/config.json",
+  "autoupdate": true,
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git status*": "allow",
+      "git show*": "allow",
+      "grep*": "allow",
+      "find*": "allow",
+      "mkdir*": "allow",
+      "tee*": "ask",
+      "cat*": "allow",
+      "ls*": "allow",
+      "make*": "allow",
+      "pwd*": "allow",
+      "head*": "allow",
+      "tail*": "allow",
+      "sort*": "allow",
+      "rg*": "allow",
+      "wc*": "allow",
+      "jq*": "allow",
+      "cd*": "allow",
+      "cargo check*": "allow",
+      "cargo build*": "allow",
+      "cargo test*": "allow",
+      "cargo doc*": "allow",
+      "cargo expand*": "allow",
+      "tree*": "allow",
+      "xargs grep*": "allow",
+      "uniq*": "allow",
+      "man*": "allow",
+      "printf*": "allow",
+      "hexdump*": "allow",
+      "turbo*": "allow",
+    },
+  },
+  "agent": {
+    "explore": {
+      "permission": {
         "bash": {
-            "*": "ask",
-            "git diff*": "allow",
-            "git log*": "allow",
-            "git status*": "allow",
-            "git show*": "allow",
-            "grep*": "allow",
-            "find*": "allow",
-            "mkdir*": "allow",
-            "tee*": "ask",
-            "cat*": "allow",
-            "ls*": "allow",
-            "make*": "allow",
-            "pwd*": "allow",
-            "head*": "allow",
-            "tail*": "allow",
-            "sort*": "allow",
-            "rg*": "allow",
-            "wc*": "allow",
-            "jq*": "allow",
-            "cd*": "allow",
-            "cargo check*": "allow",
-            "cargo build*": "allow",
-            "cargo test*": "allow",
-            "cargo doc*": "allow",
-            "cargo expand*": "allow",
-            "tree*": "allow",
-            "xargs grep*": "allow",
-            "uniq*": "allow",
-            "man*": "allow",
-            "printf*": "allow",
-            "hexdump*": "allow",
-            "turbo*": "allow",
+          // The agent sometimes tries to use these to write files
+          "cat*": "deny",
+          "echo*": "deny",
         },
+        "read": "allow"
+      }
     },
-    "agent": {
-        "explore": {
-            "permission": {
-                "bash": {
-                    // The agent sometimes tries to use these to write files
-                    "cat*": "deny",
-                    "echo*": "deny",
-                },
-                "read": "allow"
-            }
-        },
-        "build": {
-            "permission": {
-                "bash": {
-                    "sed": "allow",
-                    "mkdir*": "allow"
-                }
-            }
+    "build": {
+      "permission": {
+        "bash": {
+          "sed": "allow",
+          "mkdir*": "allow"
         }
-    },
-    "mcp": {
-        "vibe_kanban": {
-            "type": "local",
-            "command": ["npx", "-y", "vibe-kanban@latest", "--mcp"],
-            "enabled": false
-        }
+      }
     }
+  },
+  "mcp": {
+    "vibe_kanban": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "vibe-kanban@latest",
+        "--mcp"
+      ],
+      "enabled": false
+    },
+    "ado": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@azure-devops/mcp",
+        "methylium"
+      ]
+    }
+  }
 }
