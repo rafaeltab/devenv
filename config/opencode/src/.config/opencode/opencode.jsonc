@@ -45,17 +45,26 @@
           "cat*": "deny",
           "echo*": "deny",
         },
-        "read": "allow"
-      }
+        "read": "allow",
+      },
     },
     "build": {
       "permission": {
         "bash": {
           "sed": "allow",
-          "mkdir*": "allow"
-        }
-      }
-    }
+          "mkdir*": "allow",
+        },
+      },
+    },
+    "plan": {
+      "permission": {
+        "edit": {
+          "*": "deny",
+          "plans/*": "allow",
+          "plans/**": "allow",
+        },
+      },
+    },
   },
   "mcp": {
     "vibe_kanban": {
@@ -66,7 +75,7 @@
         "vibe-kanban@latest",
         "--mcp"
       ],
-      "enabled": false
+      "enabled": false,
     },
     "ado": {
       "type": "local",
@@ -75,7 +84,7 @@
         "-y",
         "@azure-devops/mcp",
         "methylium"
-      ]
-    }
-  }
+      ],
+    },
+  },
 }
