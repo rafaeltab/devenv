@@ -10,31 +10,31 @@ LanguagesV2:configure_language(function()
     --   }
     -- },
     -- mason = { 'csharp_ls' },
-    lspconfig = {
-      fsautocomplete = {},
-      omnisharp = {
-        handlers = {
-          ["textDocument/definition"] = function(...)
-            return require("omnisharp_extended").handler(...)
-          end,
-        },
-        settings = {
-          RoslynExtensionsOptions = {
-            EnableAnalyzersSupport = true,
-            EnableImportCompletion = false,
-            AnalyzeOpenDocumentsOnly = true,
-          },
-          MsBuild = {
-            LoadProjectsOnDemand = true,
-          },
-          FormattingOptions = {
-            EnableEditorConfigSupport = true,
-            OrganizeImports = true,
-          },
-        },
-      }
-    },
-    -- lspconfig = {},
+    -- lspconfig = {
+    --   fsautocomplete = {},
+    --   omnisharp = {
+    --     handlers = {
+    --       ["textDocument/definition"] = function(...)
+    --         return require("omnisharp_extended").handler(...)
+    --       end,
+    --     },
+    --     settings = {
+    --       RoslynExtensionsOptions = {
+    --         EnableAnalyzersSupport = true,
+    --         EnableImportCompletion = false,
+    --         AnalyzeOpenDocumentsOnly = true,
+    --       },
+    --       MsBuild = {
+    --         LoadProjectsOnDemand = true,
+    --       },
+    --       FormattingOptions = {
+    --         EnableEditorConfigSupport = true,
+    --         OrganizeImports = true,
+    --       },
+    --     },
+    --   }
+    -- },
+    lspconfig = {},
     mason = { "csharpier" },
     treesitter = { 'c_sharp' }
   }
