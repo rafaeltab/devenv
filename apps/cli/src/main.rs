@@ -196,9 +196,9 @@ struct WorktreeStartArgs {
     #[arg()]
     branch_name: String,
 
-    /// Force creation even without worktree config
+    /// Skip worktree config check and use defaults
     #[arg(long)]
-    force: bool,
+    skip_config: bool,
 
     /// Skip confirmation prompt
     #[arg(short = 'y', long)]
@@ -343,7 +343,7 @@ fn main() -> Result<(), io::Error> {
                 WorktreeCommands::Start(args) => {
                     WorktreeStartCommand.execute(WorktreeStartOptions {
                         branch_name: args.branch_name.clone(),
-                        force: args.force,
+                        skip_config: args.skip_config,
                         yes: args.yes,
                         workspace_repository,
                         worktree_storage: &storage,

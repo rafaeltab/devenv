@@ -37,8 +37,8 @@ pub struct WorktreeStartCommand;
 pub struct WorktreeStartOptions<'a> {
     /// The branch name for the new worktree
     pub branch_name: String,
-    /// Force creation even without worktree config
-    pub force: bool,
+    /// Skip worktree config check and use defaults
+    pub skip_config: bool,
     /// Skip confirmation prompt
     pub yes: bool,
     /// Repository for workspace operations
@@ -158,7 +158,7 @@ impl WorktreeStartCommand {
 
         let has_config = global_config.is_some() || workspace_config.is_some();
 
-        if !has_config && !options.force {
+        if !has_config && !options.skip_config {
             return WorktreeStartResult::Failed(WorktreeError::WorktreeConfigMissing {
                 workspace_name: workspace.name.clone(),
             });

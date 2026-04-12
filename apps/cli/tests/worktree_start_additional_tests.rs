@@ -9,6 +9,90 @@ use test_descriptors::testers::CommandTester;
 use test_descriptors::{Key, TestEnvironment, TuiAsserter, TuiTester};
 
 #[test]
+fn test_worktree_start_force_flag_removed() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
+
+        root.test_dir(|td| {
+            td.dir("force_removed", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial commit", |c| {
+                            c.file("README.md", "# Test");
+                        });
+                    });
+                });
+            });
+        });
+    })
+    .create();
+
+    let repo_dir = env.find_dir("force_removed").expect("Dir not found");
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(repo_dir.path().join("repo"))
+        .args(&["worktree", "start", "some-branch", "--force"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
+
+    assert!(
+        !result.success,
+        "--force should no longer be a valid flag on worktree start. Got: {} {}",
+        result.stdout, result.stderr
+    );
+    assert!(
+        result.stderr.contains("--force") || result.stderr.contains("unexpected"),
+        "Expected error about --force not being recognized. Got: {}",
+        result.stderr
+    );
+}
+
+#[test]
+fn test_worktree_start_skip_config_works() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
+
+        root.test_dir(|td| {
+            td.dir("skip_config_wt", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial commit", |c| {
+                            c.file("README.md", "# Test");
+                        });
+                    });
+
+                    g.rafaeltab_workspace("repo", "Repo", |_| {});
+                    g.tmux_session("repo", |s| {
+                        s.with_client(|_| {});
+                    });
+                });
+            });
+        });
+    })
+    .create();
+
+    let repo_dir = env.find_dir("skip_config_wt").expect("Dir not found");
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(repo_dir.path().join("repo"))
+        .args(&[
+            "worktree",
+            "start",
+            "skip-config-branch",
+            "--skip-config",
+            "--yes",
+        ])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
+
+    assert!(
+        result.success,
+        "--skip-config should work as --force used to. Got: {} {}",
+        result.stdout, result.stderr
+    );
+}
+
+#[test]
 fn test_worktree_start_fails_without_worktree_config() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|_c| {});
@@ -35,7 +119,7 @@ fn test_worktree_start_fails_without_worktree_config() {
         .build();
     let result = env.testers().cmd().run(&cmd);
 
-    // Without worktree config and without --force, should fail
+    // Without worktree config and without --skip-config, should fail
     assert!(
         !result.success,
         "Expected worktree start to fail without config or force flag"
@@ -43,7 +127,7 @@ fn test_worktree_start_fails_without_worktree_config() {
 }
 
 #[test]
-fn test_worktree_start_succeeds_with_force_no_config() {
+fn test_worktree_start_succeeds_with_skip_config_no_config() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|_c| {});
 
@@ -70,11 +154,11 @@ fn test_worktree_start_succeeds_with_force_no_config() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(repo_dir.path().join("repo"))
-        .args(&["worktree", "start", "test-branch", "--force", "--yes"])
+        .args(&["worktree", "start", "test-branch", "--skip-config", "--yes"])
         .build();
     let result = env.testers().cmd().run(&cmd);
 
-    // With --force flag, should succeed even without worktree config
+    // With --skip-config flag, should succeed even without worktree config
     // (but may still fail for other reasons like git worktree issues)
     assert!(
         result.success,
@@ -100,7 +184,7 @@ fn test_worktree_start_fails_not_in_git_repo() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(not_repo_dir.path())
-        .args(&["worktree", "start", "test-branch", "--force", "--yes"])
+        .args(&["worktree", "start", "test-branch", "--skip-config", "--yes"])
         .build();
     let result = env.testers().cmd().run(&cmd);
 
@@ -144,7 +228,13 @@ fn test_worktree_start_handles_existing_branch_local() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(repo_dir.path().join("repo"))
-        .args(&["worktree", "start", "existing-branch", "--force", "--yes"])
+        .args(&[
+            "worktree",
+            "start",
+            "existing-branch",
+            "--skip-config",
+            "--yes",
+        ])
         .build();
     let result = env.testers().cmd().run(&cmd);
 
@@ -168,7 +258,7 @@ fn test_worktree_start_fails_not_in_workspace() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(env.root_path())
-        .args(&["worktree", "start", "test-branch", "--force", "--yes"])
+        .args(&["worktree", "start", "test-branch", "--skip-config", "--yes"])
         .build();
     let result = env.testers().cmd().run(&cmd);
 
@@ -214,7 +304,13 @@ fn test_worktree_start_handles_existing_branch_remote() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(repo_dir.path().join("repo"))
-        .args(&["worktree", "start", "feature-branch", "--force", "--yes"])
+        .args(&[
+            "worktree",
+            "start",
+            "feature-branch",
+            "--skip-config",
+            "--yes",
+        ])
         .build();
     let result = env.testers().cmd().run(&cmd);
 
@@ -268,7 +364,7 @@ fn test_worktree_start_fails_detached_head() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
-        .args(&["worktree", "start", "new-branch", "--force", "--yes"])
+        .args(&["worktree", "start", "new-branch", "--skip-config", "--yes"])
         .build();
     let result = env.testers().cmd().run(&cmd);
 
@@ -309,11 +405,17 @@ fn test_worktree_start_creates_symlinks() {
     let repo_dir = env.find_dir("symlink_test").expect("Dir not found");
     let repo_path = repo_dir.path().join("repo");
 
-    // Create a worktree with force flag
+    // Create a worktree with skip-config flag
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
-        .args(&["worktree", "start", "symlink-branch", "--force", "--yes"])
+        .args(&[
+            "worktree",
+            "start",
+            "symlink-branch",
+            "--skip-config",
+            "--yes",
+        ])
         .build();
     let result = env.testers().cmd().run(&cmd);
 
@@ -358,7 +460,7 @@ fn test_worktree_start_runs_oncreate_commands() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
-        .args(&["worktree", "start", "cmd-branch", "--force", "--yes"])
+        .args(&["worktree", "start", "cmd-branch", "--skip-config", "--yes"])
         .build();
     let result = env.testers().cmd().run(&cmd);
 
@@ -399,11 +501,17 @@ fn test_worktree_start_creates_git_worktree() {
     let repo_dir = env.find_dir("create_wt").expect("Dir not found");
     let repo_path = repo_dir.path().join("repo");
 
-    // Create a worktree with force flag
+    // Create a worktree with skip-config flag
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
-        .args(&["worktree", "start", "created-branch", "--force", "--yes"])
+        .args(&[
+            "worktree",
+            "start",
+            "created-branch",
+            "--skip-config",
+            "--yes",
+        ])
         .build();
     let result = env.testers().cmd().run(&cmd);
 
@@ -449,7 +557,7 @@ fn test_worktree_start_handles_oncreate_failure() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
-        .args(&["worktree", "start", "fail-branch", "--force", "--yes"])
+        .args(&["worktree", "start", "fail-branch", "--skip-config", "--yes"])
         .build();
     let result = env.testers().cmd().run(&cmd);
 
@@ -509,7 +617,13 @@ fn test_worktree_start_switches_to_session() {
     let start_wt = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
-        .args(&["worktree", "start", "switch-branch", "--force", "--yes"])
+        .args(&[
+            "worktree",
+            "start",
+            "switch-branch",
+            "--skip-config",
+            "--yes",
+        ])
         .build();
     let wt_result = env.testers().cmd().run(&start_wt);
 
@@ -551,7 +665,7 @@ fn test_worktree_start_cancel_confirmation() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
-        .args(&["worktree", "start", "cancel-branch", "--force"])
+        .args(&["worktree", "start", "cancel-branch", "--skip-config"])
         .build();
     let mut asserter = env.testers().pty().run(&cmd);
 

@@ -473,7 +473,13 @@ fn test_full_workflow_worktree_lifecycle() {
     let start_cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
-        .args(&["worktree", "start", "lifecycle-branch", "--force", "--yes"])
+        .args(&[
+            "worktree",
+            "start",
+            "lifecycle-branch",
+            "--skip-config",
+            "--yes",
+        ])
         .build();
     let start_result = env.testers().cmd().run(&start_cmd);
 
@@ -541,7 +547,7 @@ fn test_worktree_in_different_workspace() {
     let cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
-        .args(&["worktree", "start", "diff-branch", "--force", "--yes"])
+        .args(&["worktree", "start", "diff-branch", "--skip-config", "--yes"])
         .build();
     let result = env.testers().cmd().run(&cmd);
 

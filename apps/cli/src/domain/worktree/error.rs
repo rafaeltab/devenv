@@ -40,7 +40,7 @@ impl std::fmt::Display for WorktreeError {
             WorktreeError::WorktreeConfigMissing { workspace_name } => {
                 write!(
                     f,
-                    "Workspace '{}' does not have worktree configuration. Use --force to continue with defaults.",
+                    "Workspace '{}' does not have worktree configuration. Use --skip-config to continue with defaults.",
                     workspace_name
                 )
             }
