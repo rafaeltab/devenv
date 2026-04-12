@@ -1,4 +1,4 @@
-.PHONY: build lint format
+.PHONY: build lint format ci
 
 build:
 	pnpm exec turbo run build
@@ -17,3 +17,6 @@ dev:
 
 activate:
 	pnpm exec turbo run activate
+
+ci:
+	pnpm exec turbo run build lint test
