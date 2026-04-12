@@ -1264,3 +1264,216 @@ fn test_worktree_complete_force_git_with_force_destroy() {
         "Worktree directory should be removed after complete with --force-destroy --force-git"
     );
 }
+
+#[test]
+fn test_worktree_complete_confirmation_lists_on_destroy_commands() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            c.tmux_session("proj", Some("MyProject"), &[("editor", None)]);
+        });
+
+        root.test_dir(|td| {
+            td.dir("project", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial", |c| {
+                            c.file("README.md", "# Project");
+                        });
+                    });
+                    g.tmux_session("project session", |s| {
+                        s.with_client(|_| {});
+                    });
+                    g.rafaeltab_workspace("proj", "MyProject", |w| {
+                        w.worktree(&[], &["echo 'cleanup 1'", "echo 'cleanup 2'"], &[]);
+                    });
+                });
+            });
+        });
+    })
+    .create();
+
+    let repo_path = env.root_path().join("project/repo");
+
+    // Start the worktree
+    let start_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&["worktree", "start", "feat/confirm-list", "--yes"])
+        .build();
+    let start_result = env.testers().tmux_client_cmd().run(&start_cmd);
+    assert!(start_result.success, "worktree start should succeed");
+
+    // Complete without --yes, piping "y" to stdin for confirmation
+    // Use --force-git since branch has unpushed commits
+    let complete_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&["worktree", "complete", "feat/confirm-list", "--force-git"])
+        .stdin("y\n")
+        .build();
+    let complete_result = env.testers().cmd().run(&complete_cmd);
+
+    assert!(
+        complete_result.success,
+        "worktree complete should succeed after confirming.\nSTDOUT: {}\nSTDERR: {}",
+        complete_result.stdout, complete_result.stderr
+    );
+
+    // Verify the confirmation prompt lists onDestroy commands as numbered list
+    let output = format!("{} {}", complete_result.stdout, complete_result.stderr);
+    assert!(
+        output.contains("The following onDestroy commands will run:"),
+        "Confirmation should list onDestroy commands header. Got: {}",
+        output
+    );
+    assert!(
+        output.contains("1. echo 'cleanup 1'"),
+        "Confirmation should list first onDestroy command numbered. Got: {}",
+        output
+    );
+    assert!(
+        output.contains("2. echo 'cleanup 2'"),
+        "Confirmation should list second onDestroy command numbered. Got: {}",
+        output
+    );
+}
+
+#[test]
+fn test_worktree_complete_skip_destroy_confirmation_message() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            c.tmux_session("proj", Some("MyProject"), &[("editor", None)]);
+        });
+
+        root.test_dir(|td| {
+            td.dir("project", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial", |c| {
+                            c.file("README.md", "# Project");
+                        });
+                    });
+                    g.tmux_session("project session", |s| {
+                        s.with_client(|_| {});
+                    });
+                    g.rafaeltab_workspace("proj", "MyProject", |w| {
+                        w.worktree(&[], &["exit 1"], &[]); // onDestroy that would fail
+                    });
+                });
+            });
+        });
+    })
+    .create();
+
+    let repo_path = env.root_path().join("project/repo");
+
+    // Start the worktree
+    let start_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&["worktree", "start", "feat/skip-confirm", "--yes"])
+        .build();
+    let start_result = env.testers().tmux_client_cmd().run(&start_cmd);
+    assert!(start_result.success, "worktree start should succeed");
+
+    // Complete with --skip-destroy (and --force-git) without --yes, piping "y" to stdin
+    let complete_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&[
+            "worktree",
+            "complete",
+            "feat/skip-confirm",
+            "--skip-destroy",
+            "--force-git",
+        ])
+        .stdin("y\n")
+        .build();
+    let complete_result = env.testers().cmd().run(&complete_cmd);
+
+    assert!(
+        complete_result.success,
+        "worktree complete should succeed with --skip-destroy.\nSTDOUT: {}\nSTDERR: {}",
+        complete_result.stdout, complete_result.stderr
+    );
+
+    // Verify the confirmation prompt shows skip-destroy message
+    let output = format!("{} {}", complete_result.stdout, complete_result.stderr);
+    assert!(
+        output.contains("onDestroy commands will be skipped"),
+        "Confirmation should show skip-destroy message. Got: {}",
+        output
+    );
+    assert!(
+        output.contains("--skip-destroy"),
+        "Confirmation should mention --skip-destroy flag. Got: {}",
+        output
+    );
+}
+
+#[test]
+fn test_worktree_complete_confirmation_no_commands_unchanged() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            c.tmux_session("proj", Some("MyProject"), &[("editor", None)]);
+        });
+
+        root.test_dir(|td| {
+            td.dir("project", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial", |c| {
+                            c.file("README.md", "# Project");
+                        });
+                    });
+                    g.tmux_session("project session", |s| {
+                        s.with_client(|_| {});
+                    });
+                    g.rafaeltab_workspace("proj", "MyProject", |w| {
+                        w.worktree(&[], &[], &[]); // No onDestroy commands
+                    });
+                });
+            });
+        });
+    })
+    .create();
+
+    let repo_path = env.root_path().join("project/repo");
+
+    // Start the worktree
+    let start_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&["worktree", "start", "feat/no-cmds", "--yes"])
+        .build();
+    let start_result = env.testers().tmux_client_cmd().run(&start_cmd);
+    assert!(start_result.success, "worktree start should succeed");
+
+    // Complete without --yes, piping "y" to stdin (no onDestroy commands configured)
+    let complete_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&["worktree", "complete", "feat/no-cmds", "--force-git"])
+        .stdin("y\n")
+        .build();
+    let complete_result = env.testers().cmd().run(&complete_cmd);
+
+    assert!(
+        complete_result.success,
+        "worktree complete should succeed after confirming.\nSTDOUT: {}\nSTDERR: {}",
+        complete_result.stdout, complete_result.stderr
+    );
+
+    // Verify the confirmation prompt does NOT mention onDestroy commands
+    let output = format!("{} {}", complete_result.stdout, complete_result.stderr);
+    assert!(
+        !output.contains("The following onDestroy commands will run:"),
+        "Confirmation should NOT list onDestroy commands when none configured. Got: {}",
+        output
+    );
+    assert!(
+        !output.contains("onDestroy commands will be skipped"),
+        "Confirmation should NOT show skip-destroy message when --skip-destroy not used. Got: {}",
+        output
+    );
+}
