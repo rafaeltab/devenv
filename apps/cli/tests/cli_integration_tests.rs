@@ -1,9 +1,9 @@
 mod common;
 
-use common::rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabGitMixin, RafaeltabRootMixin};
 use common::CliCommandBuilder;
-use test_descriptors::testers::CommandTester;
+use common::rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabGitMixin, RafaeltabRootMixin};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::CommandTester;
 
 #[test]
 fn test_workspace_list_command() {
@@ -260,14 +260,18 @@ fn test_workspace_tags_filtering() {
         .find(|w| w["id"] == "rust_project")
         .unwrap();
     assert_eq!(rust_ws["tags"].as_array().unwrap().len(), 2);
-    assert!(rust_ws["tags"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|t| t == "rust"));
-    assert!(rust_ws["tags"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|t| t == "cli"));
+    assert!(
+        rust_ws["tags"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t == "rust")
+    );
+    assert!(
+        rust_ws["tags"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t == "cli")
+    );
 }

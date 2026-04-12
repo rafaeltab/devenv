@@ -1,11 +1,11 @@
 mod common;
 
 use crate::common::{
-    rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabRootMixin},
     CliCommandBuilder,
+    rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabRootMixin},
 };
-use test_descriptors::testers::{CommandTester, Key, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::{CommandTester, Key, TuiAsserter, TuiTester};
 
 #[test]
 fn test_tmux_switch_creates_session_if_not_exists() {

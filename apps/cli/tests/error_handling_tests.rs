@@ -1,9 +1,9 @@
 mod common;
 
-use crate::common::{rafaeltab_descriptors::RafaeltabRootMixin, CliCommandBuilder};
+use crate::common::{CliCommandBuilder, rafaeltab_descriptors::RafaeltabRootMixin};
 use std::fs;
-use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::CommandTester;
 
 #[test]
 fn test_invalid_config_file_shows_error() {

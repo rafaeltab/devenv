@@ -2,8 +2,8 @@
 //!
 //! Tests for TUI execution inside tmux via capture-pane.
 
-use test_descriptors::testers::{Command, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::{Command, TuiAsserter, TuiTester};
 
 /// Output captured via capture-pane.
 #[test]

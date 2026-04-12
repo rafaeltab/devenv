@@ -11,11 +11,11 @@ use commands::{
     },
     workspaces::{
         add::{WorkspaceAddCommand, WorkspaceAddOptions},
-        current::{get_current_workspace, CurrentWorkspaceOptions},
-        find::{find_workspace_cmd, FindWorkspaceOptions},
-        find_tag::{find_tag_workspace, FindTagWorkspaceOptions},
+        current::{CurrentWorkspaceOptions, get_current_workspace},
+        find::{FindWorkspaceOptions, find_workspace_cmd},
+        find_tag::{FindTagWorkspaceOptions, find_tag_workspace},
         list::{ListWorkspacesCommand, ListWorkspacesCommandArgs},
-        tmux::{list_tmux_workspaces, ListTmuxWorkspaceOptions},
+        tmux::{ListTmuxWorkspaceOptions, list_tmux_workspaces},
     },
     worktree::{
         complete::{WorktreeCompleteCommand, WorktreeCompleteOptions},
@@ -32,7 +32,10 @@ use infrastructure::tmux_workspaces::{
 use storage::kinds::json_storage::JsonStorageProvider;
 use utils::display::{JsonDisplay, JsonPrettyDisplay, PrettyDisplay, RafaeltabDisplay};
 
-use crate::{commands::tmux::switch::{TmuxSwitchCommand, TmuxSwitchOptions}, domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository};
+use crate::{
+    commands::tmux::switch::{TmuxSwitchCommand, TmuxSwitchOptions},
+    domain::tmux_workspaces::repositories::workspace::workspace_repository::WorkspaceRepository,
+};
 
 #[allow(dead_code)]
 mod commands;
@@ -374,9 +377,9 @@ fn main() -> Result<(), io::Error> {
         }
         Some(Commands::CommandPalette(palette_args)) => {
             use crate::commands::{
-                builtin::AddWorkspaceCommand, registry::CommandRegistry, CommandPalette,
-                TestConfirmCommand, TestPickerCommand, TestTextInputCommand,
-                TestTextInputSuggestionsCommand,
+                CommandPalette, TestConfirmCommand, TestPickerCommand, TestTextInputCommand,
+                TestTextInputSuggestionsCommand, builtin::AddWorkspaceCommand,
+                registry::CommandRegistry,
             };
 
             // Create command registry
@@ -401,9 +404,10 @@ fn main() -> Result<(), io::Error> {
                 CommandPaletteCommands::Show => {
                     // TODO move to using DI so we don't have to do this guly magic
                     let storage_leaked = Box::leak(Box::new(storage));
-                    let workspace_repository: Rc<dyn WorkspaceRepository> = Rc::new(ImplWorkspaceRepository {
-                        workspace_storage: storage_leaked,
-                    });
+                    let workspace_repository: Rc<dyn WorkspaceRepository> =
+                        Rc::new(ImplWorkspaceRepository {
+                            workspace_storage: storage_leaked,
+                        });
 
                     // Run the command palette
                     if palette.registry().is_empty() {

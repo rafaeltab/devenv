@@ -20,13 +20,13 @@ use crate::{
         },
         worktree::{
             config::{
-                calculate_worktree_path, find_most_specific_workspace, BranchStatus,
-                MergedWorktreeConfig, WorktreeCreationInfo,
+                BranchStatus, MergedWorktreeConfig, WorktreeCreationInfo, calculate_worktree_path,
+                find_most_specific_workspace,
             },
             error::WorktreeError,
         },
     },
-    infrastructure::git::{self, symlink::create_symlinks, BranchLocation, GitError},
+    infrastructure::git::{self, BranchLocation, GitError, symlink::create_symlinks},
     storage::{tmux::TmuxStorage, worktree::WorktreeStorage},
     utils::path::expand_path,
 };
@@ -396,7 +396,7 @@ fn create_tmux_session(
     use crate::domain::tmux_workspaces::aggregates::tmux::description::session::{
         PathSessionDescription, SessionDescription, SessionKind,
     };
-    use uuid::{uuid, Uuid};
+    use uuid::{Uuid, uuid};
 
     let worktree_namespace = uuid!("f47ac10b-58cc-4372-a567-0e02b2c3d479");
     let id = Uuid::new_v5(&worktree_namespace, session_name.as_bytes());
@@ -430,6 +430,7 @@ mod tests {
         let worktree_config = WorkspaceWorktreeConfig {
             symlink_files: vec![".env.local".to_string()],
             on_create: vec!["pnpm install".to_string()],
+            on_destroy: vec![],
         };
 
         let workspace_storage = MockWorkspaceStorage {
@@ -513,6 +514,7 @@ mod tests {
         let workspace_config = WorkspaceWorktreeConfig {
             symlink_files: vec![".env.local".to_string()],
             on_create: vec!["pnpm install".to_string()],
+            on_destroy: vec![],
         };
 
         let workspace_storage = MockWorkspaceStorage {
@@ -533,6 +535,7 @@ mod tests {
         let global_config = WorktreeConfig {
             symlink_files: vec![".env".to_string(), "config.json".to_string()],
             on_create: vec!["npm ci".to_string()],
+            on_destroy: vec![],
         };
 
         // Get workspace config and merge with global
@@ -571,6 +574,7 @@ mod tests {
         let global_config = WorktreeConfig {
             symlink_files: vec![".env".to_string()],
             on_create: vec!["npm install".to_string()],
+            on_destroy: vec![],
         };
 
         // Merge with no workspace config
@@ -590,6 +594,7 @@ mod tests {
         let workspace_config = WorkspaceWorktreeConfig {
             symlink_files: vec!["package.json".to_string()],
             on_create: vec!["yarn install".to_string()],
+            on_destroy: vec![],
         };
 
         let workspace_storage = MockWorkspaceStorage {

@@ -1,11 +1,11 @@
 mod common;
 
 use crate::common::{
-    rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabRootMixin},
     CliCommandBuilder,
+    rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabRootMixin},
 };
-use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::CommandTester;
 
 #[test]
 fn test_json_output_valid_structure() {

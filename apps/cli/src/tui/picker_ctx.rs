@@ -1,16 +1,16 @@
 use crossterm::cursor::Show;
 use crossterm::execute;
 use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
 use itertools::Itertools;
-use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
+use ratatui::backend::CrosstermBackend;
 use std::io::{self, Stdout};
 
 use crate::tui::{
-    pickers::{ConfirmPicker, SelectPicker, TextPicker, TextPickerWithSuggestions},
     PickerItem,
+    pickers::{ConfirmPicker, SelectPicker, TextPicker, TextPickerWithSuggestions},
 };
 
 /// Context for running pickers in the terminal.

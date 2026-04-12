@@ -1,12 +1,12 @@
 mod common;
 
 use crate::common::{
-    rafaeltab_descriptors::RafaeltabDirMixin, rafaeltab_descriptors::RafaeltabRootMixin,
-    CliCommandBuilder,
+    CliCommandBuilder, rafaeltab_descriptors::RafaeltabDirMixin,
+    rafaeltab_descriptors::RafaeltabRootMixin,
 };
 use std::fs;
-use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::CommandTester;
 
 #[test]
 fn test_config_file_with_all_fields() {

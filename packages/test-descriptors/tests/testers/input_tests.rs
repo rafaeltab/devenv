@@ -2,8 +2,8 @@
 //!
 //! Tests for keyboard input handling in TUI testers.
 
-use test_descriptors::testers::{Command, Key, Modifier, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::{Command, Key, Modifier, TuiAsserter, TuiTester};
 
 /// Type "hello" into cat, verify echoed back.
 #[test]
@@ -115,7 +115,9 @@ fn press_key_backspace() {
     asserter.wait_for_settle();
 
     // "ab" should be visible, "abc" should not
-    asserter.find_text("abcdefghijklmnopqrstuvwxy").assert_visible();
+    asserter
+        .find_text("abcdefghijklmnopqrstuvwxy")
+        .assert_visible();
 }
 
 /// Ctrl+C interrupts running process.

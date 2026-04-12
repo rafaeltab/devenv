@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use test_descriptors::testers::Command;
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::Command;
 
 /// Builder for rafaeltab CLI commands
 ///

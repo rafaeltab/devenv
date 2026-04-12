@@ -2,8 +2,8 @@
 //!
 //! Tests for screen buffer access and debugging.
 
-use test_descriptors::testers::{Command, Key, Modifier, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::{Command, Key, Modifier, TuiAsserter, TuiTester};
 
 /// `screen()` contains output text.
 #[test]

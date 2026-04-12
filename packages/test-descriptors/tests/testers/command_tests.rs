@@ -2,8 +2,8 @@
 //!
 //! Tests for Command and CommandResult based testers.
 
-use test_descriptors::testers::{Command, CommandTester};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::{Command, CommandTester};
 
 /// Run `echo hello`, verify stdout.
 #[test]

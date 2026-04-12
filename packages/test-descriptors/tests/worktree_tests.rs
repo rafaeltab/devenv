@@ -173,14 +173,17 @@ fn test_worktree_in_nested_directory() {
         .expect("worktree should exist");
 
     // Verify the nested structure via query API
-    assert!(repo
-        .path()
-        .to_string_lossy()
-        .contains("project/src/my-repo"));
-    assert!(worktree
-        .path()
-        .to_string_lossy()
-        .contains("project/features/active/feature-test"));
+    assert!(
+        repo.path()
+            .to_string_lossy()
+            .contains("project/src/my-repo")
+    );
+    assert!(
+        worktree
+            .path()
+            .to_string_lossy()
+            .contains("project/features/active/feature-test")
+    );
 
     // Verify filesystem structure actually exists
     let root = env.root_path();

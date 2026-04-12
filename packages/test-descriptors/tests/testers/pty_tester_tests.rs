@@ -2,8 +2,8 @@
 //!
 //! Tests for direct PTY execution outside tmux.
 
-use test_descriptors::testers::{Command, Key, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::{Command, Key, TuiAsserter, TuiTester};
 
 /// $TMUX env var is not set.
 #[test]

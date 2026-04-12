@@ -15,6 +15,9 @@ pub struct WorktreeConfig {
     /// Commands to run when creating a new worktree
     #[serde(default)]
     pub on_create: Vec<String>,
+    /// Commands to run when destroying a worktree
+    #[serde(default)]
+    pub on_destroy: Vec<String>,
 }
 
 /// Per-workspace worktree configuration
@@ -29,6 +32,10 @@ pub struct WorkspaceWorktreeConfig {
     /// These are merged with global on_create commands
     #[serde(default)]
     pub on_create: Vec<String>,
+    /// Commands to run when destroying a worktree
+    /// These are merged with global on_destroy commands
+    #[serde(default)]
+    pub on_destroy: Vec<String>,
 }
 
 #[cfg(test)]
@@ -104,6 +111,7 @@ mod tests {
         let config = WorktreeConfig {
             symlink_files: vec![".env".to_string()],
             on_create: vec!["npm install".to_string()],
+            on_destroy: vec![],
         };
 
         let json = serde_json::to_string(&config).unwrap();
@@ -128,5 +136,55 @@ mod tests {
 
         assert!(config.symlink_files.is_empty());
         assert!(config.on_create.is_empty());
+    }
+
+    #[test]
+    fn test_deserialize_worktree_config_with_on_destroy() {
+        let json = r#"{
+            "symlinkFiles": [],
+            "onCreate": [],
+            "onDestroy": ["npm run cleanup"]
+        }"#;
+
+        let config: WorktreeConfig = serde_json::from_str(json).unwrap();
+
+        assert_eq!(config.on_destroy, vec!["npm run cleanup"]);
+    }
+
+    #[test]
+    fn test_deserialize_workspace_worktree_config_with_on_destroy() {
+        let json = r#"{
+            "symlinkFiles": [],
+            "onCreate": [],
+            "onDestroy": ["rm -rf node_modules"]
+        }"#;
+
+        let config: WorkspaceWorktreeConfig = serde_json::from_str(json).unwrap();
+
+        assert_eq!(config.on_destroy, vec!["rm -rf node_modules"]);
+    }
+
+    #[test]
+    fn test_on_destroy_defaults_to_empty() {
+        let json = r#"{}"#;
+
+        let global: WorktreeConfig = serde_json::from_str(json).unwrap();
+        let workspace: WorkspaceWorktreeConfig = serde_json::from_str(json).unwrap();
+
+        assert!(global.on_destroy.is_empty());
+        assert!(workspace.on_destroy.is_empty());
+    }
+
+    #[test]
+    fn test_serialize_on_destroy_uses_camel_case() {
+        let config = WorktreeConfig {
+            symlink_files: vec![],
+            on_create: vec![],
+            on_destroy: vec!["npm run cleanup".to_string()],
+        };
+
+        let json = serde_json::to_string(&config).unwrap();
+
+        assert!(json.contains("onDestroy"));
     }
 }

@@ -230,7 +230,7 @@ impl TerminalBuffer {
             let cells: Vec<_> = line.visible_cells().collect();
             let mut line_text = String::new();
             let mut byte_to_cell_idx = Vec::new(); // Map each byte position to cell index
-            
+
             for (col, cell) in cells.iter().enumerate() {
                 let cell_str = cell.str();
                 for _char in cell_str.chars() {

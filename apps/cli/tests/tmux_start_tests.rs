@@ -1,8 +1,8 @@
 mod common;
 
-use crate::common::{rafaeltab_descriptors::RafaeltabRootMixin, CliCommandBuilder};
-use test_descriptors::testers::CommandTester;
+use crate::common::{CliCommandBuilder, rafaeltab_descriptors::RafaeltabRootMixin};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::CommandTester;
 
 #[test]
 fn test_start_creates_sessions_from_workspace_config() {

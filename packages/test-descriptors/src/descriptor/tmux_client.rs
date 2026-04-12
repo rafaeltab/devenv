@@ -4,7 +4,7 @@ use super::context::CreateContext;
 use super::error::CreateError;
 use super::tmux_socket::TmuxSocket;
 use super::traits::Descriptor;
-use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize};
+use portable_pty::{Child, CommandBuilder, MasterPty, PtySize, native_pty_system};
 use std::sync::{Arc, Mutex};
 
 /// Handle to a tmux client attached to a session.

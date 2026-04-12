@@ -1,4 +1,4 @@
-use uuid::{uuid, Uuid};
+use uuid::{Uuid, uuid};
 
 use crate::{
     domain::tmux_workspaces::{

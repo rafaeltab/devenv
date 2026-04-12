@@ -1,8 +1,8 @@
 mod common;
 
 use common::CliCommandBuilder;
-use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::CommandTester;
 
 /// Test that the --config flag actually uses the specified config file
 #[test]

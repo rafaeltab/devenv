@@ -1,7 +1,7 @@
+use ratatui::Frame as RatatuiFrame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::widgets::{Block, Borders, Paragraph, Widget, WidgetRef};
-use ratatui::Frame as RatatuiFrame;
 
 /// A three-panel layout frame for pickers.
 ///

@@ -1,12 +1,12 @@
 mod common;
 
 use crate::common::{
-    rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabRootMixin},
     CliCommandBuilder,
+    rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabRootMixin},
 };
 use std::fs;
-use test_descriptors::testers::{Key, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::{Key, TuiAsserter, TuiTester};
 
 /// Helper function to read and parse the rafaeltab config
 fn read_rafaeltab_config(env: &TestEnvironment) -> serde_json::Value {

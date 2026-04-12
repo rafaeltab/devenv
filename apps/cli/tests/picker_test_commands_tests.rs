@@ -1,8 +1,8 @@
 mod common;
 
-use crate::common::{rafaeltab_descriptors::RafaeltabRootMixin, CliCommandBuilder};
-use test_descriptors::testers::{Key, TuiAsserter, TuiTester};
+use crate::common::{CliCommandBuilder, rafaeltab_descriptors::RafaeltabRootMixin};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::{Key, TuiAsserter, TuiTester};
 
 // =============================================================================
 // Select Picker Tests (SP-001 to SP-013)

@@ -92,12 +92,13 @@ pub fn create_symlinks(
 
                     // Create parent directories if needed
                     if let Some(parent) = target_file.parent()
-                        && let Err(e) = std::fs::create_dir_all(parent) {
-                            return Err(GitError::IoError(format!(
-                                "Failed to create directory {:?}: {}",
-                                parent, e
-                            )));
-                        }
+                        && let Err(e) = std::fs::create_dir_all(parent)
+                    {
+                        return Err(GitError::IoError(format!(
+                            "Failed to create directory {:?}: {}",
+                            parent, e
+                        )));
+                    }
 
                     // Create symlink using absolute path
                     #[cfg(unix)]

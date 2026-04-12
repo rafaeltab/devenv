@@ -6,7 +6,7 @@ use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
-use ratatui::{prelude::*, Terminal};
+use ratatui::{Terminal, prelude::*};
 use sublime_fuzzy::best_match;
 use unicode_width::UnicodeWidthChar;
 
@@ -222,7 +222,7 @@ where
                         }
                         KeyCode::Esc | KeyCode::Char('q') => break None,
                         KeyCode::Char('c') if modifiers.contains(KeyModifiers::CONTROL) => {
-                            break None
+                            break None;
                         }
                         KeyCode::Backspace => {
                             if !query.is_empty() {

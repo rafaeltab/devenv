@@ -3,8 +3,8 @@
 //! Tests for TuiAsserter lifecycle operations including spawning commands,
 //! environment configuration, terminal sizing, and exit code handling.
 
-use test_descriptors::testers::{Command, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::{Command, TuiAsserter, TuiTester};
 
 /// Spawn a simple command (echo) and verify it completes with exit code 0.
 #[test]

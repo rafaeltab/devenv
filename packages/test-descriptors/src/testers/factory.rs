@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 
-use crate::descriptor::tmux_client::TmuxClientHandle;
 use crate::descriptor::TmuxSocket;
+use crate::descriptor::tmux_client::TmuxClientHandle;
 use crate::environment::TestEnvironment;
 
 use super::cmd::CmdTester;

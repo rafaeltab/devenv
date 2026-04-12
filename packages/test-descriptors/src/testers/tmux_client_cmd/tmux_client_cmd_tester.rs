@@ -1,5 +1,5 @@
-use crate::descriptor::tmux_client::TmuxClientHandle;
 use crate::descriptor::TmuxSocket;
+use crate::descriptor::tmux_client::TmuxClientHandle;
 use crate::testers::command::{Command, CommandResult};
 use crate::testers::traits::CommandTester;
 use uuid::Uuid;

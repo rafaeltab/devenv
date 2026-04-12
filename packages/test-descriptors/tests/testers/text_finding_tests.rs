@@ -2,8 +2,8 @@
 //!
 //! Tests for text search functionality in the TUI buffer.
 
-use test_descriptors::testers::{Command, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::{Command, TuiAsserter, TuiTester};
 
 /// Find "Hello" in "Hello World", position is Some.
 #[test]

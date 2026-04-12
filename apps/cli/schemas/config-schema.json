@@ -126,6 +126,13 @@
           "items": {
             "type": "string"
           }
+        },
+        "onDestroy": {
+          "type": "array",
+          "description": "Commands to run when destroying a worktree",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -143,6 +150,13 @@
         "onCreate": {
           "type": "array",
           "description": "Commands to run when creating a new worktree",
+          "items": {
+            "type": "string"
+          }
+        },
+        "onDestroy": {
+          "type": "array",
+          "description": "Commands to run when destroying a worktree",
           "items": {
             "type": "string"
           }
