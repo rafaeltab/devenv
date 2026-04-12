@@ -146,7 +146,7 @@ fn test_workspace_with_worktree_config() {
         root.test_dir(|td| {
             td.dir("ws", |d| {
                 d.rafaeltab_workspace("ws_with_worktree", "Worktree Workspace", |w| {
-                    w.worktree(&["npm install"], &[".env"]);
+                    w.worktree(&["npm install"], &[], &[".env"]);
                 });
             });
         });

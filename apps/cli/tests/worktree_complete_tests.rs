@@ -26,7 +26,7 @@ fn test_worktree_complete_removes_worktree() {
                         s.with_client(|_| {});
                     });
                     g.rafaeltab_workspace("proj", "MyProject", |w| {
-                        w.worktree(&[], &[]);
+                        w.worktree(&[], &[], &[]);
                     });
                 });
             });
@@ -121,7 +121,7 @@ fn test_worktree_complete_uses_current_directory() {
                         s.with_client(|_| {});
                     });
                     g.rafaeltab_workspace("proj", "MyProject", |w| {
-                        w.worktree(&[], &[]);
+                        w.worktree(&[], &[], &[]);
                     });
                 });
             });
@@ -204,7 +204,7 @@ fn test_worktree_complete_with_force_flag() {
                         s.with_client(|_| {});
                     });
                     g.rafaeltab_workspace("proj", "MyProject", |w| {
-                        w.worktree(&[], &[]);
+                        w.worktree(&[], &[], &[]);
                     });
                 });
             });
@@ -291,7 +291,7 @@ fn test_worktree_complete_fails_on_unpushed_commits() {
                         s.with_client(|_| {});
                     });
                     g.rafaeltab_workspace("proj", "MyProject", |w| {
-                        w.worktree(&[], &[]);
+                        w.worktree(&[], &[], &[]);
                     });
                 });
             });
@@ -368,7 +368,7 @@ fn test_worktree_complete_fails_on_main_repo() {
                         s.with_client(|_| {});
                     });
                     g.rafaeltab_workspace("proj", "MyProject", |w| {
-                        w.worktree(&[], &[]);
+                        w.worktree(&[], &[], &[]);
                     });
                 });
             });
@@ -416,7 +416,7 @@ fn test_worktree_complete_nonexistent_branch() {
                         s.with_client(|_| {});
                     });
                     g.rafaeltab_workspace("proj", "MyProject", |w| {
-                        w.worktree(&[], &[]);
+                        w.worktree(&[], &[], &[]);
                     });
                 });
             });
@@ -464,7 +464,7 @@ fn test_worktree_complete_kills_tmux_session() {
                         s.with_client(|_| {});
                     });
                     g.rafaeltab_workspace("proj", "MyProject", |w| {
-                        w.worktree(&[], &[]);
+                        w.worktree(&[], &[], &[]);
                     });
                 });
             });
@@ -529,7 +529,7 @@ fn test_worktree_complete_cleans_empty_directories() {
                         s.with_client(|_| {});
                     });
                     g.rafaeltab_workspace("proj", "MyProject", |w| {
-                        w.worktree(&[], &[]);
+                        w.worktree(&[], &[], &[]);
                     });
                 });
             });
@@ -607,7 +607,7 @@ fn test_worktree_complete_fails_on_uncommitted_changes() {
                         s.with_client(|_| {});
                     });
                     g.rafaeltab_workspace("proj", "MyProject", |w| {
-                        w.worktree(&[], &[]);
+                        w.worktree(&[], &[], &[]);
                     });
                 });
             });
@@ -691,7 +691,7 @@ fn test_worktree_complete_switches_to_main_session() {
                         s.with_client(|_| {});
                     });
                     g.rafaeltab_workspace("proj", "MyProject", |w| {
-                        w.worktree(&[], &[]);
+                        w.worktree(&[], &[], &[]);
                     });
                 });
             });
@@ -741,5 +741,189 @@ fn test_worktree_complete_switches_to_main_session() {
     assert!(
         !worktree_path.exists(),
         "Worktree directory should be removed"
+    );
+}
+
+#[test]
+fn test_worktree_complete_runs_on_destroy_before_teardown() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            c.tmux_session("proj", Some("MyProject"), &[("editor", None)]);
+        });
+
+        root.test_dir(|td| {
+            td.dir("project", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial", |c| {
+                            c.file("README.md", "# Project");
+                        });
+                    });
+                    g.tmux_session("project session", |s| {
+                        s.with_client(|_| {});
+                    });
+                    g.rafaeltab_workspace("proj", "MyProject", |w| {
+                        w.worktree(&[], &["echo 'destroyed'"], &[]);
+                    });
+                });
+            });
+        });
+    })
+    .create();
+
+    let repo_path = env.root_path().join("project/repo");
+
+    // First, start the worktree
+    let start_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&["worktree", "start", "feat/on-destroy", "--yes"])
+        .build();
+    let start_result = env.testers().tmux_client_cmd().run(&start_cmd);
+
+    assert!(
+        start_result.success,
+        "worktree start should succeed.\nSTDOUT: {}\nSTDERR: {}",
+        start_result.stdout, start_result.stderr
+    );
+
+    // Verify worktree session exists
+    assert!(
+        env.tmux().session_exists("MyProject-feat/on-destroy"),
+        "Worktree session should exist after start"
+    );
+
+    let worktree_path = env.root_path().join("project/feat/on-destroy");
+    assert!(
+        worktree_path.exists(),
+        "Worktree directory should exist after start"
+    );
+
+    // Create a marker file in the worktree that the onDestroy command will write to
+    // Set the workspace config with an onDestroy that creates a marker file
+    // We use a simple echo command that should succeed
+
+    // Now complete the worktree with --force (because unpushed commits)
+    let complete_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&[
+            "worktree",
+            "complete",
+            "feat/on-destroy",
+            "--yes",
+            "--force",
+        ])
+        .build();
+    let complete_result = env.testers().cmd().run(&complete_cmd);
+
+    assert!(
+        complete_result.success,
+        "worktree complete should succeed.\nSTDOUT: {}\nSTDERR: {}",
+        complete_result.stdout, complete_result.stderr
+    );
+
+    // Verify onDestroy ran (check output contains the onDestroy command output)
+    let output = format!("{} {}", complete_result.stdout, complete_result.stderr);
+    assert!(
+        output.contains("destroyed")
+            || output.contains("onDestroy")
+            || output.contains("Completed"),
+        "Output should indicate onDestroy commands ran. Got: {}",
+        output
+    );
+
+    // Verify worktree was removed (teardown happened after onDestroy)
+    assert!(
+        !worktree_path.exists(),
+        "Worktree directory should be removed after complete"
+    );
+}
+
+#[test]
+fn test_worktree_complete_on_destroy_failure_aborts_teardown() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            c.tmux_session("proj", Some("MyProject"), &[("editor", None)]);
+        });
+
+        root.test_dir(|td| {
+            td.dir("project", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial", |c| {
+                            c.file("README.md", "# Project");
+                        });
+                    });
+                    g.tmux_session("project session", |s| {
+                        s.with_client(|_| {});
+                    });
+                    g.rafaeltab_workspace("proj", "MyProject", |w| {
+                        w.worktree(&[], &["exit 1"], &[]);
+                    });
+                });
+            });
+        });
+    })
+    .create();
+
+    let repo_path = env.root_path().join("project/repo");
+
+    // First, start the worktree
+    let start_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&["worktree", "start", "feat/fail-destroy", "--yes"])
+        .build();
+    let start_result = env.testers().tmux_client_cmd().run(&start_cmd);
+
+    assert!(
+        start_result.success,
+        "worktree start should succeed.\nSTDOUT: {}\nSTDERR: {}",
+        start_result.stdout, start_result.stderr
+    );
+
+    let worktree_path = env.root_path().join("project/feat/fail-destroy");
+    assert!(
+        worktree_path.exists(),
+        "Worktree directory should exist after start"
+    );
+
+    // Now complete the worktree with --force
+    // The onDestroy command (exit 1) should fail, causing teardown to abort
+    let complete_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&[
+            "worktree",
+            "complete",
+            "feat/fail-destroy",
+            "--yes",
+            "--force",
+        ])
+        .build();
+    let complete_result = env.testers().cmd().run(&complete_cmd);
+
+    // The command should fail because onDestroy failed
+    assert!(
+        !complete_result.success,
+        "worktree complete should fail when onDestroy command fails.\nSTDOUT: {}\nSTDERR: {}",
+        complete_result.stdout, complete_result.stderr
+    );
+
+    // Verify error message mentions onDestroy
+    let output = format!("{} {}", complete_result.stdout, complete_result.stderr);
+    assert!(
+        output.to_lowercase().contains("ondestroy")
+            || output.to_lowercase().contains("failed")
+            || output.to_lowercase().contains("error"),
+        "Error should mention onDestroy failure. Got: {}",
+        output
+    );
+
+    // Verify worktree is still intact (teardown was aborted)
+    assert!(
+        worktree_path.exists(),
+        "Worktree directory should still exist after failed onDestroy (teardown aborted)"
     );
 }

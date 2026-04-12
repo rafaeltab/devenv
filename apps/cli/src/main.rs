@@ -367,6 +367,7 @@ fn main() -> Result<(), io::Error> {
                         force: args.force,
                         yes: args.yes,
                         workspace_repository,
+                        worktree_storage: &storage,
                         session_repository: tmux_repository,
                         client_repository: tmux_repository,
                         popup_repository,

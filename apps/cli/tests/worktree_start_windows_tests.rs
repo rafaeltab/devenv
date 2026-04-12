@@ -32,7 +32,7 @@ fn test_worktree_start_uses_default_windows() {
                         s.with_client(|_| {});
                     });
                     g.rafaeltab_workspace("proj", "MyProject", |w| {
-                        w.worktree(&[], &[]);
+                        w.worktree(&[], &[], &[]);
                     });
                 });
             });
@@ -124,7 +124,7 @@ fn test_worktree_start_uses_workspace_specific_windows() {
                         s.with_client(|_| {});
                     });
                     g.rafaeltab_workspace("proj", "MyProject", |w| {
-                        w.worktree(&[], &[]);
+                        w.worktree(&[], &[], &[]);
                     });
                 });
             });
@@ -211,7 +211,7 @@ fn test_worktree_start_handles_empty_default_windows() {
                         s.with_client(|_| {});
                     });
                     g.rafaeltab_workspace("proj", "MyProject", |w| {
-                        w.worktree(&[], &[]);
+                        w.worktree(&[], &[], &[]);
                     });
                 });
             });
