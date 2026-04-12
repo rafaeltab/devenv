@@ -315,7 +315,7 @@ fn test_branch_name_with_slashes() {
             "worktree",
             "start",
             "feature/test-branch",
-            "--force",
+            "--skip-config",
             "--yes",
         ])
         .build();
