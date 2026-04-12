@@ -211,9 +211,17 @@ struct WorktreeCompleteArgs {
     #[arg()]
     branch_name: Option<String>,
 
-    /// Force removal even with uncommitted/unpushed changes
+    /// Continue teardown even if onDestroy commands fail
     #[arg(long)]
-    force: bool,
+    force_destroy: bool,
+
+    /// Skip onDestroy commands entirely
+    #[arg(long)]
+    skip_destroy: bool,
+
+    /// Bypass git safety checks (uncommitted changes, unpushed commits)
+    #[arg(long)]
+    force_git: bool,
 
     /// Skip confirmation prompt
     #[arg(short = 'y', long)]
@@ -364,7 +372,9 @@ fn main() -> Result<(), io::Error> {
 
                     WorktreeCompleteCommand.execute(WorktreeCompleteOptions {
                         branch_name: args.branch_name.clone(),
-                        force: args.force,
+                        force_destroy: args.force_destroy,
+                        skip_destroy: args.skip_destroy,
+                        force_git: args.force_git,
                         yes: args.yes,
                         workspace_repository,
                         worktree_storage: &storage,
