@@ -24,6 +24,7 @@ pub struct CliCommandBuilder {
     config_path: Option<PathBuf>,
     tmux_socket: Option<String>,
     cwd: Option<PathBuf>,
+    stdin: Option<String>,
     extra_envs: HashMap<String, String>,
 }
 
@@ -35,6 +36,7 @@ impl CliCommandBuilder {
             config_path: None,
             tmux_socket: None,
             cwd: None,
+            stdin: None,
             extra_envs: HashMap::new(),
         }
     }
@@ -72,6 +74,12 @@ impl CliCommandBuilder {
     /// Add a custom environment variable
     pub fn with_env_var(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.extra_envs.insert(key.into(), value.into());
+        self
+    }
+
+    /// Set stdin input for the command (for confirmation prompts, etc.)
+    pub fn stdin(mut self, input: impl Into<String>) -> Self {
+        self.stdin = Some(input.into());
         self
     }
 
@@ -131,6 +139,11 @@ impl CliCommandBuilder {
         // Set working directory
         if let Some(ref cwd) = self.cwd {
             cmd = cmd.cwd(cwd);
+        }
+
+        // Set stdin input
+        if let Some(ref stdin) = self.stdin {
+            cmd = cmd.stdin(stdin);
         }
 
         cmd

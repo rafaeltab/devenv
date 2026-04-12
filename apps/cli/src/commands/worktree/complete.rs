@@ -229,6 +229,7 @@ impl WorktreeCompleteCommand {
                 options.skip_destroy,
                 options.force_git,
                 options.yes,
+                &merged_config,
                 options.session_repository,
                 options.popup_repository,
                 options.description_repository,
@@ -263,6 +264,7 @@ fn delegate_to_popup(
     skip_destroy: bool,
     force_git: bool,
     yes: bool,
+    merged_config: &MergedWorktreeConfig,
     session_repository: &dyn TmuxSessionRepository,
     popup_repository: &dyn TmuxPopupRepository,
     description_repository: &dyn SessionDescriptionRepository,
@@ -280,6 +282,14 @@ fn delegate_to_popup(
     // 2. Ask for confirmation (unless --yes)
     if !yes {
         println!("About to delete worktree for branch '{}'", branch_name);
+        if skip_destroy {
+            println!("onDestroy commands will be skipped (--skip-destroy)");
+        } else if !merged_config.on_destroy.is_empty() {
+            println!("The following onDestroy commands will run:");
+            for (i, command) in merged_config.on_destroy.iter().enumerate() {
+                println!("  {}. {}", i + 1, command);
+            }
+        }
         print!("Continue? [y/N] ");
 
         // Flush stdout to ensure prompt is displayed
@@ -382,11 +392,13 @@ fn execute_cleanup_directly(
     if !yes {
         println!("About to delete worktree for branch '{}'", branch_name);
         println!("Location: {}", worktree_path.display());
-        if !merged_config.on_destroy.is_empty() {
-            println!(
-                "onDestroy commands: {}",
-                merged_config.on_destroy.join(", ")
-            );
+        if skip_destroy {
+            println!("onDestroy commands will be skipped (--skip-destroy)");
+        } else if !merged_config.on_destroy.is_empty() {
+            println!("The following onDestroy commands will run:");
+            for (i, command) in merged_config.on_destroy.iter().enumerate() {
+                println!("  {}. {}", i + 1, command);
+            }
         }
         print!("Continue? [y/N] ");
 

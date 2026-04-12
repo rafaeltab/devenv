@@ -11,6 +11,7 @@ pub struct Command {
     args: Vec<String>,
     envs: HashMap<String, String>,
     working_dir: Option<PathBuf>,
+    stdin: Option<String>,
     pty_rows: u16,
     pty_cols: u16,
 }
@@ -23,6 +24,7 @@ impl Command {
             args: Vec::new(),
             envs: HashMap::new(),
             working_dir: None,
+            stdin: None,
             pty_rows: 24,
             pty_cols: 80,
         }
@@ -56,6 +58,17 @@ impl Command {
     pub fn cwd(mut self, path: impl AsRef<Path>) -> Self {
         self.working_dir = Some(path.as_ref().to_path_buf());
         self
+    }
+
+    /// Set stdin input for the command.
+    pub fn stdin(mut self, input: impl Into<String>) -> Self {
+        self.stdin = Some(input.into());
+        self
+    }
+
+    /// Get the stdin input.
+    pub fn get_stdin(&self) -> Option<&str> {
+        self.stdin.as_deref()
     }
 
     /// Set the PTY size for TUI testers.
