@@ -64,11 +64,11 @@ fn test_worktree_complete_removes_worktree() {
         worktree_path
     );
 
-    // Now complete the worktree (use --force because the branch has unpushed commits)
+    // Now complete the worktree (use --force-git because the branch has unpushed commits)
     let complete_cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
-        .args(&["worktree", "complete", "feat/test", "--yes", "--force"])
+        .args(&["worktree", "complete", "feat/test", "--yes", "--force-git"])
         .build();
     let complete_result = env.testers().cmd().run(&complete_cmd);
 
@@ -162,7 +162,7 @@ fn test_worktree_complete_uses_current_directory() {
     let complete_cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&worktree_path) // Execute from within the worktree
-        .args(&["worktree", "complete", "--yes", "--force"]) // No branch name!
+        .args(&["worktree", "complete", "--yes", "--force-git"]) // No branch name!
         .build();
     let complete_result = env.testers().cmd().run(&complete_cmd);
 
@@ -186,7 +186,7 @@ fn test_worktree_complete_uses_current_directory() {
 }
 
 #[test]
-fn test_worktree_complete_with_force_flag() {
+fn test_worktree_complete_with_force_git_flag() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|c| {
             c.tmux_session("proj", Some("MyProject"), &[("editor", None)]);
@@ -225,7 +225,7 @@ fn test_worktree_complete_with_force_flag() {
 
     let worktree_path = env.root_path().join("project/feat/force-test");
 
-    // Without --force, this should fail due to unpushed commits
+    // Without --force-git, this should fail due to unpushed commits
     let complete_no_force = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
@@ -235,7 +235,7 @@ fn test_worktree_complete_with_force_flag() {
 
     assert!(
         !no_force_result.success,
-        "Should fail without --force when there are unpushed commits"
+        "Should fail without --force-git when there are unpushed commits"
     );
     assert!(
         no_force_result.stderr.contains("unpushed commits")
@@ -245,7 +245,7 @@ fn test_worktree_complete_with_force_flag() {
         no_force_result.stderr
     );
 
-    // With --force, it should succeed
+    // With --force-git, it should succeed
     let complete_with_force = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
@@ -254,21 +254,21 @@ fn test_worktree_complete_with_force_flag() {
             "complete",
             "feat/force-test",
             "--yes",
-            "--force",
+            "--force-git",
         ])
         .build();
     let force_result = env.testers().cmd().run(&complete_with_force);
 
     assert!(
         force_result.success,
-        "Should succeed with --force flag.\nSTDOUT: {}\nSTDERR: {}",
+        "Should succeed with --force-git flag.\nSTDOUT: {}\nSTDERR: {}",
         force_result.stdout, force_result.stderr
     );
 
     // Verify worktree is removed
     assert!(
         !worktree_path.exists(),
-        "Worktree directory should be removed after complete with --force"
+        "Worktree directory should be removed after complete with --force-git"
     );
 }
 
@@ -340,11 +340,17 @@ fn test_worktree_complete_fails_on_unpushed_commits() {
         "Worktree should still exist after failed complete"
     );
 
-    // Now clean up with --force
+    // Now clean up with --force-git
     let cleanup_cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
-        .args(&["worktree", "complete", "feat/unpushed", "--yes", "--force"])
+        .args(&[
+            "worktree",
+            "complete",
+            "feat/unpushed",
+            "--yes",
+            "--force-git",
+        ])
         .build();
     let _ = env.testers().cmd().run(&cleanup_cmd);
 }
@@ -493,7 +499,13 @@ fn test_worktree_complete_kills_tmux_session() {
     let complete_cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
-        .args(&["worktree", "complete", "feat/kill-test", "--yes", "--force"])
+        .args(&[
+            "worktree",
+            "complete",
+            "feat/kill-test",
+            "--yes",
+            "--force-git",
+        ])
         .build();
     let complete_result = env.testers().cmd().run(&complete_cmd);
 
@@ -559,7 +571,13 @@ fn test_worktree_complete_cleans_empty_directories() {
     let complete_cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
-        .args(&["worktree", "complete", "feat/cleanup", "--yes", "--force"])
+        .args(&[
+            "worktree",
+            "complete",
+            "feat/cleanup",
+            "--yes",
+            "--force-git",
+        ])
         .build();
     let complete_result = env.testers().cmd().run(&complete_cmd);
 
@@ -663,11 +681,11 @@ fn test_worktree_complete_fails_on_uncommitted_changes() {
         "Worktree should still exist after failed complete"
     );
 
-    // Now clean up with --force
+    // Now clean up with --force-git
     let cleanup_cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
-        .args(&["worktree", "complete", "feat/dirty", "--yes", "--force"])
+        .args(&["worktree", "complete", "feat/dirty", "--yes", "--force-git"])
         .build();
     let _ = env.testers().cmd().run(&cleanup_cmd);
 }
@@ -721,7 +739,7 @@ fn test_worktree_complete_switches_to_main_session() {
     let complete_cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&worktree_path) // Run from within the worktree
-        .args(&["worktree", "complete", "--yes", "--force"])
+        .args(&["worktree", "complete", "--yes", "--force-git"])
         .build();
     let complete_result = env.testers().cmd().run(&complete_cmd);
 
@@ -803,7 +821,7 @@ fn test_worktree_complete_runs_on_destroy_before_teardown() {
     // Set the workspace config with an onDestroy that creates a marker file
     // We use a simple echo command that should succeed
 
-    // Now complete the worktree with --force (because unpushed commits)
+    // Now complete the worktree with --force-git (because unpushed commits)
     let complete_cmd = CliCommandBuilder::new()
         .with_env(&env)
         .with_cwd(&repo_path)
@@ -812,7 +830,7 @@ fn test_worktree_complete_runs_on_destroy_before_teardown() {
             "complete",
             "feat/on-destroy",
             "--yes",
-            "--force",
+            "--force-git",
         ])
         .build();
     let complete_result = env.testers().cmd().run(&complete_cmd);
@@ -889,7 +907,7 @@ fn test_worktree_complete_on_destroy_failure_aborts_teardown() {
         "Worktree directory should exist after start"
     );
 
-    // Now complete the worktree with --force
+    // Now complete the worktree with --force-git
     // The onDestroy command (exit 1) should fail, causing teardown to abort
     let complete_cmd = CliCommandBuilder::new()
         .with_env(&env)
@@ -899,7 +917,7 @@ fn test_worktree_complete_on_destroy_failure_aborts_teardown() {
             "complete",
             "feat/fail-destroy",
             "--yes",
-            "--force",
+            "--force-git",
         ])
         .build();
     let complete_result = env.testers().cmd().run(&complete_cmd);
@@ -925,5 +943,324 @@ fn test_worktree_complete_on_destroy_failure_aborts_teardown() {
     assert!(
         worktree_path.exists(),
         "Worktree directory should still exist after failed onDestroy (teardown aborted)"
+    );
+}
+
+#[test]
+fn test_worktree_complete_skip_destroy_skips_on_destroy() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            c.tmux_session("proj", Some("MyProject"), &[("editor", None)]);
+        });
+
+        root.test_dir(|td| {
+            td.dir("project", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial", |c| {
+                            c.file("README.md", "# Project");
+                        });
+                    });
+                    g.tmux_session("project session", |s| {
+                        s.with_client(|_| {});
+                    });
+                    g.rafaeltab_workspace("proj", "MyProject", |w| {
+                        w.worktree(&[], &["exit 1"], &[]); // onDestroy that would fail
+                    });
+                });
+            });
+        });
+    })
+    .create();
+
+    let repo_path = env.root_path().join("project/repo");
+
+    // Start the worktree
+    let start_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&["worktree", "start", "feat/skip-destroy", "--yes"])
+        .build();
+    let start_result = env.testers().tmux_client_cmd().run(&start_cmd);
+    assert!(start_result.success, "worktree start should succeed");
+
+    let worktree_path = env.root_path().join("project/feat/skip-destroy");
+    assert!(worktree_path.exists(), "Worktree should exist after start");
+
+    // Complete with --skip-destroy and --force-git
+    // onDestroy command (exit 1) should be skipped, worktree should be removed successfully
+    let complete_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&[
+            "worktree",
+            "complete",
+            "feat/skip-destroy",
+            "--yes",
+            "--skip-destroy",
+            "--force-git",
+        ])
+        .build();
+    let complete_result = env.testers().cmd().run(&complete_cmd);
+
+    assert!(
+        complete_result.success,
+        "worktree complete should succeed with --skip-destroy.\nSTDOUT: {}\nSTDERR: {}",
+        complete_result.stdout, complete_result.stderr
+    );
+
+    // Verify worktree is removed (teardown proceeded despite failing onDestroy)
+    assert!(
+        !worktree_path.exists(),
+        "Worktree directory should be removed after complete with --skip-destroy"
+    );
+
+    // Output should indicate success (not PartialSuccess, since onDestroy was skipped)
+    let output = format!("{} {}", complete_result.stdout, complete_result.stderr);
+    assert!(
+        output.contains("Completed worktree") || output.contains("Removed"),
+        "Output should indicate successful completion. Got: {}",
+        output
+    );
+}
+
+#[test]
+fn test_worktree_complete_force_destroy_continues_past_failures() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            c.tmux_session("proj", Some("MyProject"), &[("editor", None)]);
+        });
+
+        root.test_dir(|td| {
+            td.dir("project", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial", |c| {
+                            c.file("README.md", "# Project");
+                        });
+                    });
+                    g.tmux_session("project session", |s| {
+                        s.with_client(|_| {});
+                    });
+                    g.rafaeltab_workspace("proj", "MyProject", |w| {
+                        w.worktree(&[], &["exit 1"], &[]); // onDestroy that fails
+                    });
+                });
+            });
+        });
+    })
+    .create();
+
+    let repo_path = env.root_path().join("project/repo");
+
+    // Start the worktree
+    let start_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&["worktree", "start", "feat/force-destroy", "--yes"])
+        .build();
+    let start_result = env.testers().tmux_client_cmd().run(&start_cmd);
+    assert!(start_result.success, "worktree start should succeed");
+
+    let worktree_path = env.root_path().join("project/feat/force-destroy");
+    assert!(worktree_path.exists(), "Worktree should exist after start");
+
+    // Complete with --force-destroy and --force-git
+    // onDestroy command (exit 1) should fail, but teardown should continue
+    let complete_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&[
+            "worktree",
+            "complete",
+            "feat/force-destroy",
+            "--yes",
+            "--force-destroy",
+            "--force-git",
+        ])
+        .build();
+    let complete_result = env.testers().cmd().run(&complete_cmd);
+
+    assert!(
+        complete_result.success,
+        "worktree complete should succeed with --force-destroy (partial success).\nSTDOUT: {}\nSTDERR: {}",
+        complete_result.stdout, complete_result.stderr
+    );
+
+    // Verify worktree is removed (teardown proceeded despite onDestroy failure)
+    assert!(
+        !worktree_path.exists(),
+        "Worktree directory should be removed after complete with --force-destroy"
+    );
+
+    // Output should mention the failed onDestroy command
+    let output = format!("{} {}", complete_result.stdout, complete_result.stderr);
+    assert!(
+        output.to_lowercase().contains("ondestroy")
+            || output.to_lowercase().contains("failed")
+            || output.to_lowercase().contains("partial"),
+        "Output should mention the failed onDestroy command or partial success. Got: {}",
+        output
+    );
+}
+
+#[test]
+fn test_worktree_complete_skip_destroy_takes_precedence_over_force_destroy() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            c.tmux_session("proj", Some("MyProject"), &[("editor", None)]);
+        });
+
+        root.test_dir(|td| {
+            td.dir("project", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial", |c| {
+                            c.file("README.md", "# Project");
+                        });
+                    });
+                    g.tmux_session("project session", |s| {
+                        s.with_client(|_| {});
+                    });
+                    g.rafaeltab_workspace("proj", "MyProject", |w| {
+                        w.worktree(&[], &["exit 1"], &[]); // onDestroy that would fail
+                    });
+                });
+            });
+        });
+    })
+    .create();
+
+    let repo_path = env.root_path().join("project/repo");
+
+    // Start the worktree
+    let start_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&["worktree", "start", "feat/skip-precedence", "--yes"])
+        .build();
+    let start_result = env.testers().tmux_client_cmd().run(&start_cmd);
+    assert!(start_result.success, "worktree start should succeed");
+
+    let worktree_path = env.root_path().join("project/feat/skip-precedence");
+    assert!(worktree_path.exists(), "Worktree should exist after start");
+
+    // Complete with both --skip-destroy and --force-destroy
+    // --skip-destroy should take precedence: onDestroy should not run at all
+    let complete_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&[
+            "worktree",
+            "complete",
+            "feat/skip-precedence",
+            "--yes",
+            "--skip-destroy",
+            "--force-destroy",
+            "--force-git",
+        ])
+        .build();
+    let complete_result = env.testers().cmd().run(&complete_cmd);
+
+    assert!(
+        complete_result.success,
+        "worktree complete should succeed when --skip-destroy takes precedence.\nSTDOUT: {}\nSTDERR: {}",
+        complete_result.stdout, complete_result.stderr
+    );
+
+    // Verify worktree is removed
+    assert!(
+        !worktree_path.exists(),
+        "Worktree directory should be removed after complete"
+    );
+
+    // Output should NOT mention failed onDestroy commands (they were skipped)
+    let output = format!("{} {}", complete_result.stdout, complete_result.stderr);
+    assert!(
+        !output.to_lowercase().contains("partial success"),
+        "Output should not mention partial success since onDestroy was skipped. Got: {}",
+        output
+    );
+
+    // Output should indicate clean success
+    assert!(
+        output.contains("Completed worktree") || output.contains("Removed"),
+        "Output should indicate successful completion. Got: {}",
+        output
+    );
+}
+
+#[test]
+fn test_worktree_complete_force_git_with_force_destroy() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            c.tmux_session("proj", Some("MyProject"), &[("editor", None)]);
+        });
+
+        root.test_dir(|td| {
+            td.dir("project", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial", |c| {
+                            c.file("README.md", "# Project");
+                        });
+                    });
+                    g.tmux_session("project session", |s| {
+                        s.with_client(|_| {});
+                    });
+                    g.rafaeltab_workspace("proj", "MyProject", |w| {
+                        w.worktree(&[], &["exit 1"], &[]);
+                    });
+                });
+            });
+        });
+    })
+    .create();
+
+    let repo_path = env.root_path().join("project/repo");
+
+    // Start the worktree
+    let start_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&["worktree", "start", "feat/combined-flags", "--yes"])
+        .build();
+    let start_result = env.testers().tmux_client_cmd().run(&start_cmd);
+    assert!(start_result.success, "worktree start should succeed");
+
+    let worktree_path = env.root_path().join("project/feat/combined-flags");
+    assert!(worktree_path.exists(), "Worktree should exist after start");
+
+    // Create an uncommitted change to test that --force-git bypasses the safety check
+    use std::fs;
+    let new_file_path = worktree_path.join("dirty.txt");
+    fs::write(&new_file_path, "uncommitted change").expect("Should write file");
+
+    // Complete with both --force-destroy and --force-git
+    // Should: (1) bypass git safety checks, (2) continue past onDestroy failure, (3) force remove worktree
+    let complete_cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(&repo_path)
+        .args(&[
+            "worktree",
+            "complete",
+            "feat/combined-flags",
+            "--yes",
+            "--force-destroy",
+            "--force-git",
+        ])
+        .build();
+    let complete_result = env.testers().cmd().run(&complete_cmd);
+
+    assert!(
+        complete_result.success,
+        "worktree complete should succeed with --force-destroy --force-git.\nSTDOUT: {}\nSTDERR: {}",
+        complete_result.stdout, complete_result.stderr
+    );
+
+    // Verify worktree is removed
+    assert!(
+        !worktree_path.exists(),
+        "Worktree directory should be removed after complete with --force-destroy --force-git"
     );
 }

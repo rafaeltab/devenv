@@ -52,14 +52,14 @@ impl std::fmt::Display for WorktreeError {
             WorktreeError::HasUncommittedChanges(path) => {
                 write!(
                     f,
-                    "Worktree has uncommitted changes: {}. Use --force to remove anyway.",
+                    "Worktree has uncommitted changes: {}. Use --force-git to remove anyway.",
                     path.display()
                 )
             }
             WorktreeError::HasUnpushedCommits(path) => {
                 write!(
                     f,
-                    "Worktree has unpushed commits: {}. Use --force to remove anyway.",
+                    "Worktree has unpushed commits: {}. Use --force-git to remove anyway.",
                     path.display()
                 )
             }

@@ -491,7 +491,7 @@ fn test_full_workflow_worktree_lifecycle() {
             "worktree",
             "complete",
             "lifecycle-branch",
-            "--force",
+            "--force-git",
             "--yes",
         ])
         .build();

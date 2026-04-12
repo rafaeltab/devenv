@@ -37,8 +37,12 @@ pub struct WorktreeCompleteCommand;
 pub struct WorktreeCompleteOptions<'a> {
     /// The branch name of the worktree to complete (optional, defaults to current directory)
     pub branch_name: Option<String>,
-    /// Force removal even with uncommitted/unpushed changes
-    pub force: bool,
+    /// Continue teardown even if onDestroy commands fail
+    pub force_destroy: bool,
+    /// Skip onDestroy commands entirely
+    pub skip_destroy: bool,
+    /// Bypass git safety checks (uncommitted changes, unpushed commits)
+    pub force_git: bool,
     /// Skip confirmation prompt
     pub yes: bool,
     /// Repository for workspace operations
@@ -173,8 +177,8 @@ impl WorktreeCompleteCommand {
             }
         };
 
-        // 5. Safety checks (unless --force)
-        if !options.force {
+        // 5. Safety checks (unless --force-git)
+        if !options.force_git {
             // Check for uncommitted changes
             match git::check_clean_status(&worktree_path) {
                 Ok(true) => {}
@@ -221,7 +225,9 @@ impl WorktreeCompleteCommand {
             delegate_to_popup(
                 workspace,
                 &branch_name,
-                options.force,
+                options.force_destroy,
+                options.skip_destroy,
+                options.force_git,
                 options.yes,
                 options.session_repository,
                 options.popup_repository,
@@ -234,7 +240,9 @@ impl WorktreeCompleteCommand {
                 &worktree_path,
                 &main_repo_path,
                 &branch_name,
-                options.force,
+                options.force_destroy,
+                options.skip_destroy,
+                options.force_git,
                 options.yes,
                 &current_dir,
                 &merged_config,
@@ -251,7 +259,9 @@ impl WorktreeCompleteCommand {
 fn delegate_to_popup(
     workspace: Option<&Workspace>,
     branch_name: &str,
-    force: bool,
+    force_destroy: bool,
+    skip_destroy: bool,
+    force_git: bool,
     yes: bool,
     session_repository: &dyn TmuxSessionRepository,
     popup_repository: &dyn TmuxPopupRepository,
@@ -312,8 +322,16 @@ fn delegate_to_popup(
         branch_name.to_string(),
     ];
 
-    if force {
-        command_parts.push("--force".to_string());
+    if force_destroy {
+        command_parts.push("--force-destroy".to_string());
+    }
+
+    if skip_destroy {
+        command_parts.push("--skip-destroy".to_string());
+    }
+
+    if force_git {
+        command_parts.push("--force-git".to_string());
     }
 
     // Always add --yes when delegating to avoid double confirmation
@@ -351,7 +369,9 @@ fn execute_cleanup_directly(
     worktree_path: &Path,
     main_repo_path: &Path,
     branch_name: &str,
-    force: bool,
+    force_destroy: bool,
+    skip_destroy: bool,
+    force_git: bool,
     yes: bool,
     current_dir: &Path,
     merged_config: &MergedWorktreeConfig,
@@ -390,34 +410,42 @@ fn execute_cleanup_directly(
         }
     }
 
-    // 2. Run onDestroy commands before any teardown
+    // 2. Run onDestroy commands (unless --skip-destroy)
     let mut on_destroy_failed: Vec<(String, String)> = Vec::new();
-    for command in &merged_config.on_destroy {
-        println!("  Running onDestroy: {}", command);
-        let result = cmd!("sh", "-c", command)
-            .dir(worktree_path)
-            .stderr_to_stdout()
-            .read();
 
-        match result {
-            Ok(output) => {
-                if !output.trim().is_empty() {
-                    for line in output.lines() {
-                        println!("    {}", line);
+    if !skip_destroy {
+        for command in &merged_config.on_destroy {
+            println!("  Running onDestroy: {}", command);
+            let result = cmd!("sh", "-c", command)
+                .dir(worktree_path)
+                .stderr_to_stdout()
+                .read();
+
+            match result {
+                Ok(output) => {
+                    if !output.trim().is_empty() {
+                        for line in output.lines() {
+                            println!("    {}", line);
+                        }
+                    }
+                    println!("  ✓ Completed: {}", command);
+                }
+                Err(e) => {
+                    println!("  ✗ Failed: {}", command);
+                    on_destroy_failed.push((command.clone(), e.to_string()));
+                    if !force_destroy {
+                        break;
                     }
                 }
-                println!("  ✓ Completed: {}", command);
-            }
-            Err(e) => {
-                println!("  ✗ Failed: {}", command);
-                on_destroy_failed.push((command.clone(), e.to_string()));
-                break;
             }
         }
     }
 
-    // If any onDestroy command failed, abort teardown
-    if let Some((failed_cmd, error)) = on_destroy_failed.first() {
+    // If any onDestroy command failed and we're not forcing, abort teardown
+    if !on_destroy_failed.is_empty()
+        && !force_destroy
+        && let Some((failed_cmd, error)) = on_destroy_failed.first()
+    {
         return WorktreeCompleteResult::Failed(WorktreeError::OnDestroyCommandFailed {
             command: failed_cmd.clone(),
             error: error.clone(),
@@ -446,7 +474,7 @@ fn execute_cleanup_directly(
     }
 
     // 7. Remove the git worktree
-    let remove_result = if force {
+    let remove_result = if force_git {
         git::force_remove_worktree(worktree_path)
     } else {
         git::remove_worktree(worktree_path)
@@ -465,9 +493,16 @@ fn execute_cleanup_directly(
         }
     }
 
-    WorktreeCompleteResult::Success {
-        branch_name: branch_name.to_string(),
-        worktree_path: worktree_path.display().to_string(),
+    if !on_destroy_failed.is_empty() {
+        WorktreeCompleteResult::PartialSuccess {
+            worktree_path: worktree_path.display().to_string(),
+            failed_commands: on_destroy_failed,
+        }
+    } else {
+        WorktreeCompleteResult::Success {
+            branch_name: branch_name.to_string(),
+            worktree_path: worktree_path.display().to_string(),
+        }
     }
 }
 
