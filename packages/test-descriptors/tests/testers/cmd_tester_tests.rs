@@ -2,8 +2,8 @@
 //!
 //! Tests specific to the CmdTester (subprocess execution outside tmux).
 
-use test_descriptors::testers::{Command, CommandTester};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::{Command, CommandTester};
 
 /// $TMUX env var is not set.
 #[test]

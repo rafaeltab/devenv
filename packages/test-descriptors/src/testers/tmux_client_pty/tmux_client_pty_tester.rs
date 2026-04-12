@@ -1,6 +1,6 @@
 use super::capture_pane_asserter::CapturePaneAsserter;
-use crate::descriptor::tmux_client::TmuxClientHandle;
 use crate::descriptor::TmuxSocket;
+use crate::descriptor::tmux_client::TmuxClientHandle;
 use crate::testers::command::Command;
 use crate::testers::traits::TuiTester;
 

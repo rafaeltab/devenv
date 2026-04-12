@@ -66,9 +66,10 @@ impl PtyBackend {
             loop {
                 // Check if we should stop
                 if let Ok(running) = running_clone.lock()
-                    && !*running {
-                        break;
-                    }
+                    && !*running
+                {
+                    break;
+                }
 
                 match reader.read(&mut buffer) {
                     Ok(0) => break,
@@ -101,11 +102,12 @@ impl PtyBackend {
     /// Read available bytes from the PTY output buffer.
     pub(crate) fn read_available(&self) -> Option<Vec<u8>> {
         if let Ok(mut buf) = self.read_buffer.lock()
-            && !buf.is_empty() {
-                let bytes = buf.clone();
-                buf.clear();
-                return Some(bytes);
-            }
+            && !buf.is_empty()
+        {
+            let bytes = buf.clone();
+            buf.clear();
+            return Some(bytes);
+        }
         None
     }
 

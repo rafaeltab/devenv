@@ -1,11 +1,12 @@
 mod common;
 
 use crate::common::{
-    CliCommandBuilder, rafaeltab_descriptors::{RafaeltabGitMixin, RafaeltabRootMixin}
+    CliCommandBuilder,
+    rafaeltab_descriptors::{RafaeltabGitMixin, RafaeltabRootMixin},
 };
 use std::process::Command as StdCommand;
-use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::CommandTester;
 
 #[test]
 fn test_worktree_start_uses_default_windows() {

@@ -21,7 +21,7 @@ pub fn create_worktree_sessions(
     use crate::infrastructure::git;
     use crate::utils::path::expand_path;
     use std::path::Path;
-    use uuid::{uuid, Uuid};
+    use uuid::{Uuid, uuid};
 
     let workspace_path = expand_path(&workspace.path);
     let workspace_path = Path::new(&workspace_path);
@@ -86,16 +86,17 @@ pub fn get_windows_for_workspace(
     if let Some(sessions) = &tmux_config.sessions {
         for session in sessions {
             if let Session::Workspace(ws_session) = session
-                && ws_session.workspace == workspace_id {
-                    return ws_session
-                        .windows
-                        .iter()
-                        .map(|w| WindowDescription {
-                            name: w.name.clone(),
-                            command: w.command.clone(),
-                        })
-                        .collect();
-                }
+                && ws_session.workspace == workspace_id
+            {
+                return ws_session
+                    .windows
+                    .iter()
+                    .map(|w| WindowDescription {
+                        name: w.name.clone(),
+                        command: w.command.clone(),
+                    })
+                    .collect();
+            }
         }
     }
 
@@ -140,10 +141,12 @@ mod tests {
 
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].name, "editor");
-        assert!(result[0]
-            .command
-            .as_ref()
-            .is_some_and(|c| c.contains("vim")));
+        assert!(
+            result[0]
+                .command
+                .as_ref()
+                .is_some_and(|c| c.contains("vim"))
+        );
         assert_eq!(result[1].name, "shell");
         assert_eq!(result[1].command, None);
     }
@@ -177,15 +180,19 @@ mod tests {
 
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].name, "nvim");
-        assert!(result[0]
-            .command
-            .as_ref()
-            .is_some_and(|c| c.contains("nvim .")));
+        assert!(
+            result[0]
+                .command
+                .as_ref()
+                .is_some_and(|c| c.contains("nvim ."))
+        );
         assert_eq!(result[1].name, "build");
-        assert!(result[1]
-            .command
-            .as_ref()
-            .is_some_and(|c| c.contains("npm run dev")));
+        assert!(
+            result[1]
+                .command
+                .as_ref()
+                .is_some_and(|c| c.contains("npm run dev"))
+        );
     }
 
     #[test]

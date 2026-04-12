@@ -2,8 +2,8 @@
 //!
 //! Tests for text visibility assertions.
 
-use test_descriptors::testers::{Command, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::{Command, TuiAsserter, TuiTester};
 
 /// `assert_visible()` passes when text exists.
 #[test]

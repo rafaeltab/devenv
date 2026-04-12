@@ -5,8 +5,8 @@ use crate::common::{
     CliCommandBuilder, rafaeltab_descriptors::RafaeltabDirMixin,
     rafaeltab_descriptors::RafaeltabRootMixin,
 };
-use test_descriptors::{Key, TestEnvironment, TuiAsserter, TuiTester};
 use test_descriptors::testers::CommandTester;
+use test_descriptors::{Key, TestEnvironment, TuiAsserter, TuiTester};
 
 #[test]
 fn test_worktree_start_fails_without_worktree_config() {
@@ -199,7 +199,6 @@ fn test_worktree_start_handles_existing_branch_remote() {
                             c.file("remote.txt", "content");
                         });
                     });
-
 
                     g.rafaeltab_workspace("repo", "Repo", |_| {});
                     g.tmux_session("repo", |s| {

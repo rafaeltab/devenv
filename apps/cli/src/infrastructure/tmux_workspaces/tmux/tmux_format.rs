@@ -194,6 +194,9 @@ mod test {
         });
 
         let res = filter.as_string();
-        assert_eq!(res, "#{||:#{==:#{host},example.com},#{||:#{==:#{host},google.com},#{||:#{==:#{host},microsoft.com},#{==:#{host},rafaeltab.com}}}}")
+        assert_eq!(
+            res,
+            "#{||:#{==:#{host},example.com},#{||:#{==:#{host},google.com},#{||:#{==:#{host},microsoft.com},#{==:#{host},rafaeltab.com}}}}"
+        )
     }
 }

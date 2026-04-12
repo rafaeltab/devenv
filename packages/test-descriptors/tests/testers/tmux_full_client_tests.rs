@@ -2,8 +2,8 @@
 //!
 //! Tests for full tmux client PTY interaction (including tmux UI).
 
-use test_descriptors::testers::{Command, Key, Modifier, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::{Command, Key, Modifier, TuiAsserter, TuiTester};
 
 /// Tmux status bar visible.
 #[test]
@@ -29,7 +29,11 @@ fn tmux_full_client_shows_tmux_ui() {
     // Should see tmux UI elements (session name in status bar)
     asserter.find_text("my-session").assert_visible();
     let hello_occurances = asserter.find_all_text("Hello");
-    assert_eq!(hello_occurances.len(), 2, "Output should have both the command and the output of the command");
+    assert_eq!(
+        hello_occurances.len(),
+        2,
+        "Output should have both the command and the output of the command"
+    );
 }
 
 /// Panics if no client.

@@ -1,7 +1,7 @@
 mod common;
 
-use common::rafaeltab_descriptors::RafaeltabRootMixin;
 use common::CliCommandBuilder;
+use common::rafaeltab_descriptors::RafaeltabRootMixin;
 use test_descriptors::TestEnvironment;
 
 #[test]

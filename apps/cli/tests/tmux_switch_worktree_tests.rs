@@ -1,12 +1,12 @@
 mod common;
 
 use crate::common::{
-    rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabGitMixin, RafaeltabRootMixin},
     CliCommandBuilder,
+    rafaeltab_descriptors::{RafaeltabDirMixin, RafaeltabGitMixin, RafaeltabRootMixin},
 };
 use std::process::Command as StdCommand;
-use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::CommandTester;
 
 /// TC-WT-01: Switch to workspace with no worktrees (baseline)
 ///
@@ -638,7 +638,8 @@ fn test_worktree_sessions_have_unique_uuids() {
     assert!(
         env_var.contains("RAFAELTAB_SESSION_ID="),
         "Worktree session should have RAFAELTAB_SESSION_ID environment variable. Got stdout: '{}', stderr: '{}'",
-        env_var, env_stderr
+        env_var,
+        env_stderr
     );
 
     // Extract and verify it's a valid UUID format

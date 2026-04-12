@@ -11,6 +11,8 @@ pub struct MergedWorktreeConfig {
     pub symlink_files: Vec<String>,
     /// Combined onCreate commands (global + workspace)
     pub on_create: Vec<String>,
+    /// Combined onDestroy commands (global + workspace)
+    pub on_destroy: Vec<String>,
 }
 
 impl MergedWorktreeConfig {
@@ -23,11 +25,13 @@ impl MergedWorktreeConfig {
     ) -> Self {
         let mut symlink_files = Vec::new();
         let mut on_create = Vec::new();
+        let mut on_destroy = Vec::new();
 
         // Add global config first
         if let Some(global_config) = global {
             symlink_files.extend(global_config.symlink_files.clone());
             on_create.extend(global_config.on_create.clone());
+            on_destroy.extend(global_config.on_destroy.clone());
         }
 
         // Add workspace-specific config (these come after global)
@@ -43,17 +47,23 @@ impl MergedWorktreeConfig {
                     on_create.push(cmd.clone());
                 }
             }
+            for cmd in &workspace_config.on_destroy {
+                if !on_destroy.contains(cmd) {
+                    on_destroy.push(cmd.clone());
+                }
+            }
         }
 
         MergedWorktreeConfig {
             symlink_files,
             on_create,
+            on_destroy,
         }
     }
 
-    /// Check if this config is empty (no symlink files and no onCreate commands)
+    /// Check if this config is empty (no symlink files, no onCreate, and no onDestroy commands)
     pub fn is_empty(&self) -> bool {
-        self.symlink_files.is_empty() && self.on_create.is_empty()
+        self.symlink_files.is_empty() && self.on_create.is_empty() && self.on_destroy.is_empty()
     }
 }
 
@@ -147,10 +157,12 @@ mod tests {
         let global = WorktreeConfig {
             symlink_files: vec![".env".to_string()],
             on_create: vec![],
+            on_destroy: vec![],
         };
         let workspace = WorkspaceWorktreeConfig {
             symlink_files: vec!["secrets.json".to_string()],
             on_create: vec![],
+            on_destroy: vec![],
         };
 
         let result = MergedWorktreeConfig::merge(Some(&global), Some(&workspace));
@@ -163,10 +175,12 @@ mod tests {
         let global = WorktreeConfig {
             symlink_files: vec![],
             on_create: vec!["npm install".to_string()],
+            on_destroy: vec![],
         };
         let workspace = WorkspaceWorktreeConfig {
             symlink_files: vec![],
             on_create: vec!["npm run build".to_string()],
+            on_destroy: vec![],
         };
 
         let result = MergedWorktreeConfig::merge(Some(&global), Some(&workspace));
@@ -179,10 +193,12 @@ mod tests {
         let global = WorktreeConfig {
             symlink_files: vec![".env".to_string(), "config.json".to_string()],
             on_create: vec![],
+            on_destroy: vec![],
         };
         let workspace = WorkspaceWorktreeConfig {
             symlink_files: vec![".env".to_string(), "secrets.json".to_string()],
             on_create: vec![],
+            on_destroy: vec![],
         };
 
         let result = MergedWorktreeConfig::merge(Some(&global), Some(&workspace));
@@ -198,6 +214,7 @@ mod tests {
         let workspace = WorkspaceWorktreeConfig {
             symlink_files: vec![".env".to_string()],
             on_create: vec!["npm install".to_string()],
+            on_destroy: vec![],
         };
 
         let result = MergedWorktreeConfig::merge(None, Some(&workspace));
@@ -211,6 +228,7 @@ mod tests {
         let global = WorktreeConfig {
             symlink_files: vec![".env".to_string()],
             on_create: vec!["npm install".to_string()],
+            on_destroy: vec![],
         };
 
         let result = MergedWorktreeConfig::merge(Some(&global), None);
@@ -225,7 +243,86 @@ mod tests {
 
         assert!(result.symlink_files.is_empty());
         assert!(result.on_create.is_empty());
+        assert!(result.on_destroy.is_empty());
         assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_merge_configs_combines_global_and_workspace_on_destroy() {
+        let global = WorktreeConfig {
+            symlink_files: vec![],
+            on_create: vec![],
+            on_destroy: vec!["npm run cleanup".to_string()],
+        };
+        let workspace = WorkspaceWorktreeConfig {
+            symlink_files: vec![],
+            on_create: vec![],
+            on_destroy: vec!["rm -rf node_modules".to_string()],
+        };
+
+        let result = MergedWorktreeConfig::merge(Some(&global), Some(&workspace));
+
+        assert_eq!(
+            result.on_destroy,
+            vec!["npm run cleanup", "rm -rf node_modules"]
+        );
+    }
+
+    #[test]
+    fn test_merge_configs_deduplicates_on_destroy() {
+        let global = WorktreeConfig {
+            symlink_files: vec![],
+            on_create: vec![],
+            on_destroy: vec!["npm run cleanup".to_string(), "rm temp".to_string()],
+        };
+        let workspace = WorkspaceWorktreeConfig {
+            symlink_files: vec![],
+            on_create: vec![],
+            on_destroy: vec!["npm run cleanup".to_string(), "rm logs".to_string()],
+        };
+
+        let result = MergedWorktreeConfig::merge(Some(&global), Some(&workspace));
+
+        assert_eq!(
+            result.on_destroy,
+            vec!["npm run cleanup", "rm temp", "rm logs"]
+        );
+    }
+
+    #[test]
+    fn test_merge_configs_on_destroy_no_global() {
+        let workspace = WorkspaceWorktreeConfig {
+            symlink_files: vec![],
+            on_create: vec![],
+            on_destroy: vec!["rm -rf dist".to_string()],
+        };
+
+        let result = MergedWorktreeConfig::merge(None, Some(&workspace));
+
+        assert_eq!(result.on_destroy, vec!["rm -rf dist"]);
+    }
+
+    #[test]
+    fn test_merge_configs_on_destroy_no_workspace() {
+        let global = WorktreeConfig {
+            symlink_files: vec![],
+            on_create: vec![],
+            on_destroy: vec!["npm run cleanup".to_string()],
+        };
+
+        let result = MergedWorktreeConfig::merge(Some(&global), None);
+
+        assert_eq!(result.on_destroy, vec!["npm run cleanup"]);
+    }
+
+    #[test]
+    fn test_merged_config_is_not_empty_with_on_destroy() {
+        let config = MergedWorktreeConfig {
+            symlink_files: vec![],
+            on_create: vec![],
+            on_destroy: vec!["npm run cleanup".to_string()],
+        };
+        assert!(!config.is_empty());
     }
 
     #[test]
@@ -287,6 +384,7 @@ mod tests {
         let config = MergedWorktreeConfig {
             symlink_files: vec![".env".to_string()],
             on_create: vec![],
+            on_destroy: vec![],
         };
         assert!(!config.is_empty());
     }
@@ -296,6 +394,7 @@ mod tests {
         let config = MergedWorktreeConfig {
             symlink_files: vec![],
             on_create: vec!["npm install".to_string()],
+            on_destroy: vec![],
         };
         assert!(!config.is_empty());
     }
@@ -314,8 +413,10 @@ mod tests {
 
     #[test]
     fn test_find_most_specific_workspace_nested_returns_most_specific() {
-        let workspaces = [("home", "/home/user"),
-            ("devenv", "/home/user/source/devenv")];
+        let workspaces = [
+            ("home", "/home/user"),
+            ("devenv", "/home/user/source/devenv"),
+        ];
 
         let result = find_most_specific_workspace(
             "/home/user/source/devenv/apps/cli",
@@ -328,8 +429,10 @@ mod tests {
     #[test]
     fn test_find_most_specific_workspace_nested_parent_first_in_list() {
         // Test that order in the list doesn't matter
-        let workspaces = [("devenv", "/home/user/source/devenv"),
-            ("home", "/home/user")];
+        let workspaces = [
+            ("devenv", "/home/user/source/devenv"),
+            ("home", "/home/user"),
+        ];
 
         let result = find_most_specific_workspace(
             "/home/user/source/devenv/apps/cli",
@@ -341,8 +444,10 @@ mod tests {
 
     #[test]
     fn test_find_most_specific_workspace_returns_parent_when_not_in_child() {
-        let workspaces = [("home", "/home/user"),
-            ("devenv", "/home/user/source/devenv")];
+        let workspaces = [
+            ("home", "/home/user"),
+            ("devenv", "/home/user/source/devenv"),
+        ];
 
         let result = find_most_specific_workspace(
             "/home/user/documents",
@@ -366,9 +471,11 @@ mod tests {
 
     #[test]
     fn test_find_most_specific_workspace_deeply_nested() {
-        let workspaces = [("home", "/home/user"),
+        let workspaces = [
+            ("home", "/home/user"),
             ("source", "/home/user/source"),
-            ("devenv", "/home/user/source/devenv")];
+            ("devenv", "/home/user/source/devenv"),
+        ];
 
         let result = find_most_specific_workspace(
             "/home/user/source/devenv/apps/cli/src",

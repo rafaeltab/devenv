@@ -1,7 +1,7 @@
 use serde_json::json;
 use std::fs;
-use test_descriptors::descriptor::{CreateContext, CreateError, Descriptor};
 use test_descriptors::RootBuilder;
+use test_descriptors::descriptor::{CreateContext, CreateError, Descriptor};
 
 use super::workspace::WORKSPACES;
 

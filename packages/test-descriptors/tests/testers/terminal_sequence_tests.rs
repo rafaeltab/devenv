@@ -2,8 +2,8 @@
 //!
 //! Tests for ANSI escape sequence handling in terminal emulation.
 
-use test_descriptors::testers::{Command, TuiAsserter, TuiTester};
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::{Command, TuiAsserter, TuiTester};
 
 /// ESC[2J clears screen.
 #[test]

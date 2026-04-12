@@ -1,11 +1,11 @@
 mod common;
 
 use crate::common::{
-    rafaeltab_descriptors::RafaeltabDirMixin, rafaeltab_descriptors::RafaeltabRootMixin,
-    CliCommandBuilder,
+    CliCommandBuilder, rafaeltab_descriptors::RafaeltabDirMixin,
+    rafaeltab_descriptors::RafaeltabRootMixin,
 };
-use test_descriptors::testers::CommandTester;
 use test_descriptors::TestEnvironment;
+use test_descriptors::testers::CommandTester;
 
 // TODO let these tests actually verify some behavior
 #[test]

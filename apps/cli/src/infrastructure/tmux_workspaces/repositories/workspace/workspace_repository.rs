@@ -187,6 +187,7 @@ mod test {
         let worktree_config = WorkspaceWorktreeConfig {
             symlink_files: vec![".env".to_string(), "config.json".to_string()],
             on_create: vec!["npm install".to_string()],
+            on_destroy: vec![],
         };
 
         let workspace_storage = MockWorkspaceStorage {

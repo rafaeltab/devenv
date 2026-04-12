@@ -2,7 +2,7 @@ use super::pty_asserter::PtyAsserter;
 use crate::testers::command::Command;
 use crate::testers::internal::PtyBackend;
 use crate::testers::traits::TuiTester;
-use portable_pty::{native_pty_system, CommandBuilder, PtySize};
+use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 
 /// PTY-based TUI tester that runs commands in a pseudo-terminal.
 ///
