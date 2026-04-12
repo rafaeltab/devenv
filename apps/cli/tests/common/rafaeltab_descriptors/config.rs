@@ -9,6 +9,7 @@ use super::workspace::WORKSPACES;
 #[derive(Debug, Clone, Default)]
 pub struct WorktreeGlobalConfig {
     pub on_create: Vec<String>,
+    pub on_destroy: Vec<String>,
     pub symlink_files: Vec<String>,
 }
 
@@ -70,9 +71,15 @@ impl ConfigBuilder {
     }
 
     /// Set global worktree configuration
-    pub fn worktree_global(&mut self, on_create: &[&str], symlink_files: &[&str]) {
+    pub fn worktree_global(
+        &mut self,
+        on_create: &[&str],
+        on_destroy: &[&str],
+        symlink_files: &[&str],
+    ) {
         self.worktree_global = Some(WorktreeGlobalConfig {
             on_create: on_create.iter().map(|s| s.to_string()).collect(),
+            on_destroy: on_destroy.iter().map(|s| s.to_string()).collect(),
             symlink_files: symlink_files.iter().map(|s| s.to_string()).collect(),
         });
     }
@@ -209,10 +216,14 @@ impl Descriptor for ConfigDescriptor {
                 });
 
                 if let Some(worktree) = &ws.worktree {
-                    workspace["worktree"] = json!({
+                    let mut worktree_json = json!({
                         "onCreate": worktree.on_create,
                         "symlinkFiles": worktree.symlink_files,
                     });
+                    if !worktree.on_destroy.is_empty() {
+                        worktree_json["onDestroy"] = json!(worktree.on_destroy);
+                    }
+                    workspace["worktree"] = worktree_json;
                 }
 
                 workspace
@@ -283,10 +294,14 @@ impl Descriptor for ConfigDescriptor {
 
         // Add global worktree config if set
         if let Some(worktree) = &self.worktree_global {
-            config["worktree"] = json!({
+            let mut worktree_json = json!({
                 "onCreate": worktree.on_create,
                 "symlinkFiles": worktree.symlink_files,
             });
+            if !worktree.on_destroy.is_empty() {
+                worktree_json["onDestroy"] = json!(worktree.on_destroy);
+            }
+            config["worktree"] = worktree_json;
         }
 
         // Write config to file

@@ -23,6 +23,8 @@ pub enum WorktreeError {
     IsMainRepo(PathBuf),
     /// An onCreate command failed during worktree setup
     OnCreateCommandFailed { command: String, error: String },
+    /// An onDestroy command failed during worktree teardown
+    OnDestroyCommandFailed { command: String, error: String },
     /// Symlink creation failed
     SymlinkFailed { path: PathBuf, error: String },
     /// Git operation failed
@@ -76,6 +78,9 @@ impl std::fmt::Display for WorktreeError {
             }
             WorktreeError::OnCreateCommandFailed { command, error } => {
                 write!(f, "onCreate command '{}' failed: {}", command, error)
+            }
+            WorktreeError::OnDestroyCommandFailed { command, error } => {
+                write!(f, "onDestroy command '{}' failed: {}", command, error)
             }
             WorktreeError::SymlinkFailed { path, error } => {
                 write!(f, "Failed to create symlink for {:?}: {}", path, error)

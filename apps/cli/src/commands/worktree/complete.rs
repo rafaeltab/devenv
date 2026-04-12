@@ -4,6 +4,8 @@ use std::io::{self, BufRead, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
+use duct::cmd;
+
 use crate::{
     commands::command::RafaeltabCommand,
     domain::{
@@ -19,9 +21,13 @@ use crate::{
                 workspace::workspace_repository::WorkspaceRepository,
             },
         },
-        worktree::{config::find_most_specific_workspace, error::WorktreeError},
+        worktree::{
+            config::{MergedWorktreeConfig, find_most_specific_workspace},
+            error::WorktreeError,
+        },
     },
     infrastructure::{git, tmux_workspaces::tmux::session_detection::get_current_tmux_session},
+    storage::worktree::WorktreeStorage,
     utils::path::expand_path,
 };
 
@@ -37,6 +43,8 @@ pub struct WorktreeCompleteOptions<'a> {
     pub yes: bool,
     /// Repository for workspace operations
     pub workspace_repository: &'a dyn WorkspaceRepository,
+    /// Storage for global worktree config
+    pub worktree_storage: &'a dyn WorktreeStorage,
     /// Repository for tmux session operations
     pub session_repository: &'a dyn TmuxSessionRepository,
     /// Repository for tmux client operations
@@ -54,11 +62,18 @@ pub enum WorktreeCompleteResult {
         branch_name: String,
         worktree_path: String,
     },
+    /// Worktree was removed but some onDestroy commands failed
+    PartialSuccess {
+        worktree_path: String,
+        failed_commands: Vec<(String, String)>,
+    },
     /// Worktree removal was delegated to a popup
     Delegated {
         branch_name: String,
         target_session: String,
     },
+    /// User cancelled the operation
+    Cancelled,
     /// Operation failed with error
     Failed(WorktreeError),
 }
@@ -73,6 +88,18 @@ impl RafaeltabCommand<WorktreeCompleteOptions<'_>> for WorktreeCompleteCommand {
                 println!("Completed worktree for branch '{}'", branch_name);
                 println!("Removed: {}", worktree_path);
             }
+            WorktreeCompleteResult::PartialSuccess {
+                worktree_path,
+                failed_commands,
+            } => {
+                println!("Removed: {}", worktree_path);
+                println!();
+                for (command, error) in &failed_commands {
+                    println!("⚠ onDestroy command '{}' failed: {}", command, error);
+                }
+                println!();
+                println!("Worktree was removed, but some teardown commands failed.");
+            }
             WorktreeCompleteResult::Delegated {
                 branch_name,
                 target_session,
@@ -81,6 +108,9 @@ impl RafaeltabCommand<WorktreeCompleteOptions<'_>> for WorktreeCompleteCommand {
                     "Cleanup for '{}' is running in popup on session '{}'",
                     branch_name, target_session
                 );
+            }
+            WorktreeCompleteResult::Cancelled => {
+                println!("Operation cancelled.");
             }
             WorktreeCompleteResult::Failed(err) => {
                 eprintln!("Error: {}", err);
@@ -172,9 +202,14 @@ impl WorktreeCompleteCommand {
             }
         }
 
-        // 6. Find the workspace this worktree belongs to
+        // 6. Find the workspace this worktree belongs to and load config
         let workspaces = options.workspace_repository.get_workspaces();
         let workspace = find_workspace_for_path(&main_repo_path, &workspaces);
+
+        let global_config = options.worktree_storage.read();
+        let workspace_config = workspace.and_then(|ws| ws.worktree.clone());
+        let merged_config =
+            MergedWorktreeConfig::merge(global_config.as_ref(), workspace_config.as_ref());
 
         // ===== PHASE 2: DETERMINE EXECUTION FLOW =====
 
@@ -183,7 +218,6 @@ impl WorktreeCompleteCommand {
         let is_self_deletion = current_session.as_ref() == Some(&target_session_name);
 
         if is_self_deletion {
-            // Flow 1: We're in the worktree session being deleted - delegate to popup
             delegate_to_popup(
                 workspace,
                 &branch_name,
@@ -195,7 +229,6 @@ impl WorktreeCompleteCommand {
                 options.client_repository,
             )
         } else {
-            // Flow 2: We're in a different session - execute cleanup directly
             execute_cleanup_directly(
                 workspace,
                 &worktree_path,
@@ -204,6 +237,7 @@ impl WorktreeCompleteCommand {
                 options.force,
                 options.yes,
                 &current_dir,
+                &merged_config,
                 options.session_repository,
                 options.client_repository,
             )
@@ -254,9 +288,7 @@ fn delegate_to_popup(
         }
 
         if !response.trim().eq_ignore_ascii_case("y") {
-            return WorktreeCompleteResult::Failed(WorktreeError::GitError(
-                "Cancelled by user".to_string(),
-            ));
+            return WorktreeCompleteResult::Cancelled;
         }
     }
 
@@ -322,6 +354,7 @@ fn execute_cleanup_directly(
     force: bool,
     yes: bool,
     current_dir: &Path,
+    merged_config: &MergedWorktreeConfig,
     session_repository: &dyn TmuxSessionRepository,
     client_repository: &dyn TmuxClientRepository,
 ) -> WorktreeCompleteResult {
@@ -329,6 +362,12 @@ fn execute_cleanup_directly(
     if !yes {
         println!("About to delete worktree for branch '{}'", branch_name);
         println!("Location: {}", worktree_path.display());
+        if !merged_config.on_destroy.is_empty() {
+            println!(
+                "onDestroy commands: {}",
+                merged_config.on_destroy.join(", ")
+            );
+        }
         print!("Continue? [y/N] ");
 
         // Flush stdout to ensure prompt is displayed
@@ -347,34 +386,66 @@ fn execute_cleanup_directly(
         }
 
         if !response.trim().eq_ignore_ascii_case("y") {
-            return WorktreeCompleteResult::Failed(WorktreeError::GitError(
-                "Cancelled by user".to_string(),
-            ));
+            return WorktreeCompleteResult::Cancelled;
         }
     }
 
-    // 2. Determine if we need to switch the client
+    // 2. Run onDestroy commands before any teardown
+    let mut on_destroy_failed: Vec<(String, String)> = Vec::new();
+    for command in &merged_config.on_destroy {
+        println!("  Running onDestroy: {}", command);
+        let result = cmd!("sh", "-c", command)
+            .dir(worktree_path)
+            .stderr_to_stdout()
+            .read();
+
+        match result {
+            Ok(output) => {
+                if !output.trim().is_empty() {
+                    for line in output.lines() {
+                        println!("    {}", line);
+                    }
+                }
+                println!("  ✓ Completed: {}", command);
+            }
+            Err(e) => {
+                println!("  ✗ Failed: {}", command);
+                on_destroy_failed.push((command.clone(), e.to_string()));
+                break;
+            }
+        }
+    }
+
+    // If any onDestroy command failed, abort teardown
+    if let Some((failed_cmd, error)) = on_destroy_failed.first() {
+        return WorktreeCompleteResult::Failed(WorktreeError::OnDestroyCommandFailed {
+            command: failed_cmd.clone(),
+            error: error.clone(),
+        });
+    }
+
+    // 3. Determine if we need to switch the client
     let should_switch_client = current_dir.starts_with(worktree_path);
 
-    // 3. If we're in the worktree being deleted, switch client first
+    // 4. If we're in the worktree being deleted, switch client first
     if should_switch_client && let Some(ws) = workspace {
         switch_to_main_workspace_session(session_repository, client_repository, &ws.name);
         println!("Switched to main workspace session");
     }
 
-    // 4. Kill the worktree's tmux session
+    // 5. Kill the worktree's tmux session
     let session_name = calculate_worktree_session_name(workspace, branch_name);
     kill_session_by_name(session_repository, &session_name);
     println!("Closed tmux session: {}", session_name);
 
-    // 5. Change directory away from worktree if needed
+    // 6. Change directory away from worktree if needed
     if current_dir.starts_with(worktree_path)
         && let Err(e) = std::env::set_current_dir(main_repo_path)
     {
         eprintln!("Warning: Could not change directory: {}", e);
     }
 
-    // 6. Remove the git worktree
+    // 7. Remove the git worktree
     let remove_result = if force {
         git::force_remove_worktree(worktree_path)
     } else {
@@ -386,7 +457,7 @@ fn execute_cleanup_directly(
     }
     println!("Removed git worktree");
 
-    // 7. Clean up empty parent directories
+    // 8. Clean up empty parent directories
     if worktree_path.parent().is_some() {
         let stop_at = main_repo_path.parent().unwrap_or(main_repo_path);
         if let Err(e) = git::remove_empty_parent_directories(worktree_path, stop_at) {

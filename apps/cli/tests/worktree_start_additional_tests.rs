@@ -380,7 +380,7 @@ fn test_worktree_start_fails_detached_head() {
 fn test_worktree_start_creates_symlinks() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|c| {
-            c.worktree_global(&[], &[".env.example"]);
+            c.worktree_global(&[], &[], &[".env.example"]);
         });
 
         root.test_dir(|td| {
@@ -431,7 +431,7 @@ fn test_worktree_start_creates_symlinks() {
 fn test_worktree_start_runs_oncreate_commands() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|c| {
-            c.worktree_global(&["echo 'setup complete'"], &[]);
+            c.worktree_global(&["echo 'setup complete'"], &[], &[]);
         });
 
         root.test_dir(|td| {
@@ -476,7 +476,7 @@ fn test_worktree_start_runs_oncreate_commands() {
 fn test_worktree_start_creates_git_worktree() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|c| {
-            c.worktree_global(&[], &[]);
+            c.worktree_global(&[], &[], &[]);
         });
 
         root.test_dir(|td| {
@@ -528,7 +528,7 @@ fn test_worktree_start_handles_oncreate_failure() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|c| {
             // Config with a command that will fail
-            c.worktree_global(&["exit 1"], &[]);
+            c.worktree_global(&["exit 1"], &[], &[]);
         });
 
         root.test_dir(|td| {
@@ -574,7 +574,7 @@ fn test_worktree_start_switches_to_session() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|c| {
             c.tmux_session("main_ws", None, &[("shell", None)]);
-            c.worktree_global(&[], &[]);
+            c.worktree_global(&[], &[], &[]);
         });
 
         root.test_dir(|td| {

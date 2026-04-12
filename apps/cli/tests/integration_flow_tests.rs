@@ -448,7 +448,7 @@ fn test_workspace_switching_scenarios() {
 fn test_full_workflow_worktree_lifecycle() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|c| {
-            c.worktree_global(&[], &[]);
+            c.worktree_global(&[], &[], &[]);
         });
 
         root.test_dir(|td| {
@@ -521,7 +521,7 @@ fn test_full_workflow_worktree_lifecycle() {
 fn test_worktree_in_different_workspace() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|c| {
-            c.worktree_global(&[], &[]);
+            c.worktree_global(&[], &[], &[]);
         });
 
         root.test_dir(|td| {

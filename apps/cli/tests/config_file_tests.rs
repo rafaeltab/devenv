@@ -23,7 +23,7 @@ fn test_config_file_with_all_fields() {
                 d.rafaeltab_workspace("test_ws", "Test Workspace", |w| {
                     w.tag("rust");
                     w.tag("cli");
-                    w.worktree(&["npm install"], &["node_modules"]);
+                    w.worktree(&["npm install"], &[], &["node_modules"]);
                 });
             });
         });
@@ -108,7 +108,7 @@ fn test_config_file_workspace_without_worktree() {
 fn test_config_file_global_worktree_config() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|c| {
-            c.worktree_global(&["echo 'setup'"], &[".env"]);
+            c.worktree_global(&["echo 'setup'"], &[], &[".env"]);
         });
 
         root.test_dir(|td| {
@@ -239,13 +239,17 @@ fn test_config_file_empty_arrays() {
 fn test_config_file_with_worktree_commands() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|c| {
-            c.worktree_global(&["npm install", "echo 'ready'"], &["package.json", ".env"]);
+            c.worktree_global(
+                &["npm install", "echo 'ready'"],
+                &[],
+                &["package.json", ".env"],
+            );
         });
 
         root.test_dir(|td| {
             td.dir("wt_cmds", |d| {
                 d.rafaeltab_workspace("wt_cmds", "Worktree Commands", |w| {
-                    w.worktree(&["yarn install"], &["README.md"]);
+                    w.worktree(&["yarn install"], &[], &["README.md"]);
                 });
             });
         });

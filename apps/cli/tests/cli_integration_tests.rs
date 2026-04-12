@@ -120,7 +120,11 @@ fn test_workspace_with_worktree_config() {
         root.test_dir(|td| {
             td.dir("worktree-project", |d| {
                 d.rafaeltab_workspace("worktree_project", "Worktree Project", |w| {
-                    w.worktree(&["npm install", "npm run build"], &[".env", "node_modules"]);
+                    w.worktree(
+                        &["npm install", "npm run build"],
+                        &[],
+                        &[".env", "node_modules"],
+                    );
                 });
             });
         });
@@ -175,7 +179,7 @@ fn test_complex_workspace_scenario() {
                     });
                     g.rafaeltab_workspace("backend", "Backend API", |w| {
                         w.tag("rust");
-                        w.worktree(&["cargo build"], &["target"]);
+                        w.worktree(&["cargo build"], &[], &["target"]);
                     });
                 });
                 d.tmux_session("backend-dev", |s| {

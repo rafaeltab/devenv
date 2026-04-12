@@ -33,6 +33,7 @@ pub struct WorkspaceData {
 #[derive(Debug, Clone)]
 pub struct WorktreeConfig {
     pub on_create: Vec<String>,
+    pub on_destroy: Vec<String>,
     pub symlink_files: Vec<String>,
 }
 
@@ -83,9 +84,10 @@ impl WorkspaceBuilder {
     }
 
     /// Configure worktree settings for this workspace
-    pub fn worktree(&mut self, on_create: &[&str], symlink_files: &[&str]) {
+    pub fn worktree(&mut self, on_create: &[&str], on_destroy: &[&str], symlink_files: &[&str]) {
         self.worktree = Some(WorktreeConfig {
             on_create: on_create.iter().map(|s| s.to_string()).collect(),
+            on_destroy: on_destroy.iter().map(|s| s.to_string()).collect(),
             symlink_files: symlink_files.iter().map(|s| s.to_string()).collect(),
         });
     }

@@ -40,7 +40,7 @@ fn test_rafaeltab_config_with_worktree_global() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|c| {
             c.defaults();
-            c.worktree_global(&["pnpm install"], &["**/.env"]);
+            c.worktree_global(&["pnpm install"], &[], &["**/.env"]);
         });
 
         root.test_dir(|_td| {});
@@ -147,7 +147,11 @@ fn test_workspace_with_worktree_config() {
                     });
 
                     g.rafaeltab_workspace("my_project", "My Project", |w| {
-                        w.worktree(&["npm install", "npm run build"], &[".env", "node_modules"]);
+                        w.worktree(
+                            &["npm install", "npm run build"],
+                            &[],
+                            &[".env", "node_modules"],
+                        );
                     });
                 });
             });

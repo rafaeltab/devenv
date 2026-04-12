@@ -228,7 +228,7 @@ fn test_tmux_switch_creates_worktree_sessions() {
             });
             td.dir("worktree_ws", |d| {
                 d.rafaeltab_workspace("worktree_ws", "Worktree Workspace", |w| {
-                    w.worktree(&[], &[]);
+                    w.worktree(&[], &[], &[]);
                 });
                 d.git("repo", |_g| {
                     // Empty git repo
