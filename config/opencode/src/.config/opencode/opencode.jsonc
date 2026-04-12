@@ -35,6 +35,10 @@
       "printf*": "allow",
       "hexdump*": "allow",
       "turbo*": "allow",
+      "node*": "allow",
+      "rm*": "allow",
+      "echo*": "allow",
+      "docker*": "allow",
     },
   },
   "agent": {
