@@ -39,6 +39,12 @@
       "rm*": "allow",
       "echo*": "allow",
       "docker*": "allow",
+      "dotnet test*": "allow",
+      "dotnet build*": "allow",
+      "git remote -v": "allow",
+      "git ls-tree*": "allow",
+      "az bicep build*": "allow",
+      "az bicep build-params*": "allow",
     },
   },
   "agent": {
