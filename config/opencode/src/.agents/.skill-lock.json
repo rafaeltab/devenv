@@ -1,6 +1,15 @@
 {
   "version": 3,
   "skills": {
+    "documentation-writer": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/github/awesome-copilot.git",
+      "skillPath": "skills/documentation-writer/SKILL.md",
+      "skillFolderHash": "016d8040a3f91c8360b1003e74fbf29f34c283f5",
+      "installedAt": "2026-03-16T14:04:38.608Z",
+      "updatedAt": "2026-03-16T14:04:38.608Z"
+    },
     "grill-me": {
       "source": "mattpocock/skills",
       "sourceType": "github",
