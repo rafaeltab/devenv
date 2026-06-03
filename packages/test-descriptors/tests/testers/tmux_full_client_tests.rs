@@ -26,8 +26,10 @@ fn tmux_full_client_shows_tmux_ui() {
     let mut asserter = env.testers().tmux_full_client().run(&cmd);
     asserter.wait_for_settle();
 
-    // Should see tmux UI elements (session name in status bar)
-    asserter.find_text("my-session").assert_visible();
+    // Should see tmux UI elements (session name in status bar). tmux may
+    // truncate long status-left content in an 80-column PTY, so assert the
+    // visible session prefix rather than requiring the full name.
+    asserter.find_text("my-sessio").assert_visible();
     let hello_occurances = asserter.find_all_text("Hello");
     assert_eq!(
         hello_occurances.len(),
@@ -90,6 +92,7 @@ fn tmux_full_client_full_pty_interaction() {
     // Exit
     asserter.send_keys(&[Key::Char('d').with_modifier(Modifier::Ctrl)]);
 
-    // Tmux UI should still be visible
-    asserter.find_text("interactive-session").assert_visible();
+    // Tmux UI should still be visible. tmux may truncate the session name in
+    // narrow PTYs, so assert the visible prefix.
+    asserter.find_text("interacti").assert_visible();
 }

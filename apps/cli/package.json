@@ -7,7 +7,7 @@
     "dev": "cargo dev",
     "test": "cargo test -- --skip integration_test",
     "test:integration": "cargo test --test integration_test",
-    "activate": "sudo cp target/release/rafaeltab /usr/local/bin/",
+    "activate": "mkdir -p ~/.local/bin && cp target/release/rafaeltab ~/.local/bin/",
     "format": "cargo fmt",
     "lint": "cargo build --all-features && cargo clippy --all-features -- -Dwarnings"
   }

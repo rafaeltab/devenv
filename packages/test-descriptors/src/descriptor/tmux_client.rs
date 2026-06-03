@@ -194,6 +194,7 @@ impl TmuxClientDescriptor {
 
         // Build the tmux attach command
         let mut cmd = CommandBuilder::new("tmux");
+        cmd.env("TERM", "xterm-256color");
         cmd.arg("-L");
         cmd.arg(socket_name);
         cmd.arg("attach-session");
