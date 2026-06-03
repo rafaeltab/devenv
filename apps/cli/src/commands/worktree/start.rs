@@ -66,7 +66,8 @@ pub enum WorktreeStartResult {
     /// Worktree was created but onCreate commands failed
     PartialSuccess {
         worktree_path: String,
-        session_name: String,
+        session_name: Option<String>,
+        tmux_enabled: bool,
         failed_command: String,
         error: String,
     },
@@ -97,11 +98,18 @@ impl RafaeltabCommand<WorktreeStartOptions<'_>> for WorktreeStartCommand {
             WorktreeStartResult::PartialSuccess {
                 worktree_path,
                 session_name,
+                tmux_enabled,
                 failed_command,
                 error,
             } => {
                 println!("✓ Created worktree at {}", worktree_path);
-                println!("✓ Created tmux session: {} (not switched)", session_name);
+                if tmux_enabled {
+                    if let Some(session_name) = session_name {
+                        println!("✓ Created tmux session: {} (not switched)", session_name);
+                    }
+                } else {
+                    println!("ℹ Skipped tmux integration (--no-tmux or worktree.tmux=false)");
+                }
                 println!();
                 println!("⚠ onCreate command failed: {}", failed_command);
                 println!("  Error: {}", error);
@@ -238,6 +246,14 @@ impl WorktreeStartCommand {
                 creation_info.config.on_create.len(),
                 creation_info.config.on_create.join(", ")
             );
+            println!(
+                "  Tmux: {}",
+                if creation_info.config.tmux {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
+            );
             println!();
 
             let confirmed = Confirm::new("Continue?").with_default(true).prompt();
@@ -337,7 +353,12 @@ impl WorktreeStartCommand {
         if let Some((failed_cmd, error)) = on_create_failed {
             return WorktreeStartResult::PartialSuccess {
                 worktree_path: worktree_path.display().to_string(),
-                session_name,
+                session_name: if merged_config.tmux {
+                    Some(session_name)
+                } else {
+                    None
+                },
+                tmux_enabled: merged_config.tmux,
                 failed_command: failed_cmd,
                 error,
             };
