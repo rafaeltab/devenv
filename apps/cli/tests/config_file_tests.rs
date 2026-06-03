@@ -51,6 +51,24 @@ fn test_config_file_with_all_fields() {
 }
 
 #[test]
+fn test_config_schema_documents_worktree_tmux_settings() {
+    let schema_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("schemas")
+        .join("config-schema.json");
+    let schema: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(schema_path).unwrap()).unwrap();
+
+    assert_eq!(
+        schema["definitions"]["WorktreeConfig"]["properties"]["tmux"]["type"],
+        "boolean"
+    );
+    assert_eq!(
+        schema["definitions"]["WorkspaceWorktreeConfig"]["properties"]["tmux"]["type"],
+        "boolean"
+    );
+}
+
+#[test]
 fn test_config_file_minimal_valid() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|_c| {});

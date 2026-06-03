@@ -99,6 +99,100 @@ fn test_worktree_start_no_tmux_skips_session_creation_and_switch() {
 }
 
 #[test]
+fn test_worktree_start_no_tmux_oncreate_failure_does_not_report_created_tmux_session() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|c| {
+            c.worktree_global(&["exit 1"], &[], &[]);
+        });
+
+        root.test_dir(|td| {
+            td.dir("no_tmux_oncreate_fail", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial commit", |c| {
+                            c.file("README.md", "# Test");
+                        });
+                    });
+
+                    g.rafaeltab_workspace("repo", "Repo", |_| {});
+                });
+            });
+        });
+    })
+    .create();
+
+    let repo_dir = env
+        .find_dir("no_tmux_oncreate_fail")
+        .expect("Dir not found");
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(repo_dir.path().join("repo"))
+        .args(&["worktree", "start", "failed-branch", "--no-tmux", "--yes"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
+
+    assert!(
+        result.success,
+        "onCreate failure should be reported without process failure. Got: {} {}",
+        result.stdout, result.stderr
+    );
+    assert!(
+        result.stdout.contains("Skipped tmux integration"),
+        "Expected output to mention skipped tmux integration. Got: {}",
+        result.stdout
+    );
+    assert!(
+        !result.stdout.contains("Created tmux session"),
+        "--no-tmux must not report a tmux session when onCreate fails. Got: {}",
+        result.stdout
+    );
+}
+
+#[test]
+fn test_worktree_start_confirmation_displays_tmux_status() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
+
+        root.test_dir(|td| {
+            td.dir("no_tmux_confirm", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial commit", |c| {
+                            c.file("README.md", "# Test");
+                        });
+                    });
+
+                    g.rafaeltab_workspace("repo", "Repo", |w| {
+                        w.worktree(&[], &[], &[]);
+                    });
+                });
+            });
+        });
+    })
+    .create();
+
+    let repo_dir = env.find_dir("no_tmux_confirm").expect("Dir not found");
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(repo_dir.path().join("repo"))
+        .args(&["worktree", "start", "confirm-branch", "--no-tmux"])
+        .stdin("n\n")
+        .build();
+    let result = env.testers().cmd().run(&cmd);
+
+    assert!(
+        result.success,
+        "Cancelling at confirmation should exit successfully. Got: {} {}",
+        result.stdout, result.stderr
+    );
+    assert!(
+        result.stdout.contains("Tmux: disabled"),
+        "Confirmation should show tmux status. Got: {}",
+        result.stdout
+    );
+}
+
+#[test]
 fn test_worktree_start_skip_config_works() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|_c| {});
