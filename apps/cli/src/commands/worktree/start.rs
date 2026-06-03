@@ -41,6 +41,8 @@ pub struct WorktreeStartOptions<'a> {
     pub skip_config: bool,
     /// Skip confirmation prompt
     pub yes: bool,
+    /// Disable tmux integration for this invocation
+    pub no_tmux: bool,
     /// Repository for workspace operations
     pub workspace_repository: &'a dyn WorkspaceRepository,
     /// Storage for global worktree config
@@ -58,7 +60,8 @@ pub enum WorktreeStartResult {
     /// Worktree was created successfully and tmux session was started
     Success {
         worktree_path: String,
-        session_name: String,
+        session_name: Option<String>,
+        tmux_enabled: bool,
     },
     /// Worktree was created but onCreate commands failed
     PartialSuccess {
@@ -80,9 +83,16 @@ impl RafaeltabCommand<WorktreeStartOptions<'_>> for WorktreeStartCommand {
             WorktreeStartResult::Success {
                 worktree_path,
                 session_name,
+                tmux_enabled,
             } => {
                 println!("✓ Created worktree at {}", worktree_path);
-                println!("✓ Started tmux session: {}", session_name);
+                if tmux_enabled {
+                    if let Some(session_name) = session_name {
+                        println!("✓ Started tmux session: {}", session_name);
+                    }
+                } else {
+                    println!("ℹ Skipped tmux integration (--no-tmux or worktree.tmux=false)");
+                }
             }
             WorktreeStartResult::PartialSuccess {
                 worktree_path,
@@ -165,8 +175,11 @@ impl WorktreeStartCommand {
         }
 
         // 6. Merge configurations
-        let merged_config =
+        let mut merged_config =
             MergedWorktreeConfig::merge(global_config.as_ref(), workspace_config.as_ref());
+        if options.no_tmux {
+            merged_config.tmux = false;
+        }
 
         // 7. Get current branch (base branch)
         let base_branch = match git::get_current_branch(&git_root) {
@@ -305,17 +318,20 @@ impl WorktreeStartCommand {
             }
         }
 
-        // 16. Create tmux session
+        // 16. Optionally create tmux session
         let session_name = format!("{}-{}", workspace.name, options.branch_name);
-
-        // Create a session description for the worktree
-        let session = create_tmux_session(
-            options.session_repository,
-            &session_name,
-            &worktree_path,
-            &workspace.id,
-            options.tmux_storage,
-        );
+        let session = if merged_config.tmux {
+            // Create a session description for the worktree
+            create_tmux_session(
+                options.session_repository,
+                &session_name,
+                &worktree_path,
+                &workspace.id,
+                options.tmux_storage,
+            )
+        } else {
+            None
+        };
 
         // 17. If onCreate failed, don't switch to session
         if let Some((failed_cmd, error)) = on_create_failed {
@@ -336,7 +352,12 @@ impl WorktreeStartCommand {
 
         WorktreeStartResult::Success {
             worktree_path: worktree_path.display().to_string(),
-            session_name,
+            session_name: if merged_config.tmux {
+                Some(session_name)
+            } else {
+                None
+            },
+            tmux_enabled: merged_config.tmux,
         }
     }
 }
@@ -431,6 +452,7 @@ mod tests {
             symlink_files: vec![".env.local".to_string()],
             on_create: vec!["pnpm install".to_string()],
             on_destroy: vec![],
+            tmux: None,
         };
 
         let workspace_storage = MockWorkspaceStorage {
@@ -515,6 +537,7 @@ mod tests {
             symlink_files: vec![".env.local".to_string()],
             on_create: vec!["pnpm install".to_string()],
             on_destroy: vec![],
+            tmux: None,
         };
 
         let workspace_storage = MockWorkspaceStorage {
@@ -536,6 +559,7 @@ mod tests {
             symlink_files: vec![".env".to_string(), "config.json".to_string()],
             on_create: vec!["npm ci".to_string()],
             on_destroy: vec![],
+            tmux: None,
         };
 
         // Get workspace config and merge with global
@@ -575,6 +599,7 @@ mod tests {
             symlink_files: vec![".env".to_string()],
             on_create: vec!["npm install".to_string()],
             on_destroy: vec![],
+            tmux: None,
         };
 
         // Merge with no workspace config
@@ -595,6 +620,7 @@ mod tests {
             symlink_files: vec!["package.json".to_string()],
             on_create: vec!["yarn install".to_string()],
             on_destroy: vec![],
+            tmux: None,
         };
 
         let workspace_storage = MockWorkspaceStorage {

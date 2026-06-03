@@ -188,6 +188,7 @@ mod test {
             symlink_files: vec![".env".to_string(), "config.json".to_string()],
             on_create: vec!["npm install".to_string()],
             on_destroy: vec![],
+            tmux: None,
         };
 
         let workspace_storage = MockWorkspaceStorage {

@@ -18,6 +18,10 @@ pub struct WorktreeConfig {
     /// Commands to run when destroying a worktree
     #[serde(default)]
     pub on_destroy: Vec<String>,
+    /// Whether worktree commands should integrate with tmux.
+    /// Defaults to true when omitted.
+    #[serde(default)]
+    pub tmux: Option<bool>,
 }
 
 /// Per-workspace worktree configuration
@@ -36,6 +40,10 @@ pub struct WorkspaceWorktreeConfig {
     /// These are merged with global on_destroy commands
     #[serde(default)]
     pub on_destroy: Vec<String>,
+    /// Whether worktree commands should integrate with tmux.
+    /// Overrides the global worktree setting when present.
+    #[serde(default)]
+    pub tmux: Option<bool>,
 }
 
 #[cfg(test)]
@@ -112,6 +120,7 @@ mod tests {
             symlink_files: vec![".env".to_string()],
             on_create: vec!["npm install".to_string()],
             on_destroy: vec![],
+            tmux: None,
         };
 
         let json = serde_json::to_string(&config).unwrap();
@@ -165,6 +174,28 @@ mod tests {
     }
 
     #[test]
+    fn test_deserialize_worktree_config_with_tmux_disabled() {
+        let json = r#"{
+            "tmux": false
+        }"#;
+
+        let config: WorktreeConfig = serde_json::from_str(json).unwrap();
+
+        assert_eq!(config.tmux, Some(false));
+    }
+
+    #[test]
+    fn test_deserialize_workspace_worktree_config_with_tmux_disabled() {
+        let json = r#"{
+            "tmux": false
+        }"#;
+
+        let config: WorkspaceWorktreeConfig = serde_json::from_str(json).unwrap();
+
+        assert_eq!(config.tmux, Some(false));
+    }
+
+    #[test]
     fn test_on_destroy_defaults_to_empty() {
         let json = r#"{}"#;
 
@@ -181,6 +212,7 @@ mod tests {
             symlink_files: vec![],
             on_create: vec![],
             on_destroy: vec!["npm run cleanup".to_string()],
+            tmux: None,
         };
 
         let json = serde_json::to_string(&config).unwrap();

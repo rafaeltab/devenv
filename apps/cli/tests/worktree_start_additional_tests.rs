@@ -48,6 +48,57 @@ fn test_worktree_start_force_flag_removed() {
 }
 
 #[test]
+fn test_worktree_start_no_tmux_skips_session_creation_and_switch() {
+    let env = TestEnvironment::describe(|root| {
+        root.rafaeltab_config(|_c| {});
+
+        root.test_dir(|td| {
+            td.dir("no_tmux_wt", |d| {
+                d.git("repo", |g| {
+                    g.branch("main", |b| {
+                        b.commit("Initial commit", |c| {
+                            c.file("README.md", "# Test");
+                        });
+                    });
+
+                    g.rafaeltab_workspace("repo", "Repo", |w| {
+                        w.worktree(&[], &[], &[]);
+                    });
+                });
+            });
+        });
+    })
+    .create();
+
+    let repo_dir = env.find_dir("no_tmux_wt").expect("Dir not found");
+    let cmd = CliCommandBuilder::new()
+        .with_env(&env)
+        .with_cwd(repo_dir.path().join("repo"))
+        .args(&["worktree", "start", "agent-branch", "--no-tmux", "--yes"])
+        .build();
+    let result = env.testers().cmd().run(&cmd);
+
+    assert!(
+        result.success,
+        "--no-tmux should not require an attached tmux client. Got: {} {}",
+        result.stdout, result.stderr
+    );
+    assert!(
+        result.stdout.contains("Skipped tmux integration"),
+        "Expected output to mention skipped tmux integration. Got: {}",
+        result.stdout
+    );
+    assert!(
+        repo_dir.path().join("agent-branch").exists(),
+        "worktree path should still be created"
+    );
+    assert!(
+        !env.tmux().session_exists("Repo-agent-branch"),
+        "--no-tmux should not create a tmux session"
+    );
+}
+
+#[test]
 fn test_worktree_start_skip_config_works() {
     let env = TestEnvironment::describe(|root| {
         root.rafaeltab_config(|_c| {});
