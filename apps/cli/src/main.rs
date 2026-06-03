@@ -203,6 +203,10 @@ struct WorktreeStartArgs {
     /// Skip confirmation prompt
     #[arg(short = 'y', long)]
     yes: bool,
+
+    /// Disable tmux integration for this worktree
+    #[arg(long)]
+    no_tmux: bool,
 }
 
 #[derive(Debug, Args)]
@@ -353,6 +357,7 @@ fn main() -> Result<(), io::Error> {
                         branch_name: args.branch_name.clone(),
                         skip_config: args.skip_config,
                         yes: args.yes,
+                        no_tmux: args.no_tmux,
                         workspace_repository,
                         worktree_storage: &storage,
                         session_repository: tmux_repository,

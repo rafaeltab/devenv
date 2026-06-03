@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use crate::storage::worktree::{WorkspaceWorktreeConfig, WorktreeConfig};
 
 /// Merged worktree configuration from global and workspace-specific settings
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct MergedWorktreeConfig {
     /// Combined symlink file patterns (global + workspace)
     pub symlink_files: Vec<String>,
@@ -13,6 +13,19 @@ pub struct MergedWorktreeConfig {
     pub on_create: Vec<String>,
     /// Combined onDestroy commands (global + workspace)
     pub on_destroy: Vec<String>,
+    /// Whether worktree commands should create/switch/kill tmux sessions.
+    pub tmux: bool,
+}
+
+impl Default for MergedWorktreeConfig {
+    fn default() -> Self {
+        Self {
+            symlink_files: Vec::new(),
+            on_create: Vec::new(),
+            on_destroy: Vec::new(),
+            tmux: true,
+        }
+    }
 }
 
 impl MergedWorktreeConfig {
@@ -26,12 +39,16 @@ impl MergedWorktreeConfig {
         let mut symlink_files = Vec::new();
         let mut on_create = Vec::new();
         let mut on_destroy = Vec::new();
+        let mut tmux = true;
 
         // Add global config first
         if let Some(global_config) = global {
             symlink_files.extend(global_config.symlink_files.clone());
             on_create.extend(global_config.on_create.clone());
             on_destroy.extend(global_config.on_destroy.clone());
+            if let Some(global_tmux) = global_config.tmux {
+                tmux = global_tmux;
+            }
         }
 
         // Add workspace-specific config (these come after global)
@@ -52,12 +69,16 @@ impl MergedWorktreeConfig {
                     on_destroy.push(cmd.clone());
                 }
             }
+            if let Some(workspace_tmux) = workspace_config.tmux {
+                tmux = workspace_tmux;
+            }
         }
 
         MergedWorktreeConfig {
             symlink_files,
             on_create,
             on_destroy,
+            tmux,
         }
     }
 
@@ -158,11 +179,13 @@ mod tests {
             symlink_files: vec![".env".to_string()],
             on_create: vec![],
             on_destroy: vec![],
+            tmux: None,
         };
         let workspace = WorkspaceWorktreeConfig {
             symlink_files: vec!["secrets.json".to_string()],
             on_create: vec![],
             on_destroy: vec![],
+            tmux: None,
         };
 
         let result = MergedWorktreeConfig::merge(Some(&global), Some(&workspace));
@@ -176,11 +199,13 @@ mod tests {
             symlink_files: vec![],
             on_create: vec!["npm install".to_string()],
             on_destroy: vec![],
+            tmux: None,
         };
         let workspace = WorkspaceWorktreeConfig {
             symlink_files: vec![],
             on_create: vec!["npm run build".to_string()],
             on_destroy: vec![],
+            tmux: None,
         };
 
         let result = MergedWorktreeConfig::merge(Some(&global), Some(&workspace));
@@ -194,11 +219,13 @@ mod tests {
             symlink_files: vec![".env".to_string(), "config.json".to_string()],
             on_create: vec![],
             on_destroy: vec![],
+            tmux: None,
         };
         let workspace = WorkspaceWorktreeConfig {
             symlink_files: vec![".env".to_string(), "secrets.json".to_string()],
             on_create: vec![],
             on_destroy: vec![],
+            tmux: None,
         };
 
         let result = MergedWorktreeConfig::merge(Some(&global), Some(&workspace));
@@ -215,6 +242,7 @@ mod tests {
             symlink_files: vec![".env".to_string()],
             on_create: vec!["npm install".to_string()],
             on_destroy: vec![],
+            tmux: None,
         };
 
         let result = MergedWorktreeConfig::merge(None, Some(&workspace));
@@ -229,6 +257,7 @@ mod tests {
             symlink_files: vec![".env".to_string()],
             on_create: vec!["npm install".to_string()],
             on_destroy: vec![],
+            tmux: None,
         };
 
         let result = MergedWorktreeConfig::merge(Some(&global), None);
@@ -253,11 +282,13 @@ mod tests {
             symlink_files: vec![],
             on_create: vec![],
             on_destroy: vec!["npm run cleanup".to_string()],
+            tmux: None,
         };
         let workspace = WorkspaceWorktreeConfig {
             symlink_files: vec![],
             on_create: vec![],
             on_destroy: vec!["rm -rf node_modules".to_string()],
+            tmux: None,
         };
 
         let result = MergedWorktreeConfig::merge(Some(&global), Some(&workspace));
@@ -274,11 +305,13 @@ mod tests {
             symlink_files: vec![],
             on_create: vec![],
             on_destroy: vec!["npm run cleanup".to_string(), "rm temp".to_string()],
+            tmux: None,
         };
         let workspace = WorkspaceWorktreeConfig {
             symlink_files: vec![],
             on_create: vec![],
             on_destroy: vec!["npm run cleanup".to_string(), "rm logs".to_string()],
+            tmux: None,
         };
 
         let result = MergedWorktreeConfig::merge(Some(&global), Some(&workspace));
@@ -290,11 +323,39 @@ mod tests {
     }
 
     #[test]
+    fn test_merge_configs_workspace_tmux_overrides_global() {
+        let global = WorktreeConfig {
+            symlink_files: vec![],
+            on_create: vec![],
+            on_destroy: vec![],
+            tmux: Some(true),
+        };
+        let workspace = WorkspaceWorktreeConfig {
+            symlink_files: vec![],
+            on_create: vec![],
+            on_destroy: vec![],
+            tmux: Some(false),
+        };
+
+        let result = MergedWorktreeConfig::merge(Some(&global), Some(&workspace));
+
+        assert!(!result.tmux);
+    }
+
+    #[test]
+    fn test_merge_configs_defaults_tmux_to_enabled() {
+        let result = MergedWorktreeConfig::merge(None, None);
+
+        assert!(result.tmux);
+    }
+
+    #[test]
     fn test_merge_configs_on_destroy_no_global() {
         let workspace = WorkspaceWorktreeConfig {
             symlink_files: vec![],
             on_create: vec![],
             on_destroy: vec!["rm -rf dist".to_string()],
+            tmux: None,
         };
 
         let result = MergedWorktreeConfig::merge(None, Some(&workspace));
@@ -308,6 +369,7 @@ mod tests {
             symlink_files: vec![],
             on_create: vec![],
             on_destroy: vec!["npm run cleanup".to_string()],
+            tmux: None,
         };
 
         let result = MergedWorktreeConfig::merge(Some(&global), None);
@@ -321,6 +383,7 @@ mod tests {
             symlink_files: vec![],
             on_create: vec![],
             on_destroy: vec!["npm run cleanup".to_string()],
+            tmux: true,
         };
         assert!(!config.is_empty());
     }
@@ -385,6 +448,7 @@ mod tests {
             symlink_files: vec![".env".to_string()],
             on_create: vec![],
             on_destroy: vec![],
+            tmux: true,
         };
         assert!(!config.is_empty());
     }
@@ -395,6 +459,7 @@ mod tests {
             symlink_files: vec![],
             on_create: vec!["npm install".to_string()],
             on_destroy: vec![],
+            tmux: true,
         };
         assert!(!config.is_empty());
     }

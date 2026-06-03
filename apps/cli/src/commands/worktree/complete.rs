@@ -217,7 +217,11 @@ impl WorktreeCompleteCommand {
 
         // ===== PHASE 2: DETERMINE EXECUTION FLOW =====
 
-        let current_session = get_current_tmux_session();
+        let current_session = if merged_config.tmux {
+            get_current_tmux_session()
+        } else {
+            None
+        };
         let target_session_name = calculate_worktree_session_name(workspace, &branch_name);
         let is_self_deletion = current_session.as_ref() == Some(&target_session_name);
 
@@ -468,15 +472,20 @@ fn execute_cleanup_directly(
     let should_switch_client = current_dir.starts_with(worktree_path);
 
     // 4. If we're in the worktree being deleted, switch client first
-    if should_switch_client && let Some(ws) = workspace {
+    if merged_config.tmux
+        && should_switch_client
+        && let Some(ws) = workspace
+    {
         switch_to_main_workspace_session(session_repository, client_repository, &ws.name);
         println!("Switched to main workspace session");
     }
 
-    // 5. Kill the worktree's tmux session
-    let session_name = calculate_worktree_session_name(workspace, branch_name);
-    kill_session_by_name(session_repository, &session_name);
-    println!("Closed tmux session: {}", session_name);
+    // 5. Kill the worktree's tmux session when tmux integration is enabled
+    if merged_config.tmux {
+        let session_name = calculate_worktree_session_name(workspace, branch_name);
+        kill_session_by_name(session_repository, &session_name);
+        println!("Closed tmux session: {}", session_name);
+    }
 
     // 6. Change directory away from worktree if needed
     if current_dir.starts_with(worktree_path)
