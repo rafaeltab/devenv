@@ -74,7 +74,28 @@ impl TuiTester for TmuxFullClientTester<'_> {
 
         let full_cmd = cmd_parts.join("; ");
 
-        // Send the command to the active pane via tmux send-keys
+        // Start reading from the client's PTY before injecting the command so the
+        // full-client asserter captures tmux redraws/status-bar updates as well as
+        // command output. If we send first, short commands can complete before the
+        // reader is active and the captured screen may miss the tmux UI.
+        let reader = self
+            .client
+            .try_clone_reader()
+            .expect("Failed to get PTY reader");
+        let writer = self.client.take_writer().expect("Failed to get PTY writer");
+        let (rows, cols) = self.client.pty_size();
+
+        let asserter = FullClientAsserter::new(
+            reader,
+            writer,
+            rows,
+            cols,
+            self.settle_timeout_ms,
+            self.socket.clone(),
+            self.client.session_name().to_string(),
+        );
+
+        // Send the command to the active pane via tmux send-keys.
         self.socket
             .run_tmux(&[
                 "send-keys",
@@ -85,24 +106,6 @@ impl TuiTester for TmuxFullClientTester<'_> {
             ])
             .expect("Failed to send command to tmux pane");
 
-        // Get reader and writer from the client's PTY
-        let reader = self
-            .client
-            .try_clone_reader()
-            .expect("Failed to get PTY reader");
-        let writer = self.client.take_writer().expect("Failed to get PTY writer");
-
-        let (rows, cols) = self.client.pty_size();
-
-        // Create and return the asserter
-        FullClientAsserter::new(
-            reader,
-            writer,
-            rows,
-            cols,
-            self.settle_timeout_ms,
-            self.socket.clone(),
-            self.client.session_name().to_string(),
-        )
+        asserter
     }
 }

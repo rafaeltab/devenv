@@ -233,18 +233,15 @@ where
                                 selected_idx = 0;
                             }
                         }
-                        KeyCode::Char(ch) => {
-                            // Add printable characters
+                        KeyCode::Char(ch)
                             if !modifiers.contains(KeyModifiers::CONTROL)
                                 && !modifiers.contains(KeyModifiers::ALT)
-                            {
-                                // Ignore wide control combinations
-                                if ch.width().unwrap() > 0 {
-                                    query.push(ch);
-                                    filtered = rebuild_filtered(&owned, &query);
-                                    selected_idx = 0;
-                                }
-                            }
+                                && ch.width().unwrap() > 0 =>
+                        {
+                            // Add printable characters and ignore zero-width/control combinations.
+                            query.push(ch);
+                            filtered = rebuild_filtered(&owned, &query);
+                            selected_idx = 0;
                         }
                         _ => {}
                     }

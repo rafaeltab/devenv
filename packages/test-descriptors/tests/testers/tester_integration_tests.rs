@@ -124,11 +124,11 @@ fn multi_screen_interaction() {
         clear
         echo "Screen 1: Welcome"
         echo "Press Enter to continue..."
-        read
+        read _
         clear
         echo "Screen 2: Setup"
         echo "Press Enter to continue..."
-        read
+        read _
         clear
         echo "Screen 3: Done!"
         "#,

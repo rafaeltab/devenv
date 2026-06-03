@@ -90,6 +90,12 @@ impl Descriptor for TmuxSessionDescriptor {
             }
         }
 
+        // Make the session name reliably visible in the status bar for full-client
+        // tests. The default status line can truncate names in narrow PTYs.
+        socket.run_tmux(&["set-option", "-g", "status-left", "[#S]"])?;
+        socket.run_tmux(&["set-option", "-g", "status-left-length", "64"])?;
+        socket.run_tmux(&["set-option", "-g", "status-right", ""])?;
+
         // Register the session in context
         let session_info = TmuxSessionInfo {
             name: self.name.clone(),

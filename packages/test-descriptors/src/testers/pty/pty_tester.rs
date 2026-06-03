@@ -75,10 +75,19 @@ impl TuiTester for PtyTester {
             pty_cmd.arg(arg);
         }
 
-        // Preserve PATH so the command can find executables
+        // Preserve PATH so the command can find executables.
         if let Ok(path) = std::env::var("PATH") {
             pty_cmd.env("PATH", path);
         }
+
+        // Provide a terminal type for commands that rely on terminfo (e.g. `tput`
+        // and `clear`). `portable_pty::CommandBuilder` does not inherit the
+        // parent environment by default, so without TERM those commands emit
+        // errors instead of terminal control sequences.
+        pty_cmd.env(
+            "TERM",
+            std::env::var("TERM").unwrap_or_else(|_| "xterm-256color".to_string()),
+        );
 
         for (key, value) in cmd.build_env() {
             pty_cmd.env(key, value);
