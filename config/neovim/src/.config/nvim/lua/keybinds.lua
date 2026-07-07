@@ -33,6 +33,14 @@ OnLoad:add(function()
   vim.keymap.set({ 'n', 'x' }, '<leader>v', '<c-q>')
 
   vim.keymap.set({ 'n' }, '<leader>w', ':w<CR>', { desc = "Save the current file" })
+  vim.keymap.set('n', '<leader>nd', function()
+    pcall(vim.cmd, 'Noice dismiss')
+
+    local ok, notify = pcall(require, 'notify')
+    if ok then
+      notify.dismiss({ silent = true, pending = true })
+    end
+  end, { desc = "Dismiss notifications" })
 
   -- exit terminal mode
   vim.keymap.set({ 't' }, '<Esc>', '<C-\\><C-n>')
