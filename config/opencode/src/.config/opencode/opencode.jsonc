@@ -10,6 +10,8 @@
       "git status*": "allow",
       "git show*": "allow",
       "git branch --show-current": "allow",
+      "git worktree list*": "allow",
+      "git ls-files*": "allow",
       "grep*": "allow",
       "find*": "allow",
       "mkdir*": "allow",
@@ -48,6 +50,7 @@
       "az bicep build*": "allow",
       "az bicep build-params*": "allow",
       "dotnet list*": "allow",
+      "npx skills list*": "allow",
     },
   },
   "agent": {
