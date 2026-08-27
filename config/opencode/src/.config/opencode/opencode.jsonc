@@ -1,6 +1,18 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["@devtheops/opencode-plugin-otel"],
+  "plugin": [
+    ["otel@https://github.com/zero-two-rafaeltab/opencode-plugin-otel/archive/f7a482309a94b4727e2a3da5db849cbe5bccbf09.tar.gz", {
+      "enabled": true,
+      "endpoint": "https://otlp.homelab1.local.rafaeltab.com",
+      "protocol": "http/protobuf",
+      "otlpHeadersHelper": "/home/rafaeltab/.local/bin/opencode-otel-headers",
+      "resourceAttributes": "service.name=opencode,deployment.environment.name=homelab",
+      // The plugin places prompt content in trace attributes. Keep traces off until
+      // it supports metadata-only traces; metrics and prompt-free logs stay enabled.
+      "capturePromptInLogs": false,
+      "disabledTraces": ["all"],
+    }],
+  ],
   "autoupdate": true,
   "permission": {
     "bash": {

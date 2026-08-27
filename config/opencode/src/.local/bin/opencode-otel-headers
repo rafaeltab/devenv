@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+encoded="$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/opencode/otel-basic-auth")"
+printf '{"Authorization":"Basic %s"}\n' "$encoded"
