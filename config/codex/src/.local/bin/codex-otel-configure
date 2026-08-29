@@ -1,0 +1,239 @@
+#!/usr/bin/env python3
+"""Materialize credential-bearing Codex OTEL config from a host-local secret."""
+
+from __future__ import annotations
+
+import argparse
+import base64
+import binascii
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
+
+START = "# >>> devenv managed Codex telemetry >>>"
+END = "# <<< devenv managed Codex telemetry <<<"
+DEFAULT_ENDPOINT = "https://otlp.homelab1.local.rafaeltab.com"
+CONFLICTING_SECTION = re.compile(r"(?m)^\s*\[(analytics|otel(?:\.[^\]]+)?)\]\s*(?:#.*)?$")
+
+
+class ConfigError(RuntimeError):
+    pass
+
+
+def paths() -> tuple[Path, Path]:
+    home = Path.home()
+    codex_home = Path(os.environ.get("CODEX_HOME", home / ".codex")).expanduser()
+    state_home = Path(os.environ.get("XDG_STATE_HOME", home / ".local/state")).expanduser()
+    secret = Path(
+        os.environ.get("CODEX_OTEL_AUTH_FILE", state_home / "opencode/otel-basic-auth")
+    ).expanduser()
+    return codex_home / "config.toml", secret
+
+
+def read_secret(path: Path) -> str:
+    try:
+        mode = stat.S_IMODE(path.stat().st_mode)
+    except FileNotFoundError as exc:
+        raise ConfigError(f"missing OTEL credential: {path}") from exc
+    if mode & 0o077:
+        raise ConfigError(f"OTEL credential must not be group/world-accessible: {path} (mode {mode:o})")
+    encoded = path.read_text(encoding="utf-8").strip()
+    if not encoded or any(ch.isspace() for ch in encoded):
+        raise ConfigError(f"OTEL credential is empty or contains whitespace: {path}")
+    try:
+        base64.b64decode(encoded, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise ConfigError(f"OTEL credential is not valid base64: {path}") from exc
+    return encoded
+
+
+def remove_managed_block(text: str) -> str:
+    starts = text.count(START)
+    ends = text.count(END)
+    if starts != ends or starts > 1:
+        raise ConfigError("config.toml has malformed Codex telemetry management markers")
+    if starts == 0:
+        return text
+    before, remainder = text.split(START, 1)
+    _, after = remainder.split(END, 1)
+    return (before.rstrip() + "\n\n" + after.lstrip()).strip()
+
+
+def validate_endpoint(endpoint: str) -> None:
+    parsed = urlparse(endpoint)
+    if parsed.scheme == "https" and parsed.hostname:
+        return
+    if parsed.scheme == "http" and parsed.hostname in {"127.0.0.1", "localhost", "::1"}:
+        return
+    raise ConfigError("OTLP endpoint must use HTTPS (plain HTTP is allowed only on loopback)")
+
+
+def render_block(encoded: str, endpoint: str) -> str:
+    validate_endpoint(endpoint)
+    endpoint = endpoint.rstrip("/")
+    authorization = json.dumps(f"Basic {encoded}")
+    traces = json.dumps(f"{endpoint}/v1/traces")
+    metrics = json.dumps(f"{endpoint}/v1/metrics")
+    return f"""{START}
+[analytics]
+enabled = true
+
+[otel]
+environment = "homelab"
+exporter = "none"
+trace_exporter = {{ otlp-http = {{ endpoint = {traces}, protocol = "binary", headers = {{ Authorization = {authorization} }} }} }}
+metrics_exporter = {{ otlp-http = {{ endpoint = {metrics}, protocol = "binary", headers = {{ Authorization = {authorization} }} }} }}
+log_user_prompt = false
+
+[otel.span_attributes]
+"deployment.environment.name" = "homelab"
+"service.namespace" = "developer-tools"
+{END}"""
+
+
+def build_config(current: str, encoded: str, endpoint: str) -> str:
+    unmanaged = remove_managed_block(current)
+    conflict = CONFLICTING_SECTION.search(unmanaged)
+    if conflict:
+        raise ConfigError(
+            f"refusing to overwrite unmanaged [{conflict.group(1)}] configuration; "
+            "remove or migrate that section first"
+        )
+    parts = [part for part in (unmanaged.strip(), render_block(encoded, endpoint)) if part]
+    return "\n\n".join(parts) + "\n"
+
+
+def atomic_write(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(path.parent, 0o700)
+    fd, temporary = tempfile.mkstemp(prefix=".config.toml.", dir=path.parent, text=True)
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    except Exception:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def validate_with_codex(encoded: str) -> None:
+    codex = shutil.which("codex")
+    if not codex:
+        raise ConfigError("codex is not on PATH; install Codex CLI before validation")
+    result = subprocess.run(
+        [codex, "features", "list"],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    if result.returncode:
+        detail = result.stderr.strip().splitlines()[-1] if result.stderr.strip() else "unknown error"
+        detail = detail.replace(encoded, "[REDACTED]")
+        raise ConfigError(f"Codex rejected config.toml: {detail}")
+
+
+def install_and_validate(path: Path, candidate: str, encoded: str) -> None:
+    existed = path.exists()
+    previous = path.read_text(encoding="utf-8") if existed else ""
+    previous_mode = stat.S_IMODE(path.stat().st_mode) if existed else None
+    atomic_write(path, candidate)
+    try:
+        validate_with_codex(encoded)
+    except Exception:
+        if existed:
+            atomic_write(path, previous)
+            if previous_mode is not None:
+                os.chmod(path, previous_mode)
+        else:
+            path.unlink(missing_ok=True)
+        raise
+
+
+def verify_ingress(encoded: str, endpoint: str) -> None:
+    validate_endpoint(endpoint)
+    headers = {
+        "Authorization": f"Basic {encoded}",
+        "Content-Type": "application/x-protobuf",
+    }
+    for signal in ("metrics", "traces"):
+        url = f"{endpoint.rstrip('/')}/v1/{signal}"
+        request = Request(url, data=b"", method="POST", headers=headers)
+        try:
+            with urlopen(request, timeout=15) as response:
+                if response.status < 200 or response.status >= 300:
+                    raise ConfigError(f"{signal} ingress returned HTTP {response.status}")
+        except HTTPError as exc:
+            raise ConfigError(f"{signal} ingress returned HTTP {exc.code}") from exc
+        except URLError as exc:
+            raise ConfigError(f"cannot reach {signal} ingress at {url}: {exc.reason}") from exc
+
+
+def check_config(path: Path, encoded: str, endpoint: str, network: bool) -> None:
+    try:
+        mode = stat.S_IMODE(path.stat().st_mode)
+    except FileNotFoundError as exc:
+        raise ConfigError(f"missing Codex config: {path}; run apply first") from exc
+    if mode != 0o600:
+        raise ConfigError(f"Codex config must have mode 600: {path} (mode {mode:o})")
+    text = path.read_text(encoding="utf-8")
+    expected = render_block(encoded, endpoint)
+    if expected not in text:
+        raise ConfigError("Codex config does not contain the current managed telemetry block")
+    validate_with_codex(encoded)
+    if network:
+        verify_ingress(encoded, endpoint)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("command", nargs="?", choices=("apply", "check"), default="apply")
+    parser.add_argument(
+        "--endpoint",
+        default=os.environ.get("CODEX_OTEL_ENDPOINT", DEFAULT_ENDPOINT),
+        help="OTLP base URL (default: %(default)s)",
+    )
+    parser.add_argument("--dry-run", action="store_true", help="print a redacted candidate config")
+    parser.add_argument("--no-network", action="store_true", help="skip authenticated ingress probes during check")
+    args = parser.parse_args()
+
+    config_path, secret_path = paths()
+    try:
+        encoded = read_secret(secret_path)
+        if args.command == "apply":
+            current = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
+            candidate = build_config(current, encoded, args.endpoint)
+            if args.dry_run:
+                print(candidate.replace(encoded, "[REDACTED]"), end="")
+                return 0
+            install_and_validate(config_path, candidate, encoded)
+            print(f"Configured Codex metrics and traces in {config_path} (mode 600).")
+            print("Structured OTEL logs remain disabled; user prompts are not exported.")
+        else:
+            check_config(config_path, encoded, args.endpoint, network=not args.no_network)
+            detail = "config, Codex parsing, and authenticated ingress" if not args.no_network else "config and Codex parsing"
+            print(f"Codex OTEL check passed: {detail}.")
+        return 0
+    except ConfigError as exc:
+        print(f"codex-otel-configure: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

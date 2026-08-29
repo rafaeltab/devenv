@@ -1,0 +1,9 @@
+{
+  "name": "@rafaeltab-devenv/codex-config",
+  "version": "0.0.0",
+  "scripts": {
+    "activate": "stow -t ~ -S -d ./src . && chmod 755 ~/.local/bin/codex-otel-configure",
+    "lint": "python3 -m py_compile src/.local/bin/codex-otel-configure test_configure.py",
+    "test": "python3 -m unittest -v test_configure.py"
+  }
+}

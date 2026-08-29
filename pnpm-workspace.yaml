@@ -13,3 +13,4 @@ packages:
   - config/ideavim
   - config/zsh
   - config/opencode
+  - config/codex
