@@ -19,6 +19,8 @@ importers:
 
   apps/cli: {}
 
+  config/codex: {}
+
   config/ideavim: {}
 
   config/neovim: {}
