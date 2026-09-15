@@ -336,6 +336,15 @@
       "pluginName": "mattpocock-skills",
       "installedAt": "2026-07-09T09:34:44.679Z",
       "updatedAt": "2026-07-09T09:34:44.679Z"
+    },
+    "unslop": {
+      "source": "michaelshimeles/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/michaelshimeles/skills.git",
+      "skillPath": "unslop/SKILL.md",
+      "skillFolderHash": "3c96af0b42331df943aa2ca3ec45a9938531c921",
+      "installedAt": "2026-09-15T03:47:46.363Z",
+      "updatedAt": "2026-09-15T03:47:46.363Z"
     }
   },
   "dismissed": {
