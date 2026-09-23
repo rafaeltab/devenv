@@ -156,3 +156,6 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # opencode
 export PATH=/Users/rafaelbieze/.opencode/bin:$PATH
+
+# Vite+ bin (https://viteplus.dev)
+. "/home/rafaeltab/.config/vite-plus/env"
