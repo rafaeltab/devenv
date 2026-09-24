@@ -7,93 +7,21 @@
       "protocol": "http/protobuf",
       "otlpHeadersHelper": "/home/rafaeltab/.local/bin/opencode-otel-headers",
       "resourceAttributes": "service.name=opencode,deployment.environment.name=homelab",
-      // Traces stay off until the plugin supports metadata-only traces;
-      // capture prompt content in logs as requested.
+      // Traces are intentionally enabled for durable session history. The current
+      // plugin includes prompt content in trace input.value attributes.
       "capturePromptInLogs": true,
-      "disabledTraces": ["all"],
+      "disabledTraces": [],
     }],
   ],
   "autoupdate": true,
-  "permission": {
-    "bash": {
-      "*": "ask",
-      "git diff*": "allow",
-      "git log*": "allow",
-      "git status*": "allow",
-      "git show*": "allow",
-      "git branch --show-current": "allow",
-      "git worktree list*": "allow",
-      "git ls-files*": "allow",
-      "grep*": "allow",
-      "find*": "allow",
-      "mkdir*": "allow",
-      "tee*": "ask",
-      "cat*": "allow",
-      "ls*": "allow",
-      "make*": "allow",
-      "pwd*": "allow",
-      "head*": "allow",
-      "tail*": "allow",
-      "sort*": "allow",
-      "rg*": "allow",
-      "wc*": "allow",
-      "jq*": "allow",
-      "cd*": "allow",
-      "cargo check*": "allow",
-      "cargo build*": "allow",
-      "cargo test*": "allow",
-      "cargo doc*": "allow",
-      "cargo expand*": "allow",
-      "tree*": "allow",
-      "xargs grep*": "allow",
-      "uniq*": "allow",
-      "man*": "allow",
-      "printf*": "allow",
-      "hexdump*": "allow",
-      "turbo*": "allow",
-      "node*": "allow",
-      "rm*": "allow",
-      "echo*": "allow",
-      "docker*": "allow",
-      "dotnet test*": "allow",
-      "dotnet build*": "allow",
-      "git remote -v": "allow",
-      "git ls-tree*": "allow",
-      "az bicep build*": "allow",
-      "az bicep build-params*": "allow",
-      "dotnet list*": "allow",
-      "npx skills list*": "allow",
-    },
-  },
-  "agent": {
-    "explore": {
-      "permission": {
-        "bash": {
-          // The agent sometimes tries to use these to write files
-          "cat*": "deny",
-          "echo*": "deny",
-        },
-        "read": "allow",
-      },
-    },
-    "build": {
-      "permission": {
-        "bash": {
-          "sed": "allow",
-          "mkdir*": "allow",
-        },
-      },
-    },
-    "plan": {
-      "permission": {
-        "edit": {
-          "*": "deny",
-          "plans/*": "allow",
-          "plans/**": "allow",
-        },
-      },
-    },
-  },
+
+  // Temporary workaround for pingdotgg/t3code#2778: T3 Code applies Full access
+  // to the parent OpenCode session, but native subagents can inherit this global
+  // policy and otherwise pause on permission prompts that T3 does not display.
+  // Remove this override after T3 propagates runtime permissions to child sessions.
+  // Agent-specific permission overrides are intentionally omitted because they take
+  // precedence over this global rule and would make Full access incomplete.
+  "permission": "allow",
   "mcp": {
     "vibe_kanban": {
       "type": "local",
