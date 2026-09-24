@@ -7,9 +7,9 @@
       "protocol": "http/protobuf",
       "otlpHeadersHelper": "/home/rafaeltab/.local/bin/opencode-otel-headers",
       "resourceAttributes": "service.name=opencode,deployment.environment.name=homelab",
-      // The plugin places prompt content in trace attributes. Keep traces off until
-      // it supports metadata-only traces; metrics and prompt-free logs stay enabled.
-      "capturePromptInLogs": false,
+      // Traces stay off until the plugin supports metadata-only traces;
+      // capture prompt content in logs as requested.
+      "capturePromptInLogs": true,
       "disabledTraces": ["all"],
     }],
   ],
